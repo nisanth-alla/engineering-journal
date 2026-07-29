@@ -1,6 +1,8 @@
 ---
 title: Things that surprised me
 description: A running collection of moments where Go did something I didn't expect, coming from TypeScript.
+sidebar:
+  order: 4
 ---
 
 This is a grab bag. Some of these are "nice surprises," some are "what on earth," and some are things that felt wrong at first but turned out to be intentional design choices that I now appreciate.
@@ -153,4 +155,4 @@ Coming from TypeScript where `tsc --noEmit` on a medium project takes 5-10 secon
 
 Three weeks in, Go feels like a language that trusts you to write simple code and doesn't offer you escape hatches into complexity. There's usually one obvious way to do something, and it's not the clever way, it's the straightforward way.
 
-That's a different vibe from TypeScript, where the type system invites you to build elaborate generic abstractions and the ecosystem offers twelve ways to solve every problem. Both approaches have merit. But for the systems and concurrency work I'm doing in the lab, Go's simplicity is a genuine advantage. Less time deciding how to structure code means more time understanding the distributed systems problem I'm actually trying to solve.
+That's a different vibe from TypeScript, where the type system invites you to build elaborate generic abstractions and the ecosystem offers twelve ways to solve every problem. I'm not sure I'd want to build a complex domain model in Go (the lack of sum types hurts there). But for the worker pool, the service registry, and the kind of infrastructure code I'm writing in the lab, I haven't missed TypeScript once.

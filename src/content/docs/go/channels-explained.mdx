@@ -1,6 +1,8 @@
 ---
 title: Channels explained
 description: How Go channels work, taught through the worker pool I actually built. Real code, real output, real mistakes.
+sidebar:
+  order: 3
 ---
 
 Channels are Go's answer to the question "how do goroutines talk to each other?"
@@ -197,6 +199,6 @@ Using a channel where a mutex fits (or vice versa) works but feels awkward. If I
 
 ## The key insight
 
-Channels aren't just a concurrency primitive. They're a design tool. They force you to think about data flow: who produces data, who consumes it, and how many items can be in flight at once. That thinking naturally leads to well-structured concurrent programs.
+Channels aren't just a concurrency primitive. They're a design tool. They force you to think about data flow: who produces data, who consumes it, and how many items can be in flight at once.
 
-In Node, I never thought about data flow explicitly because the event loop handles it implicitly. In Go, channels make it visible. That visibility is what makes Go programs easier to reason about as concurrency increases, even though they're harder to write initially.
+I didn't think about data flow this explicitly in Node. The event loop handles it all behind the scenes, which is convenient until you need to control it. Channels put the flow in front of you. That took some getting used to, but once the worker pool was wired up, I could trace every task from producer to worker to collector just by following the channel types. Try doing that with a `Promise.all` over a shared array.
