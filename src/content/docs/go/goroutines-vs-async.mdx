@@ -1,0 +1,113 @@
+---
+title: Goroutines vs async/await
+description: The mental model shift from Node's event loop to Go's goroutines, explained through the problems each one solves.
+---
+
+This was the hardest conceptual shift for me. Not the syntax (Go's syntax is straightforward), but the underlying model of how concurrent work happens.
+
+## How Node thinks about concurrency
+
+In Node, there's one thread. One call stack. One thing executing at any given moment.
+
+When you write `await fetch(url)`, Node doesn't create a second thread to do the HTTP request. Instead, it hands the request to the operating system (or libuv), goes back to the event loop, picks up other work, and comes back to your function when the response arrives.
+
+This works brilliantly for I/O-bound work. A Node server handling 10,000 concurrent HTTP requests doesn't need 10,000 threads. It needs one thread and a fast event loop. Each request spends most of its time waiting on database queries or external APIs, and Node fills those waiting gaps with other requests.
+
+```typescript
+// Node: looks sequential, runs concurrently via the event loop
+const user = await db.getUser(id);        // yields to event loop while waiting
+const orders = await db.getOrders(user);   // yields again
+return { user, orders };
+```
+
+The catch: if any step does actual CPU work (parsing a huge JSON blob, image processing, heavy computation), it blocks the event loop. Nothing else runs until it finishes. That one slow function takes down every concurrent request.
+
+## How Go thinks about concurrency
+
+Go has no event loop. Instead, it has goroutines: lightweight functions that run concurrently, scheduled by the Go runtime across a pool of OS threads.
+
+When you write `go doSomething()`, Go creates a goroutine (about 2KB of initial stack) and schedules it. The runtime decides which OS thread it runs on. If the goroutine blocks on I/O, the runtime parks it and runs another goroutine on that thread. If the goroutine does CPU work, it genuinely runs in parallel on a separate core.
+
+```go
+// Go: actually runs in parallel if you have multiple cores
+go processFile("data1.csv")   // starts a goroutine
+go processFile("data2.csv")   // starts another one
+go processFile("data3.csv")   // and another
+// All three are running simultaneously, not taking turns
+```
+
+The difference is real parallelism vs cooperative concurrency. Node's concurrency is cooperative: functions voluntarily yield at await points. Go's concurrency is preemptive: the runtime can pause a goroutine and run another one, even if the first one didn't ask to yield.
+
+## The analogy that helped me
+
+Think of a restaurant kitchen.
+
+**Node is a kitchen with one chef.** The chef is incredibly fast. When they put something in the oven (I/O wait), they immediately start prepping the next dish. They never stand idle. But they can only physically chop one thing at a time. If a dish requires 10 minutes of continuous chopping (CPU work), every other order waits.
+
+**Go is a kitchen with many cooks.** Each cook (goroutine) handles one order. They share the stoves and ovens (OS threads), but the kitchen manager (the Go scheduler) makes sure no stove sits idle. If one cook is waiting for the oven, another cook uses that stove. And if a dish needs heavy chopping, one cook handles it while the others keep working.
+
+## Where this showed up in my experiment
+
+In the [worker pool experiment](https://github.com/nisanth-alla/distributed-systems-lab/tree/main/experiments/go/worker-pool), I process 100 simulated files. Each one takes 50 to 300 milliseconds.
+
+With 1 goroutine (sequential), 50 tasks took about 10 seconds. With 8 goroutines, the same 50 tasks took about 1.4 seconds. That's a real 7x speedup, not a scheduling trick.
+
+In Node, I could achieve something similar with `Promise.all()` if the work is I/O-bound (each task is a network call or file read). But if the work is CPU-bound (parsing, transforming, compressing), `Promise.all()` still runs on one thread. The total time barely changes.
+
+```typescript
+// Node: this helps with I/O work, not CPU work
+const results = await Promise.all(
+  files.map(f => processFile(f))  // all start concurrently
+);
+// If processFile is mostly I/O, this is fast.
+// If processFile is mostly CPU, this is still sequential.
+```
+
+```go
+// Go: this helps with both I/O and CPU work
+for _, file := range files {
+    go func(f string) {
+        result := processFile(f)  // runs on its own goroutine
+        results <- result          // sends result through a channel
+    }(file)
+}
+// If processFile is CPU-heavy, each goroutine runs on a different core.
+```
+
+## The three things I had to unlearn
+
+### 1. "Concurrent means one thing at a time, just interleaved"
+
+In Node, that's true. `Promise.all` doesn't run things in parallel. It starts them all and the event loop interleaves their I/O waits. In Go, goroutines can genuinely run on different CPU cores simultaneously. When I first saw my worker pool using 400% CPU (4 cores fully utilized), it clicked.
+
+### 2. "I need to manually manage async flow"
+
+In Node, you carefully structure your async code: `await` this, `then` that, `Promise.all` for parallel. In Go, you just start goroutines and use channels to coordinate. There's no async/await syntax because there's no distinction between "sync" and "async" functions. Every function can be launched as a goroutine.
+
+### 3. "Shared state needs locks"
+
+Actually, I had to *learn* this one, not unlearn it. In Node, shared state is safe because there's one thread. Two request handlers can read and write the same object without locks because they never execute simultaneously.
+
+In Go, two goroutines can genuinely run at the same time on different cores. If they both write to the same variable, you get a data race. Go has a race detector (`go run -race`) that catches this at runtime. The first time it flagged my code, I realized I'd been spoiled by Node's single-thread safety.
+
+## When I'd still pick Node's model
+
+Node's event loop is perfect when:
+
+- Most of the work is I/O (HTTP calls, database queries, file reads)
+- You don't need true CPU parallelism
+- You want a simpler mental model for the team (no races, no locks)
+- The ecosystem matters more than the concurrency model (npm has packages for everything)
+
+Go's goroutines are better when:
+
+- You need true parallelism across CPU cores
+- You're building infrastructure that handles thousands of concurrent operations
+- The work mix includes both I/O and CPU processing
+- You want the concurrency primitives built into the language, not bolted on
+
+## The honest summary
+
+The event loop is elegant. I still think it's one of the best concurrency models for web application code. But it has a ceiling, and once you hit it, the escape hatches (worker_threads, clustering) are clunky.
+
+Goroutines don't have that ceiling. The trade-off is that you have to think about shared state and synchronization, which Node mostly lets you ignore. That trade-off is worth it for the kind of systems work I'm doing in the lab.

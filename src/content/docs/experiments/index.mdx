@@ -1,0 +1,82 @@
+---
+title: Experiments
+description: Runnable distributed systems experiments. Each one isolates a real problem, builds a solution, breaks it, and documents what happened.
+---
+
+Each experiment in the [distributed-systems-lab](https://github.com/nisanth-alla/distributed-systems-lab) solves a different real-world problem. No two experiments overlap, and the language is chosen based on what fits the problem, not for the sake of variety.
+
+## Active experiments
+
+### Rate Limiter (TypeScript)
+
+**Problem:** Your API is getting hammered. You need to protect it without blocking legitimate users.
+
+**What it builds:** Two rate limiting algorithms (token bucket and sliding window) behind a switchable middleware. Includes load test scripts that send burst and sustained traffic so you can watch the algorithms behave differently under the same load.
+
+**What's interesting:** The burst test is where the strategies diverge. Token bucket allows the first 10 requests instantly (the bucket was full), then throttles. Sliding window is stricter because it accounts for the previous window's traffic. Same total limit, different behavior under spikes.
+
+**Try it:**
+```bash
+cd experiments/ts && npm install
+npm run rate-limiter:dev
+npm run rate-limiter:burst        # 50 concurrent requests
+npm run rate-limiter:sustained    # 3 req/sec for 30 seconds
+```
+
+[View code on GitHub](https://github.com/nisanth-alla/distributed-systems-lab/tree/main/experiments/ts/rate-limiter)
+
+---
+
+### Event-Driven Order Pipeline (TypeScript)
+
+**Problem:** A customer places an order. Payment, inventory, shipping, and notification need to happen in sequence. What happens when shipping fails after payment already went through?
+
+**What it builds:** A saga orchestrator that runs four stages forward and compensates in reverse on failure. Payment gets charged, inventory gets reserved, then shipping fails. The orchestrator refunds the payment and releases the inventory hold, in the correct order.
+
+**What's interesting:** The compensation order matters. You cancel the shipment before releasing inventory (otherwise the carrier might pick up unreserved items). You release inventory before refunding payment (otherwise you have unreserved items paid for by nobody). Getting this wrong creates real data inconsistencies.
+
+**Try it:**
+```bash
+npm run order-pipeline:dev
+npm run order-pipeline:happy           # everything succeeds
+npm run order-pipeline:fail:shipping   # triggers compensation chain
+npm run order-pipeline:concurrent      # 5 orders, mixed failures
+```
+
+[View code on GitHub](https://github.com/nisanth-alla/distributed-systems-lab/tree/main/experiments/ts/order-pipeline)
+
+---
+
+### Concurrent File Processor (Go)
+
+**Problem:** You have thousands of files to process. One at a time takes hours. You need parallel processing with backpressure so you don't overload the system.
+
+**What it builds:** A worker pool using goroutines and channels. A configurable number of workers pull tasks from a bounded channel, process them, and send results through another channel. Backpressure happens naturally: when the task channel is full, the producer blocks.
+
+**What's interesting:** Run the same workload with 1 worker vs 8 workers. One worker takes ~10 seconds. Eight workers take ~1.4 seconds. That's real CPU parallelism, not event loop tricks. Press Ctrl+C during a run to see graceful shutdown: workers finish their current task before exiting.
+
+**Try it:**
+```bash
+cd experiments/go
+go run ./cmd/worker-pool -workers 1 -tasks 50    # sequential: ~10s
+go run ./cmd/worker-pool -workers 8 -tasks 50    # parallel: ~1.4s
+go run ./cmd/worker-pool -workers 4 -buffer 1    # tight backpressure
+```
+
+[View code on GitHub](https://github.com/nisanth-alla/distributed-systems-lab/tree/main/experiments/go/worker-pool)
+
+---
+
+## Planned experiments
+
+### Health Check & Service Registry (Go)
+
+**Problem:** How do microservices discover each other and know when one goes down?
+
+Services register themselves, send periodic heartbeats, and get deregistered when they stop responding. This is the problem that Consul, etcd, and Kubernetes service discovery solve. Building a tiny version of it reveals why those tools exist.
+
+---
+
+## Theory and notes
+
+The conceptual foundation for these experiments lives in [system-design-notes](https://github.com/nisanth-alla/system-design-notes), with structured articles on caching, queues, consistency, retries, and more. Two of those concepts (idempotency and cache stampedes) have their own runnable experiments and [interactive visualizations](https://nisanth-alla.github.io/system-design-notes/).

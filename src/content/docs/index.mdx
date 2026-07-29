@@ -1,0 +1,47 @@
+---
+title: Engineering Journal
+description: Notes, experiments, and lessons from building distributed systems, learning Go, and studying system design.
+template: splash
+hero:
+  tagline: A working set of notes and experiments I keep while building distributed systems, learning new languages, and preparing for system design conversations. Written as I learn, not after I've mastered it.
+  actions:
+    - text: Start with Go
+      link: /engineering-journal/go/why-go/
+      icon: right-arrow
+    - text: View experiments
+      link: /engineering-journal/experiments/
+      variant: minimal
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+## What's here
+
+<CardGrid>
+  <Card title="Learning Go" icon="rocket">
+    Coming from TypeScript/Node, I'm learning Go by building distributed systems experiments. These articles document the mental model shifts, the things that surprised me, and the concepts I had to unlearn and relearn.
+  </Card>
+  <Card title="Experiments" icon="puzzle">
+    Each experiment isolates a real problem (rate limiting, saga orchestration, concurrent processing) and builds a working solution. The code lives in the [distributed-systems-lab](https://github.com/nisanth-alla/distributed-systems-lab). These pages go deeper than the README.
+  </Card>
+  <Card title="System Design" icon="open-book">
+    Structured notes on caching, queues, consistency, retries, and more. Short enough to re-read in five minutes, detailed enough to hold up in a design review. See the [system-design-notes](https://github.com/nisanth-alla/system-design-notes) repo.
+  </Card>
+  <Card title="Written as I learn" icon="pencil">
+    This is not a polished textbook. Some of these articles capture genuine confusion I had to work through. That's the point. A perfect explanation written after the fact doesn't teach you where the real stumbling blocks are.
+  </Card>
+</CardGrid>
+
+## How to use this
+
+If you're learning distributed systems or Go, start with whatever topic is relevant to you right now. Each article is self-contained. If you want to follow the same path I did, start with the Go section and then work through the experiments.
+
+If you're here because you saw my [portfolio](https://portfolio-ulzg.vercel.app/) and want to see how I think about engineering problems, the Go section shows my learning process and the experiments section shows how I build and test ideas.
+
+## Connected repos
+
+| Repo | What it is |
+|---|---|
+| [distributed-systems-lab](https://github.com/nisanth-alla/distributed-systems-lab) | Runnable experiments in TypeScript and Go. The code that these articles reference. |
+| [system-design-notes](https://github.com/nisanth-alla/system-design-notes) | Structured notes on core distributed systems concepts, with interactive visualizations. |
+| [reliable-job-platform](https://github.com/nisanth-alla/reliable-job-platform) | A production-style job processing system. The project where these lessons come together. |

@@ -1,0 +1,156 @@
+---
+title: Things that surprised me
+description: A running collection of moments where Go did something I didn't expect, coming from TypeScript.
+---
+
+This is a grab bag. Some of these are "nice surprises," some are "what on earth," and some are things that felt wrong at first but turned out to be intentional design choices that I now appreciate.
+
+## No exceptions
+
+This was the first thing that felt foreign. Go has no try/catch. Functions that can fail return an error as a second value:
+
+```go
+file, err := os.Open("data.csv")
+if err != nil {
+    return fmt.Errorf("couldn't open data file: %w", err)
+}
+// use file
+```
+
+Every function that can fail does this. Every caller checks `err`. It looks verbose compared to TypeScript:
+
+```typescript
+try {
+  const file = await fs.readFile("data.csv");
+} catch (err) {
+  throw new Error(`couldn't open data file: ${err}`);
+}
+```
+
+But after a few weeks, I started to see the advantage. In TypeScript, you never know whether a function can throw just by looking at its signature. `JSON.parse()` throws. `Array.find()` doesn't. You learn this over time or discover it when your production server crashes.
+
+In Go, the return type tells you everything. If a function returns `(Thing, error)`, it can fail. If it returns `Thing`, it can't. No guessing. No "should I wrap this in try/catch just in case?"
+
+The part I haven't fully come around on: error handling for deeply nested calls creates walls of `if err != nil` blocks. But the Go community considers this a feature, not a bug. They argue that error handling should be visible, not hidden in catch blocks three stack frames away.
+
+## Unused imports and variables are compile errors
+
+This one caught me off guard on the first day:
+
+```go
+import "fmt"
+import "os"  // COMPILE ERROR if you don't use this
+
+func main() {
+    x := 42  // COMPILE ERROR if you never read x
+    fmt.Println("hello")
+}
+```
+
+In TypeScript, unused imports are a lint warning. In Go, they're a hard compiler error. Your code won't build.
+
+At first this felt overly strict. I constantly commented out a print statement during debugging and then had to remove the `fmt` import to make it compile, only to add it back when I needed to debug again.
+
+Then I learned about the underscore import (`import _ "os"`) for side effects, and the blank identifier (`_ = x`) for temporarily silencing the unused variable error during development. And honestly, once I got used to it, I noticed my Go code never has dead imports or forgotten variables. The strictness keeps the code clean.
+
+## No generics (well, now there are, but the culture)
+
+Go added generics in version 1.18, but the community culture still favors concrete types over generic abstractions. Where a TypeScript developer would write:
+
+```typescript
+function filter<T>(items: T[], predicate: (item: T) => boolean): T[] {
+  return items.filter(predicate);
+}
+```
+
+A Go developer often just writes the specific version:
+
+```go
+func filterTasks(tasks []Task, predicate func(Task) bool) []Task {
+    var result []Task
+    for _, t := range tasks {
+        if predicate(t) {
+            result = append(result, t)
+        }
+    }
+    return result
+}
+```
+
+This felt like going backward at first. But the Go philosophy is: write code for the problem you have, not the problem you might have. If you need to filter tasks, write `filterTasks`. If you later need to filter results too, write `filterResults`. The duplication is considered less harmful than premature abstraction.
+
+I'm not fully convinced by this philosophy yet, but I notice that Go code is remarkably readable even when you've never seen the codebase before. There's very little "what does this generic helper actually do?" hunting.
+
+## Pointers exist, but they're tame
+
+Coming from TypeScript (where everything is a reference) and having heard horror stories about C pointers, Go pointers were a pleasant surprise.
+
+In Go, small structs are passed by value (copied). If you want a function to modify a struct, you pass a pointer:
+
+```go
+func (p *Pool) reset() {
+    p.tokens = p.capacity  // modifies the original Pool
+}
+```
+
+The `*Pool` means "pointer to Pool." The `p.tokens` syntax automatically dereferences it. You don't have to write `(*p).tokens` (though you can).
+
+No pointer arithmetic. No manual memory management. No dangling pointers (the garbage collector handles it). Go pointers are really just "pass by reference" with explicit syntax. If you've ever used `&` in C++ references, Go pointers feel similar but safer.
+
+The biggest decision: should your method have a pointer receiver `(p *Pool)` or a value receiver `(p Pool)`? Rule of thumb: if the method modifies the struct, use a pointer. If it just reads, either works, but convention says be consistent (if any method on a type uses a pointer receiver, all should).
+
+## The standard library is shockingly complete
+
+In Node, building an HTTP server means choosing between Express, Fastify, Koa, Hapi, and whichever new framework launched this week. JSON validation needs Zod or Joi. Testing needs Jest or Vitest.
+
+In Go, the standard library covers:
+
+- **HTTP server and client:** `net/http` is production-grade. You can build a full API without any external package.
+- **JSON encoding/decoding:** `encoding/json` handles marshaling and unmarshaling with struct tags.
+- **Testing:** `testing` is built in. `go test ./...` runs all tests. No configuration.
+- **Profiling:** `net/http/pprof` gives you CPU and memory profiling by adding one import.
+- **Crypto:** `crypto/` has SHA, AES, RSA, TLS, all in the standard library.
+- **Concurrency primitives:** `sync`, `context`, `atomic`, all built in.
+
+This means a Go project's dependency list is tiny compared to Node. My worker pool experiment has zero external dependencies. The same project in Node would need Express, ws, tsx, typescript, and their transitive dependencies (91 packages in the rate limiter experiment).
+
+## Formatting is not a debate
+
+Go has one formatter: `gofmt`. It ships with the language. There's no configuration. No Prettier vs ESLint arguments. No tabs vs spaces debates.
+
+You run `gofmt` (or `go fmt`) and your code is formatted. Everyone's Go code looks the same. This sounds authoritarian but it's genuinely freeing. I spend zero time thinking about style and my diffs are never polluted with formatting changes.
+
+## `defer` is surprisingly useful
+
+`defer` schedules a function call to run when the enclosing function returns. I expected to use it occasionally for cleanup. Instead, I use it constantly.
+
+```go
+func processFile(path string) error {
+    f, err := os.Open(path)
+    if err != nil {
+        return err
+    }
+    defer f.Close()  // guaranteed to run when this function returns
+
+    // ... process the file ...
+    // don't need to remember to close it in every return path
+}
+```
+
+In TypeScript, the equivalent is try/finally or a cleanup function at the end. Both are easy to forget when a function has multiple return paths. `defer` handles it: "clean up this resource, no matter how this function exits."
+
+In the worker pool, `defer wg.Done()` at the top of each worker function ensures the WaitGroup counter decrements even if the worker panics. Without defer, a panicking worker would deadlock the pool.
+
+## Compilation speed
+
+Go compiles fast. Not "fast for a compiled language." Actually fast. The entire worker pool experiment compiles in under a second. Changes during development appear instantly.
+
+This is by design. Go was created partly because C++ compilation at Google took so long that engineers had time to go get coffee. The language features (no circular imports allowed, explicit dependencies, simple grammar) all contribute to fast compilation.
+
+Coming from TypeScript where `tsc --noEmit` on a medium project takes 5-10 seconds, Go's compilation speed feels like working with an interpreted language but with a type-checked binary at the end.
+
+## The overall feeling
+
+Three weeks in, Go feels like a language that trusts you to write simple code and doesn't offer you escape hatches into complexity. There's usually one obvious way to do something, and it's not the clever way, it's the straightforward way.
+
+That's a different vibe from TypeScript, where the type system invites you to build elaborate generic abstractions and the ecosystem offers twelve ways to solve every problem. Both approaches have merit. But for the systems and concurrency work I'm doing in the lab, Go's simplicity is a genuine advantage. Less time deciding how to structure code means more time understanding the distributed systems problem I'm actually trying to solve.

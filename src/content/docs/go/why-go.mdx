@@ -1,0 +1,56 @@
+---
+title: Why I'm learning Go
+description: What pushed me toward Go after years of TypeScript, and what I expect to get out of it.
+---
+
+I've been writing TypeScript for years. I'm comfortable in it. I can build APIs, model complex domains, set up monorepos, and debug async race conditions without reaching for Stack Overflow every five minutes. So why pick up a new language?
+
+## The honest reason
+
+I kept hitting the same wall in distributed systems work: Node does one thing at a time.
+
+Yes, Node has async/await. Yes, the event loop handles I/O concurrency beautifully. But when I tried to build a worker pool that processes 1,000 files in parallel, or a service that needs to handle thousands of simultaneous connections while also doing CPU work, Node's single-threaded model started fighting me instead of helping me.
+
+`worker_threads` exist, but they're heavy. Each one is a real OS thread with its own V8 isolate and its own memory. Spinning up 50 of them is nothing like spinning up 50 goroutines. The programming model is also awkward: you're passing messages between isolated memory spaces, not sharing a natural flow of data.
+
+Go was built for exactly this kind of work. The language was created at Google to handle networked services with massive concurrency. Goroutines are cheap (about 2KB of stack each), channels give you typed communication between them, and the runtime handles scheduling across OS threads for you.
+
+## What I'm not doing
+
+I'm not switching from TypeScript to Go. TypeScript is still my primary language and I'm faster in it for API work, frontend logic, and anything where the type system's expressiveness matters.
+
+I'm adding Go for the problems where it genuinely fits better:
+
+- **Concurrent processing** where I need many things running truly in parallel, not just waiting on I/O
+- **Systems-level experiments** where I want close-to-the-metal performance without C's memory management
+- **Service infrastructure** where the standard library covers HTTP servers, JSON handling, testing, and profiling without any external packages
+
+## What attracted me to Go specifically
+
+A few things stood out when I started reading about Go:
+
+**The standard library is enormous.** In Node, building an HTTP server means Express or Fastify. JSON parsing needs libraries for validation. Testing needs Jest or Vitest. In Go, `net/http`, `encoding/json`, and `testing` are built in and production-quality. Google runs their infrastructure on these packages.
+
+**Error handling is explicit.** This sounded annoying at first. Every function that can fail returns an error, and you check it immediately. No try/catch blocks wrapping whole functions. But after writing Go for a few weeks, I started to appreciate it. The error path is always visible. You never wonder "can this throw?" because the function signature tells you.
+
+**No classes, no inheritance.** Go has structs and interfaces, but no class hierarchies. Coming from TypeScript where I use classes sparingly anyway, this felt natural. Composition over inheritance isn't just a principle in Go. It's the only option.
+
+**Goroutines are not threads.** This is the big one. In Java, creating a thread allocates megabytes of stack space and involves OS-level scheduling overhead. In Go, goroutines start with a tiny stack that grows as needed, and the Go runtime multiplexes thousands of them across a small number of OS threads. This means you can write `go doSomething()` without thinking about thread pool sizes or executor services.
+
+## My learning approach
+
+I'm not reading a Go book cover to cover. I tried that once with Rust and gave up at lifetimes because I had no real problem to apply them to.
+
+Instead, I'm building experiments in the [distributed-systems-lab](https://github.com/nisanth-alla/distributed-systems-lab). Each one solves a real problem where Go's strengths matter. The first one was a [concurrent file processor](/engineering-journal/go/channels-explained/) that uses goroutines and channels to process hundreds of tasks in parallel with backpressure and graceful shutdown.
+
+Learning a language through a real problem forces you to hit the edges quickly. I learned about `context.Context` not because a tutorial told me to, but because I needed graceful shutdown and discovered that's how Go propagates cancellation. I learned about `sync.Mutex` not from a concurrency chapter but because two goroutines were writing to the same slice and the output was garbled.
+
+## What I'm documenting here
+
+The articles in this section capture what the learning process actually feels like, not the polished "here's how Go works" explanation you'd write after you've mastered it.
+
+- [Goroutines vs async/await](/engineering-journal/go/goroutines-vs-async/) covers the mental model shift. This was the hardest part for me, because Node's concurrency model is so deeply ingrained.
+- [Channels explained](/engineering-journal/go/channels-explained/) walks through how channels work using the worker pool I actually built. Real code, real output, real mistakes.
+- [Things that surprised me](/engineering-journal/go/surprises/) is the collection of "wait, what?" moments. Some were pleasant surprises. Some were not.
+
+If you're also coming from TypeScript and considering Go, these might save you some confusion. Or at least reassure you that the confusion is normal.

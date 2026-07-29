@@ -1,0 +1,202 @@
+---
+title: Channels explained
+description: How Go channels work, taught through the worker pool I actually built. Real code, real output, real mistakes.
+---
+
+Channels are Go's answer to the question "how do goroutines talk to each other?"
+
+In Node, concurrent operations communicate through callbacks, promises, or shared variables (which is safe because there's only one thread). In Go, goroutines communicate by sending values through channels. The Go proverb is: "Don't communicate by sharing memory; share memory by communicating."
+
+That sounded abstract to me until I built the [worker pool experiment](https://github.com/nisanth-alla/distributed-systems-lab/tree/main/experiments/go/worker-pool). Now it makes sense.
+
+## What a channel actually is
+
+A channel is a typed pipe. You create it for a specific type, send values into one end, and receive them from the other end.
+
+```go
+// Create a channel that carries integers
+ch := make(chan int)
+
+// Send a value into the channel (in a goroutine)
+go func() {
+    ch <- 42  // send
+}()
+
+// Receive a value from the channel
+value := <-ch  // receive, value is now 42
+```
+
+The `<-` operator does double duty. `ch <- value` sends. `<-ch` receives. The arrow always points left, toward where the data goes.
+
+The critical property: **sends and receives block.** If you send to a channel and nobody is receiving, the sending goroutine pauses. If you receive from a channel and nobody has sent anything, the receiving goroutine pauses. This blocking behavior is what makes channels safe for coordination without explicit locks.
+
+## The TypeScript equivalent (sort of)
+
+The closest thing in TypeScript would be a queue that two async functions share:
+
+```typescript
+// TypeScript: manual coordination with a shared queue
+const queue: number[] = [];
+
+// Producer adds to the queue
+async function produce() {
+  queue.push(42);
+}
+
+// Consumer takes from the queue
+async function consume() {
+  while (queue.length === 0) {
+    await sleep(10);  // poll... ugly
+  }
+  const value = queue.shift();
+}
+```
+
+This is clunky. You have to manually poll, manage the shared array, and there's no built-in backpressure. Channels handle all of this.
+
+## Buffered vs unbuffered
+
+This distinction matters and I got it wrong initially.
+
+**Unbuffered channel:** `make(chan Task)`. Every send blocks until a receiver is ready. Every receive blocks until a sender is ready. It's a handshake: both sides must be present.
+
+**Buffered channel:** `make(chan Task, 10)`. Sends only block when the buffer is full. Receives only block when the buffer is empty. It's a mailbox: the sender can drop off up to 10 items without waiting.
+
+In my worker pool, the task channel is buffered:
+
+```go
+tasks := make(chan Task, bufferSize)
+```
+
+This buffer is the backpressure mechanism. The producer can queue up `bufferSize` tasks ahead of the workers. Once the buffer fills, the producer blocks until a worker finishes a task and opens up a slot. Without the buffer, the producer could only send one task at a time, waiting for a worker to grab it before sending the next one.
+
+When I first built the pool with an unbuffered channel, the output was fine but throughput was slightly lower. The producer spent time blocked between every task, even though workers were ready. Switching to a buffered channel of 10 gave the producer room to stay ahead, keeping workers from ever going idle.
+
+## How the worker pool uses channels
+
+The pool has two channels:
+
+```go
+tasks   chan Task    // producer -> workers
+results chan Result  // workers -> collector
+```
+
+The flow:
+
+1. The main function sends tasks into the `tasks` channel
+2. N worker goroutines read from `tasks`, process each one, and send results into `results`
+3. A collector goroutine reads from `results` and records them
+
+```go
+// Producer: send tasks into the channel
+for _, task := range taskList {
+    tasks <- task  // blocks if buffer is full (backpressure!)
+}
+close(tasks)  // signal: no more tasks coming
+
+// Worker: read tasks until the channel is closed
+for task := range tasks {
+    result := task.Process()
+    results <- result
+}
+
+// Collector: read results until the channel is closed
+for result := range results {
+    allResults = append(allResults, result)
+}
+```
+
+The `for task := range tasks` loop is idiomatic Go. It reads values from the channel until the channel is closed, then exits. No "is there more data?" check needed. When you call `close(tasks)`, every goroutine ranging over that channel finishes its current item, sees the channel is closed, and exits the loop.
+
+## The close() pattern
+
+Closing a channel confused me at first. In Node, closing a stream means "clean up resources." In Go, closing a channel means "no more values will be sent on this channel." It's a signal, not a cleanup.
+
+The rules:
+- Only the sender should close a channel. Never the receiver.
+- Closing a channel that's already closed panics.
+- Sending to a closed channel panics.
+- Receiving from a closed channel returns the zero value immediately.
+
+In the worker pool, the sequence is:
+
+1. Producer finishes sending all tasks -> `close(tasks)`
+2. Workers see the closed channel, finish processing, exit their loops -> call `wg.Done()`
+3. `wg.Wait()` unblocks when all workers are done -> `close(results)`
+4. Collector sees the closed channel, finishes recording, exits its loop
+
+Getting this sequence wrong causes deadlocks. If you close `results` before all workers are done, a worker trying to send a result panics. If you forget to close `tasks`, workers wait forever for more tasks that never come.
+
+## The mistake I made
+
+My first version had a subtle bug. I started the workers, sent all tasks, and closed the tasks channel. But I forgot to wait for the workers before closing the results channel.
+
+```go
+// BROKEN: closing results before workers finish
+close(tasks)
+close(results)  // some workers are still processing!
+wg.Wait()       // too late, collector already exited
+```
+
+This panicked: a worker tried to send a result to a closed channel. The fix was adding `wg.Wait()` between closing tasks and closing results:
+
+```go
+// CORRECT: wait for workers, then close results
+close(tasks)
+wg.Wait()       // all workers done
+close(results)  // now safe, no more results coming
+```
+
+The Go race detector (`go run -race ./cmd/worker-pool`) would have caught this. Lesson: always run with `-race` during development.
+
+## select: multiplexing channels
+
+The `select` statement lets a goroutine wait on multiple channels at once. It's like `switch` but for channels. Whichever channel is ready first wins.
+
+I use this in the worker to check for cancellation before processing a task:
+
+```go
+select {
+case <-ctx.Done():
+    // Context was cancelled (Ctrl+C). Stop working.
+    return
+default:
+    // Context is fine. Process the task.
+}
+```
+
+`ctx.Done()` returns a channel that gets closed when the context is cancelled. The `default` case means "if nothing else is ready, do this." Without the `default`, the select would block waiting for cancellation, which isn't what we want. We want to check quickly and move on.
+
+A more interesting use of select is in the producer, where I check cancellation while sending tasks:
+
+```go
+select {
+case <-ctx.Done():
+    fmt.Println("cancelled, stopping")
+    return
+case tasks <- task:
+    // task was sent successfully
+}
+```
+
+This means: either the task gets sent, or cancellation happened. Whichever occurs first. If Ctrl+C happens while the tasks buffer is full and the producer is blocked waiting to send, the cancellation path fires immediately instead of waiting for a worker to free up space.
+
+## When to use channels vs mutexes
+
+Go has both channels and traditional mutexes (`sync.Mutex`). The rule of thumb:
+
+**Channels** when you're passing ownership of data from one goroutine to another. "Here's a task, you own it now." The sender stops using the data after sending.
+
+**Mutexes** when multiple goroutines need to access the same data in place. "We all read and write this counter." The data stays shared.
+
+In the worker pool, I use both:
+- Channels for the task and result flow (ownership transfer)
+- A mutex to protect the `collectedResults` slice (shared state that multiple goroutines append to)
+
+Using a channel where a mutex fits (or vice versa) works but feels awkward. If I replaced the results channel with a mutex-protected slice, workers would lock, append, unlock. Functional but it loses the "pipeline" feel. If I replaced the mutex-protected slice with a channel, the collector would need to drain a channel into a slice anyway, adding a layer for no benefit.
+
+## The key insight
+
+Channels aren't just a concurrency primitive. They're a design tool. They force you to think about data flow: who produces data, who consumes it, and how many items can be in flight at once. That thinking naturally leads to well-structured concurrent programs.
+
+In Node, I never thought about data flow explicitly because the event loop handles it implicitly. In Go, channels make it visible. That visibility is what makes Go programs easier to reason about as concurrency increases, even though they're harder to write initially.
