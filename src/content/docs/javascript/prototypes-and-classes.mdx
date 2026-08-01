@@ -1,0 +1,297 @@
+---
+title: Prototypes and classes
+description: The prototype chain, ES6 classes, why JavaScript has both, and what's actually happening under the hood.
+sidebar:
+  order: 3
+---
+
+## JavaScript doesn't have classes (sort of)
+
+JavaScript has the `class` keyword. It looks like classes. It quacks like classes. But under the hood, it's prototypes all the way down. ES6 classes are syntactic sugar over JavaScript's prototype-based inheritance system. Understanding what's underneath matters because the abstraction leaks in specific situations.
+
+## The prototype chain
+
+Every JavaScript object has a hidden link to another object called its prototype. When you access a property on an object and the object doesn't have it, JavaScript follows the prototype chain to look for it.
+
+```javascript
+const animal = {
+  speak() { return `${this.name} makes a sound`; }
+};
+
+const dog = Object.create(animal);
+dog.name = "Rex";
+
+dog.speak();      // "Rex makes a sound"
+dog.hasOwnProperty("name");    // true  (own property)
+dog.hasOwnProperty("speak");   // false (inherited from prototype)
+```
+
+`Object.create(animal)` creates a new object whose prototype is `animal`. When `dog.speak()` is called, JavaScript first checks `dog` for a `speak` property. It doesn't find one. It follows the prototype link to `animal`, finds `speak` there, and calls it.
+
+The chain continues. `animal`'s prototype is `Object.prototype` (which has `hasOwnProperty`, `toString`, etc.). `Object.prototype`'s prototype is `null` (the end of the chain).
+
+```
+dog → animal → Object.prototype → null
+  name: "Rex"   speak()           hasOwnProperty(), toString()
+```
+
+This is how inheritance works in JavaScript. It's not "a Dog IS-A Animal" (class inheritance). It's "this object delegates to that object" (prototypal delegation).
+
+## Constructor functions (the old way)
+
+Before `class`, you used constructor functions and `.prototype`:
+
+```javascript
+function Dog(name, breed) {
+  this.name = name;
+  this.breed = breed;
+}
+
+Dog.prototype.speak = function() {
+  return `${this.name} barks`;
+};
+
+Dog.prototype.fetch = function(item) {
+  return `${this.name} fetches the ${item}`;
+};
+
+const rex = new Dog("Rex", "Shepherd");
+rex.speak();  // "Rex barks"
+```
+
+The `new` keyword does four things:
+1. Creates a new empty object
+2. Sets the object's prototype to `Dog.prototype`
+3. Calls `Dog` with `this` pointing to the new object
+4. Returns the new object (unless the constructor explicitly returns something else)
+
+Methods go on `Dog.prototype` so they're shared across all instances. If you put them inside the constructor (`this.speak = function() {...}`), every instance gets its own copy of the function, which wastes memory.
+
+## ES6 classes (the new syntax)
+
+Same thing, cleaner syntax:
+
+```javascript
+class Dog {
+  constructor(name, breed) {
+    this.name = name;
+    this.breed = breed;
+  }
+
+  speak() {
+    return `${this.name} barks`;
+  }
+
+  fetch(item) {
+    return `${this.name} fetches the ${item}`;
+  }
+}
+
+const rex = new Dog("Rex", "Shepherd");
+```
+
+This compiles to essentially the same prototype chain as the constructor function version. `speak` and `fetch` end up on `Dog.prototype`. `name` and `breed` are own properties on each instance.
+
+The class syntax adds a few things the old way didn't have:
+- `extends` for inheritance (cleaner than manually wiring prototype chains)
+- `super` for calling the parent constructor/methods
+- `static` for class-level methods
+- Private fields (`#name`) that are truly inaccessible from outside
+
+## Inheritance with extends
+
+```javascript
+class Animal {
+  constructor(name) {
+    this.name = name;
+  }
+
+  speak() {
+    return `${this.name} makes a sound`;
+  }
+}
+
+class Dog extends Animal {
+  constructor(name, breed) {
+    super(name);  // MUST call super before using this
+    this.breed = breed;
+  }
+
+  speak() {
+    return `${this.name} barks`;  // overrides Animal.speak
+  }
+
+  parentSpeak() {
+    return super.speak();  // calls Animal.speak
+  }
+}
+
+const rex = new Dog("Rex", "Shepherd");
+rex.speak();        // "Rex barks"
+rex.parentSpeak();  // "Rex makes a sound"
+rex instanceof Dog;     // true
+rex instanceof Animal;  // true
+```
+
+The prototype chain: `rex → Dog.prototype → Animal.prototype → Object.prototype → null`.
+
+`instanceof` walks up the chain checking if any prototype matches.
+
+## Private fields
+
+ES2022 added truly private fields using the `#` prefix:
+
+```javascript
+class BankAccount {
+  #balance;  // private, inaccessible from outside
+
+  constructor(initial) {
+    this.#balance = initial;
+  }
+
+  deposit(amount) {
+    if (amount <= 0) throw new Error("Amount must be positive");
+    this.#balance += amount;
+  }
+
+  getBalance() {
+    return this.#balance;
+  }
+}
+
+const account = new BankAccount(100);
+account.deposit(50);
+account.getBalance();    // 150
+account.#balance;        // SyntaxError: Private field '#balance' must be declared in an enclosing class
+```
+
+Before `#private`, people used underscores (`_balance`) as a convention. But it was just a convention. Anyone could access `account._balance`. The `#` prefix is enforced by the engine.
+
+In TypeScript, `private` is a compile-time check only. The JavaScript output has no enforcement. If you need runtime privacy, use `#`.
+
+## Static methods
+
+Methods that belong to the class itself, not instances:
+
+```javascript
+class User {
+  constructor(name, email) {
+    this.name = name;
+    this.email = email;
+  }
+
+  // Instance method: called on a user instance
+  greet() {
+    return `Hi, I'm ${this.name}`;
+  }
+
+  // Static method: called on the User class
+  static fromJSON(json) {
+    const data = JSON.parse(json);
+    return new User(data.name, data.email);
+  }
+
+  static validateEmail(email) {
+    return email.includes("@");
+  }
+}
+
+const user = User.fromJSON('{"name":"Alice","email":"a@b.com"}');
+User.validateEmail("test@example.com");  // true
+user.validateEmail;  // undefined (static methods aren't on instances)
+```
+
+Factory methods (`fromJSON`) and utility functions (`validateEmail`) are common use cases. They don't need an instance to do their work.
+
+## When to use classes in modern JavaScript
+
+This is a genuine debate. The React community largely moved away from classes toward functions and hooks. The Node community uses classes for some patterns (EventEmitter, Transform streams) but functions for most application code.
+
+**Classes work well for:**
+- Objects with identity and mutable state (a database connection, a WebSocket client)
+- Inheritance hierarchies that actually make sense (EventEmitter → TypedEmitter)
+- APIs where users create instances (`new Something()`)
+
+**Functions work well for:**
+- Stateless transformations (most application logic)
+- Composition over inheritance (hooks, middleware, pipelines)
+- When you need closures for privacy (classes have `#` now, but closures are still simpler for simple cases)
+
+In TypeScript, interfaces and type composition largely replace the need for class hierarchies. You define shapes, not class trees.
+
+## The `this` problem
+
+`this` in JavaScript depends on HOW a function is called, not where it's defined. This is the source of more bugs than any other JavaScript feature.
+
+```javascript
+class Timer {
+  constructor() {
+    this.seconds = 0;
+  }
+
+  start() {
+    // BUG: this.tick loses 'this' when passed as a callback
+    setInterval(this.tick, 1000);
+  }
+
+  tick() {
+    this.seconds++;  // 'this' is undefined or Window, not Timer
+    console.log(this.seconds);
+  }
+}
+```
+
+Three fixes:
+
+```javascript
+// 1. Arrow function (captures this from enclosing scope)
+start() {
+  setInterval(() => this.tick(), 1000);
+}
+
+// 2. Bind in constructor
+constructor() {
+  this.seconds = 0;
+  this.tick = this.tick.bind(this);
+}
+
+// 3. Class field with arrow (most modern)
+tick = () => {
+  this.seconds++;
+  console.log(this.seconds);
+}
+```
+
+Arrow functions don't have their own `this`. They capture `this` from the scope where they're defined. This is why React event handlers work with arrows but break with regular methods.
+
+## Event delegation
+
+Event delegation uses event bubbling to handle events on a parent element instead of attaching listeners to every child.
+
+```javascript
+// Instead of this (one listener per button):
+document.querySelectorAll(".item").forEach(item => {
+  item.addEventListener("click", handleClick);
+});
+
+// Do this (one listener on the parent):
+document.querySelector(".list").addEventListener("click", (e) => {
+  const item = e.target.closest(".item");
+  if (item) handleClick(item);
+});
+```
+
+Why delegation is better:
+- **Performance:** One listener vs hundreds. Less memory, fewer setup calls.
+- **Dynamic elements:** New items added to the list automatically work. No need to attach listeners to dynamically created elements.
+- **Cleanup:** Remove one listener instead of tracking hundreds.
+
+This is how React handles events internally. React attaches a single listener to the root of your app and uses delegation for all events.
+
+## Interview angles
+
+**"How does event delegation work?"** Event delegation uses bubbling: events on child elements propagate up to parent elements. You attach one listener on the parent and check `event.target` to determine which child was clicked. It's more efficient than individual listeners (less memory, works with dynamically added elements). React uses this approach internally.
+
+**"Explain prototypal inheritance."** JavaScript objects have a prototype chain. When you access a property, JS walks up the chain until it finds it or hits null. ES6 classes are syntax over this: methods go on `ClassName.prototype`, `extends` sets up the chain, `new` creates instances linked to the prototype. Unlike classical inheritance, there are no copies; instances delegate to their prototype.
+
+**"What's the difference between `class` and a constructor function?"** Syntactic sugar. Both create the same prototype chain. Classes add cleaner syntax, `extends`/`super`, `static`, and `#private` fields. Under the hood, `typeof MyClass` is `"function"`.

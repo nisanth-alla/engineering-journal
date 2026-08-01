@@ -153,7 +153,7 @@ The `kind` field is the discriminant. Each variant has a unique value for `kind`
 
 This demo shows different narrowing patterns. Pick one, then click each guard to see how the type narrows.
 
-<TypeNarrowing client:load />
+<TypeNarrowing client:only="react" />
 
 The thing to notice: TypeScript doesn't just know what the type IS after a guard. It also knows what the type ISN'T. The else branch gets the complement. If you checked for `string`, the else branch is `number` (everything that wasn't eliminated).
 

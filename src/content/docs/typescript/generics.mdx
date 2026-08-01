@@ -80,7 +80,7 @@ state.set("world");  // fine
 
 Pick a generic pattern and click each function call to see what TypeScript infers for the type parameters.
 
-<GenericPlayground client:load />
+<GenericPlayground client:only="react" />
 
 The `keyof` example is the most interesting one. The return type `T[K]` changes depending on which key you pass. That's something you can't express without generics.
 

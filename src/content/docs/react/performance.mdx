@@ -79,7 +79,7 @@ Now `handleClick` is the same reference across renders. `memo` can actually skip
 
 This demo shows two identical child components side by side. The left one is regular. The right one is wrapped in `React.memo` with a stable callback. Watch what happens when you click "Update parent state."
 
-<MemoComparison client:load />
+<MemoComparison client:only="react" />
 
 The right side stays at 1 render until you click "Change child prop." That's memo doing its job. But notice: it only works because the `onClick` prop is wrapped in `useCallback`. Without that, both sides would behave identically.
 
