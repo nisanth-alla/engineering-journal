@@ -1,0 +1,172 @@
+---
+title: State management
+description: Local state, context, external stores. When each one makes sense and when you're overcomplicating things.
+sidebar:
+  order: 4
+---
+
+## Start with useState. Seriously.
+
+The most common state management mistake I've seen in production codebases is reaching for a global store before local state has failed. I've reviewed apps where every piece of data lives in Redux, including form input values that only one component ever reads. That's not state management. That's a global variable with extra steps.
+
+`useState` is the right answer for most state. If only one component (or one component and its children) cares about a value, keep it local.
+
+```jsx
+function SearchBar() {
+  const [query, setQuery] = useState('');
+
+  return (
+    <input
+      value={query}
+      onChange={(e) => setQuery(e.target.value)}
+      placeholder="Search..."
+    />
+  );
+}
+```
+
+Nobody else needs `query`. It doesn't belong in a global store. It doesn't need context. It's local state for a local concern.
+
+## Lifting state up
+
+When two sibling components need the same data, the React answer is to move the state to their shared parent and pass it down as props.
+
+```jsx
+function ProductPage() {
+  const [selectedSize, setSelectedSize] = useState('M');
+
+  return (
+    <div>
+      <SizeSelector selected={selectedSize} onSelect={setSelectedSize} />
+      <AddToCartButton size={selectedSize} />
+    </div>
+  );
+}
+```
+
+Both `SizeSelector` and `AddToCartButton` need `selectedSize`. Neither one owns it. The parent owns it and passes it down. This is one-way data flow at work.
+
+This pattern works well for 2-3 levels of components. At 5+ levels, you start passing props through components that don't use them just to get the data down to the one that does. That's prop drilling, and it's where people start looking for alternatives.
+
+## Context: the prop drilling solution
+
+React Context lets you make a value available to any component in a subtree without passing it through every level.
+
+```jsx
+const ThemeContext = createContext('light');
+
+function App() {
+  const [theme, setTheme] = useState('light');
+  return (
+    <ThemeContext.Provider value={theme}>
+      <Header />
+      <Main />
+      <Footer />
+    </ThemeContext.Provider>
+  );
+}
+
+// Deep inside the tree, any component can read the theme
+function IconButton() {
+  const theme = useContext(ThemeContext);
+  return <button className={theme === 'dark' ? 'icon-light' : 'icon-dark'}>...</button>;
+}
+```
+
+Context is great for values that change rarely and affect many components: theme, locale, current user, feature flags. It's the right tool when the alternative is passing a prop through 8 levels of components that don't care about it.
+
+**Where context breaks down:** frequent updates. Every component consuming a context re-renders when the context value changes. If you put fast-changing state in context (like mouse position or a search query that updates on every keystroke), every consumer re-renders on every change. There's no way to subscribe to "part" of a context.
+
+```jsx
+// This re-renders every consumer on every state change, even if they only read 'user'
+const AppContext = createContext({ user: null, theme: 'light', notifications: [] });
+```
+
+The fix: split contexts by update frequency. User rarely changes. Notifications change often. They should be separate contexts so notification updates don't re-render components that only read the user.
+
+## When you actually need an external store
+
+External state management libraries (Zustand, Jotai, Redux Toolkit) solve problems that useState + context can't:
+
+1. **Selective subscriptions.** Components can subscribe to specific slices of state. If only `count` changes, only components reading `count` re-render, not everything.
+
+2. **State that lives outside React's lifecycle.** State that persists across route changes, lives in a web worker, or needs to be shared with non-React code (analytics, WebSocket handlers).
+
+3. **Complex update logic.** When state transitions involve multiple fields that must stay in sync, a reducer pattern (or a state machine) is clearer than multiple `useState` calls.
+
+### Zustand (my preference for most cases)
+
+Zustand is a tiny store (1KB) with a minimal API. You define state and actions in one place. Components subscribe to the parts they need.
+
+```jsx
+import { create } from 'zustand';
+
+const useCartStore = create((set) => ({
+  items: [],
+  addItem: (item) => set((state) => ({ items: [...state.items, item] })),
+  removeItem: (id) => set((state) => ({
+    items: state.items.filter((i) => i.id !== id),
+  })),
+  total: () => {
+    // derived state: computed from items
+  },
+}));
+
+// In a component: only re-renders when items change
+function CartCount() {
+  const count = useCartStore((state) => state.items.length);
+  return <span>{count}</span>;
+}
+```
+
+No providers, no boilerplate, no action types, no reducers. You call `create`, you get a hook.
+
+### Redux Toolkit (when you need it)
+
+Redux still makes sense for very large applications with complex state that multiple teams work on. Redux Toolkit eliminated most of the boilerplate that made original Redux painful. But for most applications, it's more machinery than you need.
+
+If you're starting a new project today and the state management needs are "moderate," Zustand or Jotai will serve you better with less code and less cognitive overhead.
+
+## Server state vs client state
+
+This distinction changed how I think about state management. Most of the "state" in a typical web app isn't really *your* state. It's a cached copy of server data.
+
+A list of products isn't client state. It came from the server. Your local copy is a cache. It can go stale. It needs loading states, error states, and refetching logic.
+
+**TanStack Query (React Query)** handles this entire category:
+
+```jsx
+function ProductList() {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['products'],
+    queryFn: () => fetch('/api/products').then(r => r.json()),
+  });
+
+  if (isLoading) return <Spinner />;
+  if (error) return <ErrorMessage error={error} />;
+  return <ProductGrid products={data} />;
+}
+```
+
+Before React Query, people put server data in Redux and manually handled loading/error/refetch/cache-invalidation. That's a lot of code for something that should be a solved problem. React Query does it with one hook.
+
+The rule I follow now: if the data came from a server, it's server state. Use TanStack Query (or SWR, or RTK Query). If it's truly client-only (UI state like modals, selections, form drafts), use useState or a lightweight store.
+
+## The decision tree
+
+Here's how I decide what to use:
+
+1. **Only one component needs it?** `useState`. Done.
+2. **Parent and children need it?** Lift it to the parent, pass as props.
+3. **Props drilling more than 3 levels?** Context, if the value changes rarely.
+4. **Context but updates are too frequent?** Zustand or Jotai for selective subscriptions.
+5. **Data from a server?** TanStack Query. Not local state at all.
+6. **Complex transitions, undo/redo, multiple actors?** Reducer pattern or a state machine (XState).
+
+## Interview angles
+
+**"How do you decide between useState and a global store?"** Start with useState. If prop drilling becomes painful, try context. If context causes unnecessary re-renders because of frequent updates, move to an external store. The progression is driven by actual pain points, not by architectural dogma.
+
+**"What's wrong with putting everything in Redux?"** Every state change notifies every connected component, which checks whether to re-render. You lose the locality benefit: when you change a component, you have to understand the global store too. And you end up writing action types and reducers for state that no other component will ever read.
+
+**"Context vs Redux?"** Context is React's built-in way to skip prop drilling. Redux (or Zustand) is a state management library with features context doesn't have: selective subscriptions, middleware, devtools, persistence. Context replaces Redux only for simple, infrequently-changing data like theme or auth.

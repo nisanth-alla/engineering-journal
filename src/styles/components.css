@@ -1,0 +1,131 @@
+/* Interactive component styles */
+
+.interactive-demo {
+  border: 1px solid var(--sl-color-gray-5);
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin: 1.5rem 0;
+  background: var(--sl-color-gray-7);
+}
+
+.interactive-demo h4 {
+  margin-top: 0;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--sl-color-gray-3);
+}
+
+.demo-button {
+  padding: 0.4rem 0.8rem;
+  border: 1px solid var(--sl-color-gray-4);
+  border-radius: 4px;
+  background: var(--sl-color-gray-6);
+  color: var(--sl-color-white);
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-family: inherit;
+  transition: background 0.15s;
+}
+
+.demo-button:hover {
+  background: var(--sl-color-gray-5);
+}
+
+.demo-button.primary {
+  background: var(--sl-color-accent);
+  border-color: var(--sl-color-accent);
+  color: var(--sl-color-black);
+}
+
+.demo-button.primary:hover {
+  opacity: 0.9;
+}
+
+.demo-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+@media (max-width: 600px) {
+  .demo-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.demo-component {
+  border: 1px solid var(--sl-color-gray-5);
+  border-radius: 6px;
+  padding: 1rem;
+  background: var(--sl-color-gray-6);
+}
+
+.demo-component.highlight {
+  border-color: var(--sl-color-accent);
+  animation: flash 0.3s ease-out;
+}
+
+@keyframes flash {
+  0% { background: color-mix(in srgb, var(--sl-color-accent) 20%, var(--sl-color-gray-6)); }
+  100% { background: var(--sl-color-gray-6); }
+}
+
+.render-count {
+  font-size: 0.75rem;
+  color: var(--sl-color-gray-3);
+  font-family: var(--sl-font-mono);
+}
+
+.render-count .count {
+  color: var(--sl-color-accent);
+  font-weight: bold;
+}
+
+.timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-family: var(--sl-font-mono);
+  font-size: 0.8rem;
+}
+
+.timeline-entry {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0.5rem;
+  border-radius: 3px;
+}
+
+.timeline-entry.mount { background: color-mix(in srgb, #22c55e 15%, transparent); color: #22c55e; }
+.timeline-entry.render { background: color-mix(in srgb, #3b82f6 15%, transparent); color: #3b82f6; }
+.timeline-entry.effect { background: color-mix(in srgb, #f59e0b 15%, transparent); color: #f59e0b; }
+.timeline-entry.cleanup { background: color-mix(in srgb, #ef4444 15%, transparent); color: #ef4444; }
+.timeline-entry.ref { background: color-mix(in srgb, #a855f7 15%, transparent); color: #a855f7; }
+
+.demo-controls {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.demo-output {
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background: var(--sl-color-gray-6);
+  border-radius: 4px;
+  font-family: var(--sl-font-mono);
+  font-size: 0.8rem;
+}
+
+.comparison-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--sl-color-gray-3);
+  margin-bottom: 0.5rem;
+}
