@@ -1,0 +1,220 @@
+---
+title: Generics
+description: Why generics exist, how inference works, real patterns that show up in production, and when to stop.
+sidebar:
+  order: 3
+---
+
+import GenericPlayground from '../../../components/GenericPlayground';
+
+## The problem generics solve
+
+Without generics, you have two choices for a function that works with multiple types:
+
+**Option 1: Duplicate the function for each type.** Write `filterNumbers`, `filterStrings`, `filterUsers`. Same logic, different types. Maintenance nightmare.
+
+**Option 2: Use `any`.** Write one function that accepts anything. No type safety. You lose autocomplete, refactoring support, and the compiler can't catch mistakes.
+
+```typescript
+// Without generics: you lose the connection between input and output types
+function firstElement(arr: any[]): any {
+  return arr[0];
+}
+
+const num = firstElement([1, 2, 3]);
+// num is 'any'. TypeScript has no idea it's a number.
+// num.toUpperCase() compiles fine but crashes at runtime.
+```
+
+Generics give you option 3: write the function once, preserve the type relationship.
+
+```typescript
+function firstElement<T>(arr: T[]): T | undefined {
+  return arr[0];
+}
+
+const num = firstElement([1, 2, 3]);
+// num is number | undefined. TypeScript inferred T = number.
+// num.toUpperCase() is a compile error. Caught.
+```
+
+The `<T>` declares a type parameter. It's a placeholder that gets filled in when you call the function. You rarely need to specify it explicitly because TypeScript infers it from the arguments.
+
+## How inference works
+
+TypeScript looks at what you pass to the function and works backward to figure out what `T` should be.
+
+```typescript
+function wrap<T>(value: T): { wrapped: T } {
+  return { wrapped: value };
+}
+
+wrap("hello");   // T inferred as string → returns { wrapped: string }
+wrap(42);        // T inferred as number → returns { wrapped: number }
+wrap(true);      // T inferred as boolean → returns { wrapped: boolean }
+```
+
+You CAN be explicit: `wrap<string>("hello")`. But you almost never need to. Inference handles it.
+
+The one case where you do need to be explicit: when TypeScript infers a narrower or wider type than you want.
+
+```typescript
+function createState<T>(initial: T) {
+  let value = initial;
+  return {
+    get: () => value,
+    set: (newValue: T) => { value = newValue; },
+  };
+}
+
+// TypeScript infers T = "hello" (the literal type, not string)
+const state = createState("hello");
+state.set("world");  // error: "world" is not assignable to "hello"
+
+// Fix: explicitly widen to string
+const state = createState<string>("hello");
+state.set("world");  // fine
+```
+
+## Try it: see inference in action
+
+Pick a generic pattern and click each function call to see what TypeScript infers for the type parameters.
+
+<GenericPlayground client:load />
+
+The `keyof` example is the most interesting one. The return type `T[K]` changes depending on which key you pass. That's something you can't express without generics.
+
+## Constraints: bounding what T can be
+
+Sometimes you need `T` to have certain properties. Constraints limit what types are acceptable.
+
+```typescript
+// T must have a .length property
+function longest<T extends { length: number }>(a: T, b: T): T {
+  return a.length >= b.length ? a : b;
+}
+
+longest("hello", "world");         // T = string, works
+longest([1, 2], [1, 2, 3]);       // T = number[], works
+longest(42, 100);                   // error: number has no .length
+```
+
+The `extends` keyword here doesn't mean inheritance. It means "must be assignable to." `T extends { length: number }` means "T must be a type that has a `length` property of type `number`." Strings, arrays, and any object with a `length` field qualify.
+
+A more practical constraint:
+
+```typescript
+// T must be an object with string keys
+function getProperty<T extends object, K extends keyof T>(obj: T, key: K): T[K] {
+  return obj[key];
+}
+
+const user = { name: "Alice", age: 30 };
+getProperty(user, "name");   // returns string
+getProperty(user, "age");    // returns number
+getProperty(user, "email");  // error: "email" is not a key of typeof user
+```
+
+`K extends keyof T` means K must be one of the actual keys of whatever object you pass. TypeScript checks this at the call site, so typos in key names are caught at compile time.
+
+## Real patterns from production code
+
+### API response wrapper
+
+```typescript
+type ApiResponse<T> = {
+  data: T;
+  status: number;
+  timestamp: Date;
+};
+
+async function fetchApi<T>(url: string): Promise<ApiResponse<T>> {
+  const response = await fetch(url);
+  const data = await response.json();
+  return { data: data as T, status: response.status, timestamp: new Date() };
+}
+
+// Usage: the response is typed
+const users = await fetchApi<User[]>("/api/users");
+users.data[0].name;  // autocomplete works
+```
+
+### Event emitter
+
+```typescript
+type EventMap = {
+  userLogin: { userId: string; timestamp: Date };
+  pageView: { path: string; referrer: string | null };
+  error: { message: string; code: number };
+};
+
+class Emitter<Events extends Record<string, unknown>> {
+  private handlers = new Map<string, Function[]>();
+
+  on<K extends keyof Events>(event: K, handler: (payload: Events[K]) => void) {
+    const existing = this.handlers.get(event as string) || [];
+    this.handlers.set(event as string, [...existing, handler]);
+  }
+
+  emit<K extends keyof Events>(event: K, payload: Events[K]) {
+    const handlers = this.handlers.get(event as string) || [];
+    handlers.forEach(h => h(payload));
+  }
+}
+
+const emitter = new Emitter<EventMap>();
+emitter.on("userLogin", (payload) => {
+  // payload is { userId: string; timestamp: Date }
+  console.log(payload.userId);
+});
+emitter.emit("userLogin", { userId: "123", timestamp: new Date() });
+emitter.emit("userLogin", { wrong: "shape" });  // compile error
+```
+
+The `Events` generic ensures that event names and their payloads are type-checked. You can't emit a `userLogin` event with the wrong payload shape, and the handler receives the correct type automatically.
+
+### Builder pattern
+
+```typescript
+class QueryBuilder<T extends Record<string, unknown>> {
+  private filters: Partial<T> = {};
+
+  where<K extends keyof T>(key: K, value: T[K]): this {
+    this.filters[key] = value;
+    return this;
+  }
+
+  build(): Partial<T> {
+    return { ...this.filters };
+  }
+}
+
+type UserQuery = { name: string; age: number; active: boolean };
+
+const query = new QueryBuilder<UserQuery>()
+  .where("name", "Alice")      // value must be string
+  .where("age", 30)             // value must be number
+  .where("age", "thirty");      // compile error: string not assignable to number
+```
+
+## When to stop
+
+Generics can go too far. I've written types that took longer to get right than the code they protect. Here are signs you're overcomplicating it:
+
+**If the generic has more than 3 type parameters, reconsider.** `function transform<TInput, TOutput, TError, TContext>(...)` is usually a sign that the function is doing too much.
+
+**If you can't explain what `T` represents in one sentence, simplify.** "T is the type of item in the array" is clear. "T is the intersection of the return type of the factory function with the partial of the mapped type of the input keys" is not.
+
+**If the type error messages are incomprehensible, the generic is too clever.** TypeScript error messages on deeply nested generics are genuinely awful. If your teammates can't understand the error, the type is hurting more than helping.
+
+**If `any` would work and the function is 3 lines, consider whether the generic is worth the complexity.** Not everything needs to be maximally typed. A small utility function used in one place might be fine with a simpler type.
+
+The Go community has a saying: "a little copying is better than a little dependency." The TypeScript equivalent: a little duplication is better than a little clever generic that nobody can read.
+
+## Interview angles
+
+**"When do you use generics?"** When a function or type needs to work with multiple types while preserving the relationship between inputs and outputs. The canonical example: a function that takes an array of T and returns T. Without generics, you'd use `any` and lose type safety.
+
+**"How do generic constraints work?"** `T extends SomeType` limits what types can be used for T. The constraint lets you access properties of SomeType inside the function body. Without the constraint, T could be anything, and you can't safely access any properties.
+
+**"Can you over-use generics?"** Yes. If a generic type parameter is used only once in the signature, you don't need it (just use the concrete type). If the type is so complex that error messages are unreadable, it's hurting developer experience more than it's helping type safety. Generics should make code clearer, not more abstract.
