@@ -1,0 +1,219 @@
+---
+title: Performance
+description: When React performance actually matters, how to measure it, and why most optimization attempts make things worse.
+sidebar:
+  order: 6
+---
+
+import MemoComparison from '../../../components/MemoComparison';
+
+## Most React apps don't have a performance problem
+
+I'm putting this first because the most common performance mistake in React isn't failing to optimize. It's optimizing things that don't need optimization.
+
+I've reviewed codebases where every component is wrapped in `React.memo`, every function in `useCallback`, and every computed value in `useMemo`. The code is harder to read, harder to maintain, and in some cases actually *slower* because the memoization overhead exceeds the cost of just re-rendering.
+
+Here's the rule I follow: **measure first, optimize second.** If you can't point to a specific, measurable slowness, don't add memoization. React is fast by default for the vast majority of use cases.
+
+## How to measure
+
+Two tools that actually help:
+
+### React DevTools Profiler
+
+Open React DevTools, go to the Profiler tab, click Record, interact with your app, click Stop. You get a flame chart showing:
+- Which components rendered
+- How long each render took
+- Why each component rendered (props changed? parent re-rendered? state changed?)
+
+If a component renders in 0.1ms, wrapping it in `memo` saves 0.1ms per parent re-render. That's not worth the code complexity.
+
+If a component renders in 50ms because it's sorting a 10,000-item array, that's worth fixing. But the fix is `useMemo` on the sort, not `memo` on the component.
+
+### Chrome Performance tab
+
+For frame drops and jank, the browser Performance tab is better than React DevTools. Record a timeline, look for long tasks (red triangles), and trace them to the responsible code. Often the bottleneck isn't React at all. It's a layout recalculation from a CSS change, or a third-party script blocking the main thread.
+
+## React.memo
+
+`React.memo` wraps a component and tells React: "before re-rendering this, check if the props changed. If they didn't, skip the re-render entirely."
+
+```jsx
+const ExpensiveList = memo(function ExpensiveList({ items, onSelect }) {
+  return (
+    <ul>
+      {items.map(item => (
+        <li key={item.id} onClick={() => onSelect(item)}>
+          {item.name}
+        </li>
+      ))}
+    </ul>
+  );
+});
+```
+
+Sounds great. There's a catch: memo does a **shallow comparison** of props. That means it compares by reference, not by value. If you pass a new object or function on every render (which happens by default), memo is useless because the references are always different.
+
+```jsx
+function Parent() {
+  const [count, setCount] = useState(0);
+
+  // New function every render! Memo on Child is defeated.
+  const handleClick = () => console.log('clicked');
+
+  return <MemoizedChild onClick={handleClick} />;
+}
+```
+
+The `handleClick` function is recreated on every render. `memo` compares `prevProps.onClick === nextProps.onClick`, gets `false` (different reference), and re-renders anyway. You've added complexity for zero benefit.
+
+The fix: `useCallback` to stabilize the function reference:
+
+```jsx
+const handleClick = useCallback(() => console.log('clicked'), []);
+```
+
+Now `handleClick` is the same reference across renders. `memo` can actually skip the re-render.
+
+## Try it: memo vs no memo
+
+This demo shows two identical child components side by side. The left one is regular. The right one is wrapped in `React.memo` with a stable callback. Watch what happens when you click "Update parent state."
+
+<MemoComparison client:load />
+
+The right side stays at 1 render until you click "Change child prop." That's memo doing its job. But notice: it only works because the `onClick` prop is wrapped in `useCallback`. Without that, both sides would behave identically.
+
+## useMemo: caching expensive calculations
+
+`useMemo` caches the result of a computation. React only recalculates it when the dependencies change.
+
+```jsx
+function ProductList({ products, filter }) {
+  // Only re-sorts when products or filter change
+  const filtered = useMemo(() => {
+    return products
+      .filter(p => p.category === filter)
+      .sort((a, b) => b.price - a.price);
+  }, [products, filter]);
+
+  return <ul>{filtered.map(p => <ProductItem key={p.id} product={p} />)}</ul>;
+}
+```
+
+Without `useMemo`, the filter and sort would run on every render, even if `products` and `filter` haven't changed. For 50 items, that's invisible. For 50,000 items, that's the difference between smooth and janky.
+
+**When to use useMemo:**
+- The computation is genuinely expensive (sorting/filtering large arrays, complex calculations)
+- The result is passed as a prop to a memoized child component (stabilizes the reference)
+
+**When NOT to use useMemo:**
+- The computation is trivial (string concatenation, simple math)
+- Nothing depends on the reference stability of the result
+- You're using it "just in case." The memoization itself has a cost (storing the previous result, comparing dependencies). For cheap computations, this overhead can exceed the cost of just recomputing.
+
+## useCallback: stabilizing function references
+
+`useCallback` is `useMemo` for functions. It returns the same function reference across renders, as long as the dependencies haven't changed.
+
+```jsx
+const handleSubmit = useCallback((data) => {
+  api.post('/orders', data);
+}, []);  // no dependencies: same function forever
+```
+
+You need `useCallback` when:
+1. You pass the function as a prop to a `memo`-wrapped child (so memo can detect that the prop didn't change)
+2. You use the function as a dependency in another hook's dependency array (so the hook doesn't re-run on every render)
+
+You DON'T need `useCallback` when:
+- The function is used only inside the current component
+- No child is memoized
+- You're not using it in a dependency array
+
+## Code splitting with React.lazy
+
+For large apps, not everything needs to load upfront. `React.lazy` splits a component into its own bundle that loads on demand.
+
+```jsx
+const AdminDashboard = lazy(() => import('./AdminDashboard'));
+
+function App() {
+  return (
+    <Routes>
+      <Route path="/" element={<Home />} />
+      <Route
+        path="/admin"
+        element={
+          <Suspense fallback={<Spinner />}>
+            <AdminDashboard />
+          </Suspense>
+        }
+      />
+    </Routes>
+  );
+}
+```
+
+The `AdminDashboard` bundle only downloads when the user navigates to `/admin`. If most users never visit the admin page, you've saved them from downloading that code entirely.
+
+Good split points:
+- **Routes.** Each page loads independently.
+- **Modals and dialogs.** They don't show on initial load.
+- **Heavy features** that only some users access (admin panels, analytics dashboards, editors).
+- **Below-the-fold content.** Anything the user can't see without scrolling can wait.
+
+## List virtualization
+
+When you genuinely have thousands of items in a list, rendering all of them is slow not because React is slow, but because the DOM is slow. Thousands of DOM nodes consume memory and cause layout calculations to crawl.
+
+Virtualization renders only the items currently visible in the viewport, plus a small buffer above and below. As the user scrolls, items enter and leave the rendered set.
+
+```jsx
+import { useVirtualizer } from '@tanstack/react-virtual';
+
+function BigList({ items }) {
+  const parentRef = useRef(null);
+  const virtualizer = useVirtualizer({
+    count: items.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 50,  // estimated row height in px
+  });
+
+  return (
+    <div ref={parentRef} style={{ height: '400px', overflow: 'auto' }}>
+      <div style={{ height: virtualizer.getTotalSize() }}>
+        {virtualizer.getVirtualItems().map(virtualRow => (
+          <div
+            key={virtualRow.key}
+            style={{
+              position: 'absolute',
+              top: virtualRow.start,
+              height: virtualRow.size,
+            }}
+          >
+            {items[virtualRow.index].name}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+```
+
+10,000 items in the array, but only ~20 DOM nodes at any time. Scrolling is smooth because React only updates the visible slice.
+
+## The React Compiler
+
+React 19 introduced an experimental compiler (previously called React Forget) that automatically adds memoization where it helps. It analyzes your components at build time and inserts `useMemo`, `useCallback`, and `memo` equivalents where they're beneficial.
+
+This is significant because it means most of the manual performance work I described above becomes unnecessary. The compiler handles it. You write straightforward code, and the build tool optimizes it.
+
+As of mid-2025, it's still being adopted gradually. But the direction is clear: React is moving toward a world where you don't think about memoization at all.
+
+## Interview angles
+
+**"How do you optimize React performance?"** First, I measure. React DevTools Profiler shows which components are slow and why. Most components don't need optimization. When they do, the common fixes are: `useMemo` for expensive computations, `React.memo` + `useCallback` for preventing unnecessary child re-renders, lazy loading for code splitting, and virtualization for large lists.
+
+**"What's the difference between useMemo and useCallback?"** `useMemo` caches a computed value. `useCallback` caches a function reference. `useCallback(fn, deps)` is equivalent to `useMemo(() => fn, deps)`. Both exist to prevent unnecessary work when dependencies haven't changed.
+
+**"When would you NOT use React.memo?"** When the component is cheap to render (most components), when the props change on every render anyway (unstable object/function references), or when the memoization comparison cost exceeds the render cost. Also, the React compiler makes manual memo increasingly unnecessary.

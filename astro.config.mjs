@@ -1,5 +1,6 @@
 import { defineConfig } from "astro/config";
 import starlight from "@astrojs/starlight";
+import react from "@astrojs/react";
 
 export default defineConfig({
   site: "https://nisanth-alla.github.io",
@@ -18,6 +19,10 @@ export default defineConfig({
       ],
       sidebar: [
         {
+          label: "React",
+          autogenerate: { directory: "react" },
+        },
+        {
           label: "Learning Go",
           autogenerate: { directory: "go" },
         },
@@ -30,7 +35,8 @@ export default defineConfig({
         baseUrl:
           "https://github.com/nisanth-alla/engineering-journal/edit/main/",
       },
-      customCss: [],
+      customCss: ["./src/styles/components.css"],
     }),
+    react(),
   ],
 });

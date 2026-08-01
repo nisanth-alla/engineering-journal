@@ -1,0 +1,148 @@
+---
+title: Why React exists
+description: What the web looked like before React, what problem it solved, and why it changed how everyone thinks about UI.
+sidebar:
+  order: 1
+---
+
+## The world before React
+
+If you started building for the web after 2015, you might not realize how different things were. Before React, building a dynamic UI meant one of three approaches, and all of them had serious problems.
+
+**jQuery and manual DOM manipulation.** You'd select elements with `$('.my-button')`, attach event listeners, and manually update the DOM when something changed. For a simple page with a few interactions, this was fine. For anything complex, you ended up with spaghetti: event handlers modifying elements that other event handlers also modified, state scattered across DOM attributes and global variables, and no clear picture of what the UI should look like at any given moment.
+
+```javascript
+// jQuery era: manually keeping the DOM in sync with state
+$('#add-to-cart').click(function() {
+  var count = parseInt($('#cart-count').text());
+  $('#cart-count').text(count + 1);
+  if (count + 1 > 0) {
+    $('#cart-badge').show();
+    $('#checkout-btn').removeClass('disabled');
+  }
+  // ... 20 more lines of DOM updates for one action
+});
+```
+
+The problem was obvious: for every user action, you had to manually figure out which parts of the page needed to change and write the imperative steps to change them. Miss one and the UI is out of sync with reality.
+
+**Backbone and MVC frameworks.** Backbone.js (2010) tried to bring structure. You had Models (data), Views (UI), and Collections (lists of models). Views would listen to model changes and re-render. This was better than raw jQuery, but the binding between models and views was manual and error-prone. Two views listening to the same model could conflict. Cascading updates (model A changes, view B re-renders, which triggers model C to change) were a real debugging nightmare.
+
+**Angular 1 and two-way data binding.** Angular (2010) went the other direction: automatic two-way data binding. Change the model, the view updates. Change the view (type in an input), the model updates. This felt magical until your app got big enough that you couldn't tell which change caused which update. Angular's digest cycle would run through every binding on every change, and performance fell off a cliff as the page grew. The famous "you have 2000 watchers" problem.
+
+## What React actually solved
+
+React (released by Facebook in 2013) took a fundamentally different approach. Instead of describing *how* to update the DOM, you describe *what* the DOM should look like for a given state. React figures out the updates for you.
+
+```jsx
+// React: describe what it should look like, not how to get there
+function Cart({ items }) {
+  return (
+    <div>
+      <span>{items.length} items</span>
+      {items.length > 0 && <button>Checkout</button>}
+    </div>
+  );
+}
+```
+
+This is the core idea: **UI as a function of state.** Given these props, this is what the component looks like. When the state changes, React calls the function again with the new state, gets the new UI description, and figures out the minimum DOM changes needed to get from the old version to the new one.
+
+This solved the synchronization problem that every previous approach struggled with. You never manually update the DOM. You never have to think about "which elements need to change when this data changes." You just describe the end state, and React handles the transitions.
+
+## Why JSX upset people (and why they were wrong)
+
+When React was first released, the developer community reacted (no pun intended) badly to JSX. "You're putting HTML in JavaScript? That violates separation of concerns!"
+
+The complaint was based on the old model where HTML was structure, CSS was style, and JavaScript was behavior. Mixing them felt wrong.
+
+But React's argument was that the old separation was along *technology* lines (HTML vs JS vs CSS), not *concern* lines. A button's structure, behavior, and logic are all one concern. Splitting them across three files doesn't make them less coupled. It just makes you open three tabs to understand one button.
+
+```jsx
+// "Separation of concerns" in the old model meant this button lives in 3 files:
+// button.html: <button id="submit-btn" class="btn-primary">Submit</button>
+// button.css:  .btn-primary { background: blue; }
+// button.js:   document.getElementById('submit-btn').addEventListener('click', ...)
+
+// React: the button is one thing, in one place
+function SubmitButton({ onSubmit, disabled }) {
+  return (
+    <button
+      onClick={onSubmit}
+      disabled={disabled}
+      style={{ background: disabled ? 'gray' : 'blue' }}
+    >
+      Submit
+    </button>
+  );
+}
+```
+
+This turned out to be right. Every major framework that came after React adopted component-based architecture with colocated markup. Vue has single-file components. Svelte puts everything in one `.svelte` file. Angular moved to standalone components. The argument is settled.
+
+## The component model
+
+React's component model is simple. A component is a function that takes props and returns a description of UI. Components compose: a `Page` contains a `Header` and a `ProductList`, which contains `ProductCard` components, each of which contains a `Button`.
+
+```jsx
+function ProductList({ products }) {
+  return (
+    <div>
+      {products.map(product => (
+        <ProductCard key={product.id} product={product} />
+      ))}
+    </div>
+  );
+}
+
+function ProductCard({ product }) {
+  return (
+    <div>
+      <h3>{product.name}</h3>
+      <p>${product.price}</p>
+      <Button onClick={() => addToCart(product)}>Add to cart</Button>
+    </div>
+  );
+}
+```
+
+This composability is React's real strength. You build small, focused pieces. Each one owns its own state and logic. You combine them into larger pieces. The data flows in one direction: parent to child through props. When something goes wrong, you can trace it by following the prop chain.
+
+One-way data flow was a deliberate reaction against Angular 1's two-way binding. Facebook found that two-way bindings created unpredictable cascading updates in their UI (the infamous "phantom notification badge" bug where the message count was wrong and nobody could figure out which binding was out of sync). One-way flow is more verbose but easier to reason about.
+
+## What React influenced
+
+Almost everything that came after borrowed from React:
+
+- **Vue** (2014) adopted the component model and virtual DOM, but added two-way binding for forms (v-model) because sometimes the verbosity of one-way flow isn't worth it
+- **Svelte** (2016) took the "UI as a function of state" idea but removed the virtual DOM, compiling components to direct DOM updates at build time
+- **Solid** (2018) kept JSX and React's API surface but replaced the virtual DOM with fine-grained reactivity
+- **Angular 2+** (2016) rewrote everything around components, dropping the scope-based model of Angular 1
+
+React didn't invent components or declarative UI. But it proved that this approach scales to large applications built by large teams, and it forced the whole frontend ecosystem to rethink its assumptions.
+
+## Where React is now
+
+React in 2024-2025 is not the same library as React in 2013. The biggest shifts:
+
+**Hooks** (2019) replaced class components as the primary way to manage state and side effects. This was controversial when it landed (people had years of class component muscle memory), but hooks turned out to be a better model for logic reuse and composition. More on this in the [hooks article](/engineering-journal/react/hooks-from-scratch/).
+
+**Server Components** (2023) blur the line between server and client rendering. Components that don't need interactivity run on the server and send HTML, not JavaScript. This is React's answer to the "too much JS" problem.
+
+**The React Compiler** (2024-2025) automatically handles memoization, making manual `useMemo` and `useCallback` calls unnecessary in most cases. This is a big deal because performance optimization has been one of the most confusing parts of React for years.
+
+## What React is not good at
+
+Being honest here:
+
+**Bundle size.** React ships a runtime (~40KB gzipped). For a complex app, that's negligible. For a simple page with one interactive widget, it's overhead. Frameworks like Svelte and Astro ship less JS.
+
+**Learning curve for advanced patterns.** The basics are simple. The edge cases around `useEffect`, closures over stale state, and server component boundaries are genuinely confusing. The mental model isn't hard, but the documentation has historically been unclear about these edges.
+
+**Forms.** React's controlled component model for forms (every keystroke triggers a state update and re-render) is correct in theory but annoying in practice for large forms. Libraries like React Hook Form exist specifically because the built-in approach is too verbose.
+
+## The interview question
+
+When someone asks "why React?" in an interview, they're not looking for "because it's popular" or "because Facebook made it." They want to hear that you understand the problem it solved (manual DOM synchronization was unsustainable) and the design decisions behind it (declarative over imperative, one-way data flow, components as the unit of composition).
+
+They also want to hear where it falls short. Saying "React is great for everything" is a red flag. Saying "React's model works well for interactive UIs with complex state, but it adds overhead for content-heavy pages where something like Astro or server-rendered HTML would be lighter" shows you think about tradeoffs.
