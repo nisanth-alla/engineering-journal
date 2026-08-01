@@ -23,6 +23,10 @@ export default defineConfig({
           autogenerate: { directory: "react" },
         },
         {
+          label: "TypeScript",
+          autogenerate: { directory: "typescript" },
+        },
+        {
           label: "Learning Go",
           autogenerate: { directory: "go" },
         },

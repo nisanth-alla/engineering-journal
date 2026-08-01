@@ -1,0 +1,112 @@
+---
+title: Why TypeScript exists
+description: What JavaScript was missing, how TypeScript fills the gap, and why adoption happened the way it did.
+sidebar:
+  order: 1
+---
+
+## The JavaScript problem
+
+JavaScript was designed in 10 days in 1995 by Brendan Eich at Netscape. It was meant for small scripts that validate form inputs and animate buttons. Nobody expected it to run server-side applications, mobile apps, and complex single-page applications with 200,000 lines of code.
+
+The language has no compile step. You write code, the browser runs it. If you misspell a variable name, you find out when that line executes. If you pass a string to a function that expects a number, you find out when the math produces `NaN` and the UI breaks.
+
+```javascript
+function calculateTotal(price, quantity) {
+  return price * quantity;
+}
+
+// Works fine
+calculateTotal(29.99, 3);  // 89.97
+
+// Also "works" but the result is garbage
+calculateTotal("29.99", "3");  // 89.97 (string coercion, lucky)
+calculateTotal("free", 3);     // NaN (silent failure)
+calculateTotal({ price: 29.99 }, 3);  // NaN (silent failure)
+```
+
+None of these throw an error. JavaScript happily multiplies an object by a number, gets `NaN`, and keeps going. The bug surfaces three function calls later when a component tries to render the total and shows "NaN" to the user. Or worse, it works in development because you always pass numbers, and the first time someone else calls your function with a string, production breaks.
+
+At small scale, this doesn't matter much. You know every function in the codebase because you wrote them all. At scale (10 developers, 50 files, functions calling functions calling functions), you can't hold the whole codebase in your head anymore. You need the tooling to tell you when you got it wrong.
+
+## What TypeScript actually is
+
+TypeScript is JavaScript with a type system bolted on top. Every valid JavaScript program is also a valid TypeScript program. TypeScript adds syntax for describing the shapes of your data, and a compiler that checks whether the code matches those descriptions before it runs.
+
+```typescript
+function calculateTotal(price: number, quantity: number): number {
+  return price * quantity;
+}
+
+calculateTotal(29.99, 3);        // fine
+calculateTotal("free", 3);       // compile error: "free" is not a number
+calculateTotal({ price: 29.99 }, 3);  // compile error: object is not a number
+```
+
+The `: number` annotations are the only difference. The compiled output is just the JavaScript version with the types stripped out. TypeScript adds zero runtime overhead. The types exist only at compile time, not at runtime.
+
+This is the core design decision: TypeScript is a **static analysis tool**, not a new language. It doesn't change how JavaScript runs. It catches mistakes before you run the code, the same way a spell checker catches typos before you send the email.
+
+## Why gradual adoption mattered
+
+TypeScript could have required you to type everything from day one. It didn't. You can rename a `.js` file to `.ts`, fix the errors that surface, and leave the rest for later. You can use `any` to opt out of type checking on a per-variable basis. You can enable `strict` mode later when you're ready.
+
+This was critical for adoption. No company is going to rewrite 500,000 lines of JavaScript to add types. But they will rename files one at a time, fix the bugs the compiler finds, and gradually increase strictness. That's exactly how most large codebases adopted TypeScript: incrementally, file by file, over months.
+
+Google, Airbnb, Stripe, Slack, Microsoft (obviously), and basically every major tech company that writes JavaScript now writes TypeScript instead. The conversion happened between 2017 and 2022 for most companies.
+
+## What it replaced
+
+Before TypeScript, teams tried other approaches to the "JavaScript has no types" problem:
+
+**JSDoc comments.** You'd write type annotations in comments, and editors like WebStorm would read them for autocomplete. This worked but was verbose, couldn't express complex types, and had no enforcement (a wrong comment is worse than no comment).
+
+```javascript
+/**
+ * @param {number} price
+ * @param {number} quantity
+ * @returns {number}
+ */
+function calculateTotal(price, quantity) {
+  return price * quantity;
+}
+```
+
+**Flow (Facebook).** A type system for JavaScript that predates TypeScript's popularity. Similar concept, different syntax, weaker ecosystem. Facebook used it internally for years. They've since been migrating to TypeScript.
+
+**PropTypes (React).** Runtime type checking for React component props. Throws warnings in development when a component receives the wrong prop type. Useful but limited to React and only catches errors at runtime.
+
+TypeScript won because it had the best developer experience. The language server powers autocomplete, inline errors, refactoring tools, and go-to-definition. Once you've used a codebase with good TypeScript types, going back to untyped JavaScript feels like driving without headlights.
+
+## The two things TypeScript doesn't do
+
+**Runtime type checking.** TypeScript types are erased at compile time. If you receive data from an API, TypeScript trusts your type annotation even if the actual response is different. You need runtime validation (Zod, io-ts, Valibot) for data crossing trust boundaries.
+
+```typescript
+type User = { name: string; age: number };
+
+// TypeScript believes you, but the API might send { name: null, age: "thirty" }
+const user: User = await fetch("/api/user").then(r => r.json());
+```
+
+This is the biggest source of production TypeScript bugs: assuming that data from external sources matches your types. It often doesn't.
+
+**Guaranteed soundness.** TypeScript's type system has intentional escape hatches (`any`, type assertions, unchecked index access). These exist because forcing 100% soundness would make the migration from JavaScript impractical. In practice, strict mode with `noUncheckedIndexedAccess` gets you very close.
+
+## When TypeScript adds friction
+
+Being honest about the downsides:
+
+**Prototype speed.** When you're exploring an idea and changing the data shape every 5 minutes, type errors on code you're about to delete anyway slow you down. Some people prototype in JavaScript and add types when the shape stabilizes. That's a reasonable workflow.
+
+**Third-party types.** Not every npm package has good types. The `@types/*` ecosystem covers most popular packages, but you'll occasionally find a library where the types are wrong, incomplete, or just `any` everywhere. When the types lie about what the library does, you get bugs that are harder to find than if you had no types at all.
+
+**Over-engineering.** TypeScript's type system is powerful enough to encode elaborate abstractions that are harder to read than the code they protect. I've seen type definitions that take 30 lines to express what a 5-line comment would explain. The type system should serve the code, not the other way around.
+
+## Interview angles
+
+**"Why TypeScript over JavaScript?"** Catch bugs at compile time instead of runtime. Autocomplete and refactoring support from the language server. Self-documenting function signatures. Safer refactoring across large codebases because the compiler tells you everywhere a change needs to propagate.
+
+**"Is TypeScript a superset of JavaScript?"** Yes. Every JS program is valid TS. TypeScript adds syntax (type annotations, interfaces, enums, generics) but doesn't remove anything. The compiled output is standard JavaScript.
+
+**"What can't TypeScript catch?"** Anything that happens at runtime with data whose shape isn't known at compile time. API responses, user input, deserialized data. For those, you need runtime validation. Also, `any` bypasses all checking, so a codebase full of `any` gets no benefit from TypeScript.

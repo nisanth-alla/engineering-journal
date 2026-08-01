@@ -1,0 +1,275 @@
+---
+title: Utility types
+description: Partial, Pick, Omit, Record, and the rest. When you actually need them and what they do under the hood.
+sidebar:
+  order: 4
+---
+
+## Why utility types exist
+
+TypeScript ships a set of built-in types that transform other types. They're called utility types. You'll use maybe 6 of them regularly, see another 4 occasionally, and the rest almost never.
+
+They exist because real code constantly needs to create variations of existing types: "this type but with all fields optional," "this type but only these three fields," "this type but the values are all booleans." Writing these transformations by hand every time would be tedious and error-prone.
+
+## The ones you'll use every week
+
+### Partial\<T\>
+
+Makes all properties optional. The most-used utility type by far.
+
+```typescript
+type User = {
+  name: string;
+  email: string;
+  age: number;
+};
+
+// All fields are optional
+type UpdateUser = Partial<User>;
+// { name?: string; email?: string; age?: number }
+
+function updateUser(id: string, changes: Partial<User>) {
+  // changes might have name, email, age, or any combination
+  db.update(id, changes);
+}
+
+updateUser("123", { name: "Alice" });           // fine
+updateUser("123", { email: "a@b.com", age: 31 }); // fine
+updateUser("123", {});                            // also fine (no changes)
+```
+
+The classic use case: update functions. You want to accept any subset of fields without making a separate type for every possible combination. Without `Partial`, you'd need to write `{ name?: string; email?: string; age?: number }` by hand, and keep it in sync when `User` changes.
+
+What it does under the hood:
+
+```typescript
+type Partial<T> = {
+  [P in keyof T]?: T[P];
+};
+// For each property P in T, make it optional (?) with the same type
+```
+
+### Pick\<T, Keys\>
+
+Extracts a subset of properties. Creates a new type with only the keys you specify.
+
+```typescript
+type UserPreview = Pick<User, "name" | "email">;
+// { name: string; email: string }
+// age is gone
+
+function renderCard(user: UserPreview) {
+  return `${user.name} (${user.email})`;
+}
+```
+
+Use this when a function only needs a few fields from a larger type. It documents exactly what the function depends on, and it prevents the function from accidentally accessing fields it shouldn't know about.
+
+### Omit\<T, Keys\>
+
+The opposite of Pick. Creates a new type with the specified keys removed.
+
+```typescript
+type UserWithoutEmail = Omit<User, "email">;
+// { name: string; age: number }
+
+type CreateUserInput = Omit<User, "id" | "createdAt" | "updatedAt">;
+// Remove server-generated fields for the creation form
+```
+
+`Omit` is more practical than `Pick` when you want "everything except a few fields." API input types are the most common case: the server adds `id`, `createdAt`, and `updatedAt`, so the creation input should exclude them.
+
+### Record\<Keys, Value\>
+
+Creates an object type where all keys have the same value type.
+
+```typescript
+type UserRoles = Record<string, boolean>;
+// { [key: string]: boolean }
+
+const permissions: UserRoles = {
+  canEdit: true,
+  canDelete: false,
+  canPublish: true,
+};
+```
+
+More useful with string literal unions as keys:
+
+```typescript
+type Status = "active" | "inactive" | "pending";
+type StatusCounts = Record<Status, number>;
+// { active: number; inactive: number; pending: number }
+
+// TypeScript enforces that ALL statuses are present
+const counts: StatusCounts = {
+  active: 42,
+  inactive: 7,
+  pending: 3,
+};
+// Missing "pending" would be a compile error
+```
+
+This is better than a plain object type because TypeScript ensures every key in the union is represented. You can't accidentally forget one.
+
+## The ones you'll use monthly
+
+### Required\<T\>
+
+The opposite of Partial. Makes all optional properties required.
+
+```typescript
+type Config = {
+  host?: string;
+  port?: number;
+  debug?: boolean;
+};
+
+type ResolvedConfig = Required<Config>;
+// { host: string; port: number; debug: boolean }
+// No more optional. All fields must be present.
+```
+
+Common pattern: accept optional config from the user, merge with defaults, then work with the `Required` version internally so you don't need null checks everywhere.
+
+```typescript
+function createServer(userConfig: Config): Server {
+  const config: Required<Config> = {
+    host: "localhost",
+    port: 3000,
+    debug: false,
+    ...userConfig,  // user overrides take precedence
+  };
+  // config.host is guaranteed to be string, not string | undefined
+}
+```
+
+### Readonly\<T\>
+
+Makes all properties readonly. Assignments after creation are compile errors.
+
+```typescript
+type FrozenUser = Readonly<User>;
+// { readonly name: string; readonly email: string; readonly age: number }
+
+const user: FrozenUser = { name: "Alice", email: "a@b.com", age: 30 };
+user.name = "Bob";  // compile error: cannot assign to 'name' because it is a read-only property
+```
+
+Useful for function parameters where you want to guarantee the function doesn't mutate its input:
+
+```typescript
+function processUser(user: Readonly<User>) {
+  // Can read user.name, user.email, user.age
+  // Cannot write to any of them
+  // The caller knows their object won't be modified
+}
+```
+
+Note: `Readonly` is shallow. Nested objects are NOT readonly unless you wrap them too. `ReadonlyDeep` is not built-in but libraries like `type-fest` provide it.
+
+### ReturnType\<T\>
+
+Extracts the return type of a function.
+
+```typescript
+function fetchUser() {
+  return { name: "Alice", age: 30, loggedIn: true };
+}
+
+type UserData = ReturnType<typeof fetchUser>;
+// { name: string; age: number; loggedIn: boolean }
+```
+
+This is most useful when you don't control the function (it comes from a library) and you need to type a variable that holds its return value. Instead of manually duplicating the return type, you derive it.
+
+### Extract and Exclude
+
+Filter a union type.
+
+```typescript
+type Status = "active" | "inactive" | "pending" | "banned";
+
+type ActiveStatuses = Extract<Status, "active" | "pending">;
+// "active" | "pending"
+
+type RestrictedStatuses = Exclude<Status, "active">;
+// "inactive" | "pending" | "banned"
+```
+
+`Extract` keeps only the members that match. `Exclude` removes the members that match. Both work on union types.
+
+Real use: you have a union of event types and need a subset of them for a specific handler.
+
+```typescript
+type Event = "click" | "hover" | "focus" | "blur" | "scroll";
+type MouseEvent = Extract<Event, "click" | "hover" | "scroll">;
+type KeyboardEvent = Exclude<Event, "click" | "hover" | "scroll">;
+```
+
+## Composing utility types
+
+The real power shows up when you combine them:
+
+```typescript
+type User = {
+  id: string;
+  name: string;
+  email: string;
+  role: "admin" | "user";
+  createdAt: Date;
+};
+
+// API input: no id or createdAt (server generates those), everything else required
+type CreateUserInput = Omit<User, "id" | "createdAt">;
+
+// Update input: same as create, but all fields optional
+type UpdateUserInput = Partial<CreateUserInput>;
+
+// Admin view: everything, readonly
+type AdminUserView = Readonly<User>;
+
+// Public profile: only name and role
+type PublicProfile = Pick<User, "name" | "role">;
+```
+
+Four derived types from one source type. When `User` changes (say you add a `phone` field), the derived types update automatically. `CreateUserInput` picks it up. `UpdateUserInput` makes it optional. `AdminUserView` makes it readonly. `PublicProfile` is unaffected because it doesn't include `phone`.
+
+## The pattern I use most
+
+In API-heavy codebases, I define the "full" type (what the database stores) and derive everything else:
+
+```typescript
+// The canonical type: what the database row looks like
+type Order = {
+  id: string;
+  userId: string;
+  items: OrderItem[];
+  total: number;
+  status: "pending" | "paid" | "shipped" | "delivered";
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+// What the client sends to create an order
+type CreateOrderBody = Omit<Order, "id" | "status" | "createdAt" | "updatedAt">;
+
+// What the client sends to update an order
+type UpdateOrderBody = Partial<Pick<Order, "status">>;
+
+// What the API returns in a list (lightweight)
+type OrderSummary = Pick<Order, "id" | "total" | "status" | "createdAt">;
+
+// What the API returns for a single order (full detail)
+type OrderDetail = Order & { user: UserSummary };
+```
+
+One source of truth, multiple views derived from it. No field definitions duplicated. No sync bugs.
+
+## Interview angles
+
+**"Which utility types do you use most?"** Partial for update inputs, Omit for creation inputs (removing server-generated fields), Pick for lightweight views, Record for lookup maps. I combine them: `Partial<Omit<User, "id">>` for an update that can change any non-id field.
+
+**"How does Partial work under the hood?"** It's a mapped type that iterates over every key in T and makes it optional: `{ [P in keyof T]?: T[P] }`. The `?` modifier is what makes each property optional. Understanding this lets you build custom utility types for cases the built-in ones don't cover.
+
+**"When would you build a custom utility type?"** When the built-in ones don't express what you need. Common examples: `DeepPartial` (recursive Partial for nested objects), `Mutable` (removes readonly), or domain-specific transformations like "make all Date fields into string" for JSON serialization.

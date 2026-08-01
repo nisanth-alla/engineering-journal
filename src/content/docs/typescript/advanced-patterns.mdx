@@ -1,0 +1,254 @@
+---
+title: Advanced patterns
+description: Discriminated unions, template literal types, conditional types, and branded types. The patterns that separate everyday TypeScript from serious TypeScript.
+sidebar:
+  order: 5
+---
+
+## A warning before we start
+
+Everything in this article is something I've used in production at least once. But "can use" and "should use" are different things. Most TypeScript code should be simple. Interfaces, unions, basic generics, utility types. That covers 90% of real-world needs.
+
+The patterns here are for the remaining 10%: library APIs, type-safe event systems, validation layers, and domain modeling where the type system catches bugs that testing would miss. If you reach for these in everyday application code, you're probably overcomplicating things.
+
+## Discriminated unions (done right)
+
+I covered the basics in the type system article. Here's the production-grade version.
+
+The pattern: every variant has a shared literal field (the discriminant), and you switch on it. TypeScript narrows to the specific variant in each case. The `never` check in the default case catches unhandled variants at compile time.
+
+```typescript
+type ApiAction =
+  | { type: "FETCH_USERS"; page: number; limit: number }
+  | { type: "CREATE_USER"; name: string; email: string }
+  | { type: "DELETE_USER"; userId: string }
+  | { type: "UPDATE_USER"; userId: string; changes: Partial<User> };
+
+function handleAction(action: ApiAction): Promise<unknown> {
+  switch (action.type) {
+    case "FETCH_USERS":
+      return api.get(`/users?page=${action.page}&limit=${action.limit}`);
+    case "CREATE_USER":
+      return api.post("/users", { name: action.name, email: action.email });
+    case "DELETE_USER":
+      return api.delete(`/users/${action.userId}`);
+    case "UPDATE_USER":
+      return api.patch(`/users/${action.userId}`, action.changes);
+    default:
+      const _exhaustive: never = action;
+      throw new Error(`Unhandled action: ${_exhaustive}`);
+  }
+}
+```
+
+When someone adds `{ type: "SUSPEND_USER"; userId: string; reason: string }` to the union, the default case gets a compile error because `action` is not `never` anymore (the new variant is unhandled). The developer is forced to add a case for it. No runtime surprise.
+
+This is the most reliable pattern I know for state machines, message handlers, and anything where "did I handle every case?" matters.
+
+### Extracting payloads from discriminated unions
+
+Sometimes you need the payload type for a specific action:
+
+```typescript
+type ActionPayload<T extends ApiAction["type"]> = Extract<ApiAction, { type: T }>;
+
+type CreatePayload = ActionPayload<"CREATE_USER">;
+// { type: "CREATE_USER"; name: string; email: string }
+
+// Or without the discriminant field:
+type CreateData = Omit<ActionPayload<"CREATE_USER">, "type">;
+// { name: string; email: string }
+```
+
+This is useful when building forms or API clients that need the payload shape for a specific action without manually defining it.
+
+## Template literal types
+
+TypeScript can construct string types from other string types using template syntax:
+
+```typescript
+type HttpMethod = "GET" | "POST" | "PUT" | "DELETE";
+type ApiVersion = "v1" | "v2";
+type Endpoint = `/${ApiVersion}/users` | `/${ApiVersion}/orders`;
+
+// Computed: all possible combinations
+type FullEndpoint = `${HttpMethod} ${Endpoint}`;
+// "GET /v1/users" | "GET /v1/orders" | "GET /v2/users" | ...
+// (4 methods × 4 endpoints = 16 combinations, all type-checked)
+```
+
+Where this gets practical: event handling systems where event names follow a pattern.
+
+```typescript
+type Model = "user" | "order" | "product";
+type EventType = `${Model}:created` | `${Model}:updated` | `${Model}:deleted`;
+// "user:created" | "user:updated" | "user:deleted" | "order:created" | ...
+
+function on(event: EventType, handler: () => void) { }
+
+on("user:created", () => { });   // fine
+on("user:destoryed", () => { }); // compile error (typo caught)
+```
+
+### Inferring parts of template literals
+
+TypeScript can extract parts from a template literal type:
+
+```typescript
+type ExtractModel<T> = T extends `${infer M}:${string}` ? M : never;
+
+type Model = ExtractModel<"user:created">;  // "user"
+type Model2 = ExtractModel<"order:deleted">; // "order"
+```
+
+The `infer` keyword tells TypeScript "figure out what goes here by matching the pattern." This is advanced but shows up in library code for type-safe routing, event systems, and string-based APIs.
+
+## Conditional types
+
+A type that depends on a condition. Like a ternary but for types.
+
+```typescript
+type IsString<T> = T extends string ? "yes" : "no";
+
+type A = IsString<string>;   // "yes"
+type B = IsString<number>;   // "no"
+type C = IsString<"hello">;  // "yes" (string literal extends string)
+```
+
+More practical: unwrapping container types.
+
+```typescript
+type Unwrap<T> = T extends Promise<infer U> ? U : T;
+
+type A = Unwrap<Promise<string>>;   // string
+type B = Unwrap<Promise<number[]>>; // number[]
+type C = Unwrap<string>;            // string (not a Promise, returned as-is)
+```
+
+`Unwrap` says: if T is a Promise of something, give me that something. Otherwise give me T back. The `infer U` captures what's inside the Promise.
+
+This is how TypeScript's built-in `Awaited<T>` works (it recursively unwraps nested Promises).
+
+### Distributive conditional types
+
+When a conditional type receives a union, it distributes over each member:
+
+```typescript
+type ToArray<T> = T extends unknown ? T[] : never;
+
+type Result = ToArray<string | number>;
+// string[] | number[]   (NOT (string | number)[])
+```
+
+TypeScript applies `ToArray` to `string` and `number` separately, then unions the results. This is usually what you want but can be surprising. To prevent distribution, wrap both sides in brackets:
+
+```typescript
+type ToArrayNoDistribute<T> = [T] extends [unknown] ? T[] : never;
+
+type Result = ToArrayNoDistribute<string | number>;
+// (string | number)[]   (the union stays together)
+```
+
+## Branded types
+
+Remember the structural typing problem: a `UserId` and a `ProductId` are both `string`, so TypeScript treats them as interchangeable. Branded types add a phantom field that makes them distinct.
+
+```typescript
+type UserId = string & { readonly __brand: "UserId" };
+type ProductId = string & { readonly __brand: "ProductId" };
+
+function createUserId(id: string): UserId {
+  return id as UserId;
+}
+
+function createProductId(id: string): ProductId {
+  return id as ProductId;
+}
+
+function getUser(id: UserId) { }
+function getProduct(id: ProductId) { }
+
+const userId = createUserId("user_123");
+const productId = createProductId("prod_456");
+
+getUser(userId);       // fine
+getUser(productId);    // compile error! ProductId is not assignable to UserId
+getUser("raw_string"); // compile error! string is not assignable to UserId
+```
+
+The `__brand` field doesn't exist at runtime. It's a compile-time marker that makes the type nominally distinct. The `as` assertion in the factory function is the only place where you bypass the type system. Everywhere else, the compiler enforces the distinction.
+
+I use this for:
+- IDs that shouldn't be mixed up (UserId, OrderId, SessionId)
+- Validated strings (EmailAddress, Url, NonEmptyString)
+- Units that shouldn't be confused (Cents vs Dollars, Milliseconds vs Seconds)
+
+```typescript
+type Cents = number & { readonly __brand: "Cents" };
+type Dollars = number & { readonly __brand: "Dollars" };
+
+function toCents(dollars: Dollars): Cents {
+  return (dollars * 100) as Cents;
+}
+
+function charge(amount: Cents) { }
+
+const price = 29.99 as Dollars;
+charge(price);        // compile error: Dollars is not Cents
+charge(toCents(price)); // fine
+```
+
+This would have caught the Mars Climate Orbiter bug (NASA lost a $125M spacecraft because one team used pounds and another used newtons for thrust calculations).
+
+## Mapped types
+
+Create new types by transforming every property of an existing type.
+
+```typescript
+// Make every property a getter function
+type Getters<T> = {
+  [K in keyof T as `get${Capitalize<string & K>}`]: () => T[K];
+};
+
+type User = { name: string; age: number };
+type UserGetters = Getters<User>;
+// { getName: () => string; getAge: () => number }
+```
+
+The `as` clause renames keys during mapping. `Capitalize` is a built-in string manipulation type. Together they transform `name` into `getName`.
+
+More common use: making all properties of a type optional and nullable (for form state where any field might be empty):
+
+```typescript
+type FormState<T> = {
+  [K in keyof T]: T[K] | null;
+} & {
+  [K in keyof T as `${string & K}Error`]: string | null;
+};
+
+type UserForm = FormState<Pick<User, "name" | "email">>;
+// {
+//   name: string | null;
+//   email: string | null;
+//   nameError: string | null;
+//   emailError: string | null;
+// }
+```
+
+## When I reach for these patterns
+
+| Pattern | When I use it | When I don't |
+|---|---|---|
+| Discriminated unions | State machines, message handlers, API response variants | Simple if/else on a string |
+| Template literals | Event systems, route definitions, anything with structured string formats | Random string manipulation |
+| Conditional types | Library APIs that need to change return type based on input | Application code (too obscure for teammates) |
+| Branded types | IDs, validated values, units where mixing causes bugs | Internal strings that don't cross module boundaries |
+| Mapped types | Generating API client types from schemas, form state types | One-off type transformations (just write the type) |
+
+## Interview angles
+
+**"What are discriminated unions?"** A union where every variant has a shared literal field. You switch on that field and TypeScript narrows to the specific variant. Combined with exhaustiveness checking (`never` in the default case), they guarantee you handle every variant. They're the most practical advanced TypeScript pattern.
+
+**"How would you prevent mixing up two string ID types?"** Branded types. Add a phantom `__brand` property that makes `UserId` and `ProductId` structurally distinct even though they're both strings at runtime. Factory functions are the only place that creates them, so the brand is enforced everywhere else.
+
+**"What's a conditional type?"** A type-level ternary: `T extends U ? X : Y`. If T is assignable to U, the result is X; otherwise Y. Used for type transformations like unwrapping Promises (`Awaited<T>`), extracting types from containers, and building polymorphic APIs where the return type depends on the input type.
