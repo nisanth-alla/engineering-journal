@@ -217,7 +217,7 @@ Before hooks, sharing this logic required a HOC (`withWindowWidth(Layout)`) or r
 
 This demo shows a tracked component. Click buttons and watch the timeline fill up with entries showing exactly when each hook phase fires: render, effects, cleanup, refs.
 
-<HooksTimeline client:load />
+<HooksTimeline client:only="react" />
 
 Things to notice:
 - **Render happens before effects.** The component function runs first (producing the new UI), then effects run after React updates the DOM.

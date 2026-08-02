@@ -1,0 +1,252 @@
+---
+title: Closures and scope
+description: What closures actually are, why they exist, the loop trap that catches everyone, and real-world patterns that use them.
+sidebar:
+  order: 2
+---
+
+import ClosureVisualizer from '../../../components/ClosureVisualizer';
+
+## What a closure is
+
+A closure is a function that remembers the variables from the scope where it was created, even after that scope has finished executing.
+
+That definition is correct but abstract. Here's what it means in practice:
+
+```javascript
+function createGreeter(greeting) {
+  // greeting exists in this scope
+  return function(name) {
+    // this inner function can access greeting
+    // even after createGreeter has returned
+    return `${greeting}, ${name}!`;
+  };
+}
+
+const hello = createGreeter("Hello");
+const howdy = createGreeter("Howdy");
+
+hello("Alice");  // "Hello, Alice!"
+howdy("Bob");    // "Howdy, Bob!"
+```
+
+When `createGreeter("Hello")` runs, it creates a scope containing `greeting = "Hello"`. The returned function keeps a reference to that scope. Even though `createGreeter` has finished and its stack frame is gone, the scope lives on because the inner function closes over it.
+
+`hello` and `howdy` are two separate closures. Each one holds its own scope with its own `greeting`. They don't interfere with each other.
+
+## Why closures exist
+
+JavaScript has first-class functions (functions are values you can pass around, return from other functions, store in variables). Closures are a natural consequence of this. When you return a function from another function, it needs to carry its context with it. Without closures, the inner function would lose access to the outer scope the moment the outer function returned.
+
+Every language with first-class functions has closures: Python, Ruby, Swift, Go (yes, Go has closures too), Kotlin. It's not a JavaScript quirk. It's a fundamental concept in programming languages.
+
+## The scope chain
+
+When a function accesses a variable, JavaScript walks up the scope chain:
+
+1. Check the function's own local scope
+2. Check the enclosing function's scope
+3. Check the next enclosing scope
+4. Keep going until the global scope
+5. If not found anywhere, throw a ReferenceError
+
+Each step up the chain is a closure. The function "closes over" its parent scope. The parent closes over its parent. And so on.
+
+```javascript
+const global = "I'm global";
+
+function outer() {
+  const outerVar = "I'm outer";
+
+  function middle() {
+    const middleVar = "I'm middle";
+
+    function inner() {
+      // inner can access all three:
+      console.log(global);     // walks up 3 levels
+      console.log(outerVar);   // walks up 2 levels
+      console.log(middleVar);  // walks up 1 level
+    }
+    inner();
+  }
+  middle();
+}
+```
+
+## Try it: watch the scope chain
+
+Step through each scenario and see the scope chain build up. Watch how closed-over variables stay alive even after their parent function returns.
+
+<ClosureVisualizer client:load />
+
+The "Loop trap" scenario is especially important. It's one of the most common interview questions and the source of real bugs in production code.
+
+## The classic loop trap
+
+This is probably the most asked closure question in JavaScript interviews:
+
+```javascript
+for (var i = 0; i < 3; i++) {
+  setTimeout(() => console.log(i), 100);
+}
+// Expected: 0, 1, 2
+// Actual:   3, 3, 3
+```
+
+Why? `var` is function-scoped, not block-scoped. There's one `i` variable shared across all three iterations. The setTimeout callbacks don't run until after the loop finishes. By then, `i` is 3. All three callbacks close over the same `i`.
+
+The fix with `let`:
+
+```javascript
+for (let i = 0; i < 3; i++) {
+  setTimeout(() => console.log(i), 100);
+}
+// Output: 0, 1, 2
+```
+
+`let` creates a new variable for each iteration. Each callback closes over its own `i`. This is one of the strongest arguments for never using `var` in modern code.
+
+The pre-ES6 fix (for historical context and interviews):
+
+```javascript
+for (var i = 0; i < 3; i++) {
+  (function(captured) {
+    setTimeout(() => console.log(captured), 100);
+  })(i);
+}
+// Output: 0, 1, 2
+```
+
+An IIFE (Immediately Invoked Function Expression) creates a new scope for each iteration. `captured` is a new variable each time, copying the current value of `i`. This is ugly and nobody writes it anymore, but understanding why it works proves you understand closures.
+
+## Real-world closure patterns
+
+### Private state (module pattern)
+
+Before ES6 modules and class private fields, closures were the only way to create private state:
+
+```javascript
+function createStore(initial) {
+  let state = initial;  // private, no direct access
+  const listeners = [];
+
+  return {
+    getState: () => state,
+    setState: (next) => {
+      state = typeof next === "function" ? next(state) : next;
+      listeners.forEach(fn => fn(state));
+    },
+    subscribe: (fn) => {
+      listeners.push(fn);
+      return () => {
+        const idx = listeners.indexOf(fn);
+        if (idx > -1) listeners.splice(idx, 1);
+      };
+    },
+  };
+}
+```
+
+This is basically how Redux works internally. `state` and `listeners` are invisible from outside. The only way to interact with them is through the returned methods. The methods close over the shared scope.
+
+### Memoization
+
+```javascript
+function memoize(fn) {
+  const cache = new Map();  // closed over, persists across calls
+
+  return function(...args) {
+    const key = JSON.stringify(args);
+    if (cache.has(key)) return cache.get(key);
+
+    const result = fn(...args);
+    cache.set(key, result);
+    return result;
+  };
+}
+
+const expensiveFn = memoize((n) => {
+  console.log("computing...");
+  return n * n;
+});
+
+expensiveFn(5);  // "computing..." → 25
+expensiveFn(5);  // 25 (no "computing...", cache hit)
+```
+
+The `cache` Map lives in the closure. Each call to the returned function checks the cache first. The cache persists because the closure keeps it alive.
+
+### Event handler factories
+
+```javascript
+function createHandler(action, analytics) {
+  return function(event) {
+    analytics.track(action, { target: event.target.id });
+    // handle the event
+  };
+}
+
+button.addEventListener("click", createHandler("button_click", analyticsService));
+```
+
+The handler closes over `action` and `analytics`. You don't need to pass them every time the handler fires.
+
+### Debounce and throttle
+
+```javascript
+function debounce(fn, delay) {
+  let timer = null;  // closed over
+
+  return function(...args) {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn(...args), delay);
+  };
+}
+
+const search = debounce((query) => {
+  fetch(`/api/search?q=${query}`);
+}, 300);
+```
+
+`timer` persists between calls because of the closure. Each new call clears the previous timer and sets a new one. The function only fires after `delay` milliseconds of inactivity.
+
+## Memory and closures
+
+Closures keep their scope alive. If a closure holds a reference to a large object, that object can't be garbage collected as long as the closure exists. This is usually fine, but it can cause memory leaks in long-running applications if closures accumulate.
+
+```javascript
+function processBigData() {
+  const hugeArray = new Array(1000000).fill("data");
+
+  return function getLength() {
+    return hugeArray.length;
+  };
+}
+
+const getLen = processBigData();
+// hugeArray (millions of entries) stays in memory because getLen closes over it
+// Even though getLen only needs .length, the whole array is retained
+```
+
+The fix: don't close over more than you need.
+
+```javascript
+function processBigData() {
+  const hugeArray = new Array(1000000).fill("data");
+  const length = hugeArray.length;  // extract what you need
+
+  return function getLength() {
+    return length;  // closes over a number, not the array
+  };
+}
+```
+
+Modern JavaScript engines are somewhat smart about this (V8 can sometimes GC variables in a closure that the inner function provably never accesses), but don't rely on it. Be explicit about what you capture.
+
+## Interview angles
+
+**"What is a closure? Give a real-world use case."** A closure is a function that retains access to variables from the scope where it was defined, even after that scope has exited. Real uses: private state in the module pattern (state is invisible from outside, only accessible through returned methods), memoization (a cache persists across function calls), debounce/throttle (a timer ID persists between invocations).
+
+**"Explain the var loop trap."** `var` is function-scoped, so a loop with `var i` has one shared `i`. setTimeout callbacks close over this shared `i`, and by the time they run, the loop is done and `i` is at its final value. Fix: use `let` (block-scoped, creates a new `i` per iteration) or an IIFE to capture the value.
+
+**"Can closures cause memory leaks?"** Yes. A closure keeps its entire scope alive. If it closes over a large object it doesn't need, that object can't be garbage collected. The fix is to extract only the values you need into local variables before closing over them.

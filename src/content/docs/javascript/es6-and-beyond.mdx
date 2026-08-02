@@ -1,0 +1,308 @@
+---
+title: ES6 and beyond
+description: The features that modernized JavaScript. Destructuring, spread, modules, optional chaining, and what actually changed the way people write code.
+sidebar:
+  order: 5
+---
+
+## Why ES6 mattered
+
+ES6 (ES2015) was the biggest single update to JavaScript since the language was created. It landed features that developers had been asking for since the 2000s. Before ES6, JavaScript was missing basic things that every other modern language had: block scoping, native modules, arrow functions, template strings, default parameters, classes.
+
+After ES6, JavaScript went to yearly releases. ES2016 added two features. ES2017 added async/await. Each year since then has added a handful of focused improvements. The pace slowed down because the big gaps were already filled.
+
+I'm not going to list every feature since ES6. Instead, here are the ones that actually changed how people write JavaScript day to day, with context on what problem each one solved.
+
+## Destructuring
+
+Extracting values from objects and arrays into variables. Sounds simple, saves an enormous amount of code.
+
+```javascript
+// Before destructuring
+const user = getUser();
+const name = user.name;
+const email = user.email;
+const age = user.age;
+
+// With destructuring
+const { name, email, age } = getUser();
+
+// Array destructuring
+const [first, second, ...rest] = [1, 2, 3, 4, 5];
+// first = 1, second = 2, rest = [3, 4, 5]
+
+// Nested destructuring
+const { address: { city, zip } } = user;
+
+// Default values
+const { role = "viewer" } = user;  // if user.role is undefined, use "viewer"
+
+// Rename while destructuring
+const { name: userName, email: userEmail } = user;
+```
+
+This is everywhere in React:
+
+```jsx
+function UserCard({ name, email, role = "member" }) {
+  // Props are destructured in the parameter list
+  return <div>{name} ({role})</div>;
+}
+```
+
+Before destructuring, React component props looked like:
+
+```jsx
+function UserCard(props) {
+  return <div>{props.name} ({props.role})</div>;
+}
+```
+
+Workable, but you lose the self-documenting parameter list. With destructuring, the function signature tells you exactly which props the component uses.
+
+## Spread and rest
+
+Three dots (`...`) that do two different things depending on context.
+
+**Spread:** expands an iterable into individual elements.
+
+```javascript
+// Copying arrays
+const copy = [...original];
+
+// Combining arrays
+const combined = [...arr1, ...arr2, newItem];
+
+// Copying objects (shallow)
+const updated = { ...user, name: "New Name" };  // copy user, override name
+
+// Function arguments
+Math.max(...numbers);  // spreads array into individual arguments
+```
+
+**Rest:** collects remaining elements into an array.
+
+```javascript
+// In function parameters
+function sum(first, ...rest) {
+  return first + rest.reduce((a, b) => a + b, 0);
+}
+
+// In destructuring
+const { id, ...otherFields } = user;
+// id gets the id, otherFields gets everything else
+```
+
+The object spread for immutable updates is one of the most used patterns in React:
+
+```javascript
+// State update without mutation
+setState(prev => ({
+  ...prev,
+  items: [...prev.items, newItem],
+  count: prev.count + 1,
+}));
+```
+
+This creates a new object with all previous values plus the changes. No mutation. React can detect the change because it's a new reference.
+
+## Arrow functions
+
+Shorter syntax with a crucial behavioral difference: arrow functions don't have their own `this`.
+
+```javascript
+// Regular function
+function double(x) { return x * 2; }
+
+// Arrow function
+const double = (x) => x * 2;
+
+// With body (needs explicit return)
+const double = (x) => {
+  const result = x * 2;
+  return result;
+};
+```
+
+The `this` difference is the important part:
+
+```javascript
+class Timer {
+  constructor() {
+    this.seconds = 0;
+  }
+
+  start() {
+    // Regular function: `this` depends on how it's called
+    setInterval(function() {
+      this.seconds++;  // BUG: `this` is not the Timer instance
+    }, 1000);
+
+    // Arrow function: `this` is captured from the surrounding scope
+    setInterval(() => {
+      this.seconds++;  // Works: `this` is the Timer instance
+    }, 1000);
+  }
+}
+```
+
+This is why React event handlers use arrows. `onClick={() => handleClick()}` captures the correct `this`. `onClick={handleClick}` might not, depending on how `handleClick` is defined.
+
+## Template literals
+
+String interpolation with backticks:
+
+```javascript
+// Before
+const greeting = "Hello, " + name + "! You have " + count + " messages.";
+
+// After
+const greeting = `Hello, ${name}! You have ${count} messages.`;
+
+// Multi-line strings
+const html = `
+  <div class="card">
+    <h2>${title}</h2>
+    <p>${description}</p>
+  </div>
+`;
+
+// Tagged templates (used by styled-components, graphql, etc.)
+const query = gql`
+  query GetUser($id: ID!) {
+    user(id: $id) {
+      name
+      email
+    }
+  }
+`;
+```
+
+Tagged templates are how libraries like styled-components and graphql-tag work. The tag function receives the string parts and interpolated values as separate arguments and can process them however it wants.
+
+## Modules
+
+Before ES6 modules, JavaScript had no standard module system. You either used global variables, CommonJS (`require`/`module.exports` in Node), AMD (RequireJS in browsers), or bundler-specific solutions.
+
+ES6 modules give you `import`/`export`:
+
+```javascript
+// utils.js
+export function formatCurrency(amount) {
+  return `$${amount.toFixed(2)}`;
+}
+
+export const TAX_RATE = 0.08;
+
+export default class Cart { /* ... */ }
+
+// app.js
+import Cart, { formatCurrency, TAX_RATE } from "./utils.js";
+```
+
+Key differences from CommonJS (`require`):
+- ES modules are statically analyzed (imports must be at the top level, not inside if statements). This enables tree-shaking (removing unused exports from bundles).
+- ES module imports are live bindings (if the exporting module changes the value, importers see the change). CommonJS exports are copies.
+- ES modules are always strict mode. No need for `"use strict"`.
+
+In modern development, you write ES modules and a bundler (Vite, webpack, esbuild) handles browser compatibility.
+
+## Optional chaining and nullish coalescing
+
+Two features that eliminated a massive amount of defensive coding:
+
+```javascript
+// Before optional chaining
+const city = user && user.address && user.address.city;
+const firstTag = post && post.tags && post.tags[0];
+const result = obj && obj.method && obj.method();
+
+// With optional chaining
+const city = user?.address?.city;
+const firstTag = post?.tags?.[0];
+const result = obj?.method?.();
+
+// Combined with nullish coalescing
+const displayName = user?.profile?.displayName ?? "Anonymous";
+```
+
+`?.` short-circuits to `undefined` if any part of the chain is `null` or `undefined`. No TypeError, no crash. `??` provides a fallback for `null`/`undefined` only (not for `0`, `""`, or `false`, which `||` would catch).
+
+## Other features worth knowing
+
+### Map and Set
+
+```javascript
+// Map: key-value pairs where keys can be ANY type (not just strings)
+const cache = new Map();
+cache.set(userObject, computedData);  // object as key
+cache.set(42, "the answer");          // number as key
+
+// Set: unique values
+const unique = new Set([1, 2, 2, 3, 3]);
+// Set { 1, 2, 3 }
+const uniqueNames = [...new Set(names)];  // deduplicate an array
+```
+
+Maps are better than plain objects for caches and lookups because they have `.size`, iteration order is insertion order, and keys can be objects (not just strings).
+
+### for...of
+
+Iterates over values (not keys like `for...in`):
+
+```javascript
+for (const item of array) { }      // arrays
+for (const char of string) { }     // strings
+for (const [key, val] of map) { }  // Maps
+for (const item of set) { }        // Sets
+```
+
+`for...in` iterates over enumerable property names (keys). `for...of` iterates over iterable values. For arrays, `for...of` is almost always what you want.
+
+### Symbols
+
+Unique identifiers that can't collide with string property names:
+
+```javascript
+const id = Symbol("id");
+const user = { [id]: 123, name: "Alice" };
+
+user[id];     // 123
+user.id;      // undefined (different property)
+Object.keys(user);  // ["name"] (symbols are not enumerable)
+```
+
+Symbols are used by the language itself (`Symbol.iterator`, `Symbol.toPrimitive`) and by libraries that need to attach metadata to objects without risking name collisions.
+
+### Proxy and Reflect
+
+Intercept operations on objects:
+
+```javascript
+const handler = {
+  get(target, prop) {
+    console.log(`accessed ${prop}`);
+    return prop in target ? target[prop] : `no such property: ${prop}`;
+  },
+  set(target, prop, value) {
+    console.log(`set ${prop} = ${value}`);
+    target[prop] = value;
+    return true;
+  },
+};
+
+const user = new Proxy({}, handler);
+user.name = "Alice";  // logs: "set name = Alice"
+user.name;            // logs: "accessed name", returns "Alice"
+user.missing;         // logs: "accessed missing", returns "no such property: missing"
+```
+
+Vue 3's reactivity system is built on Proxy. When you access a reactive property, the Proxy's get trap registers a dependency. When you set a property, the set trap triggers re-renders. Elegantly simple compared to Vue 2's Object.defineProperty approach.
+
+## Interview angles
+
+**"What changed in ES6?"** Block scoping (let/const), arrow functions (lexical this), template literals, destructuring, spread/rest, native modules (import/export), Promises, classes, Map/Set, Symbol, for...of, default parameters. ES6 was the release that made JavaScript feel like a modern language.
+
+**"Difference between `??` and `||`?"** `||` returns the right side for any falsy value (false, 0, "", null, undefined, NaN). `??` returns the right side only for null or undefined. Use `??` when 0 or empty string are valid values you want to keep. `count ?? 10` gives 10 only if count is null/undefined. `count || 10` gives 10 for count=0 too.
+
+**"What is event delegation?"** Attaching a single event listener to a parent element instead of individual listeners on each child. Uses event bubbling: clicks on children propagate up to the parent. Check `event.target` to identify which child was clicked. Benefits: less memory, works with dynamically added elements, simpler cleanup. React uses this internally.

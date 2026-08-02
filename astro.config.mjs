@@ -9,7 +9,7 @@ export default defineConfig({
     starlight({
       title: "Engineering Journal",
       description:
-        "Notes, experiments, and lessons from building distributed systems, learning Go, and studying system design.",
+        "Deep dives into React, TypeScript, JavaScript, Go, and distributed systems. Interactive demos, real code, and interview prep.",
       social: [
         {
           icon: "github",
@@ -19,12 +19,16 @@ export default defineConfig({
       ],
       sidebar: [
         {
-          label: "React",
-          autogenerate: { directory: "react" },
+          label: "JavaScript",
+          autogenerate: { directory: "javascript" },
         },
         {
           label: "TypeScript",
           autogenerate: { directory: "typescript" },
+        },
+        {
+          label: "React",
+          autogenerate: { directory: "react" },
         },
         {
           label: "Learning Go",

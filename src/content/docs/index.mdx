@@ -1,15 +1,15 @@
 ---
 title: Engineering Journal
-description: Notes, experiments, and lessons from building distributed systems, learning Go, and studying system design.
+description: Deep dives into React, TypeScript, JavaScript, Go, and distributed systems. Interactive demos, real code, and interview prep.
 template: splash
 hero:
-  tagline: A working set of notes and experiments I keep while building distributed systems, learning new languages, and preparing for system design conversations. Written as I learn, not after I've mastered it.
+  tagline: Deep dives into JavaScript, TypeScript, React, Go, and distributed systems. Interactive demos you can play with on the page, real code from production experience, and interview prep. Written by a working engineer, not generated from a prompt.
   actions:
-    - text: Start with Go
-      link: /engineering-journal/go/why-go/
+    - text: Start with JavaScript
+      link: /engineering-journal/javascript/how-js-works/
       icon: right-arrow
-    - text: View experiments
-      link: /engineering-journal/experiments/
+    - text: View all sections
+      link: /engineering-journal/react/why-react/
       variant: minimal
 ---
 
@@ -18,33 +18,36 @@ import { Card, CardGrid } from '@astrojs/starlight/components';
 ## What's here
 
 <CardGrid>
-  <Card title="React" icon="seti:react">
-    Deep dives into how React works, from the rendering model to hooks to performance. Each article has interactive demos you can play with directly on the page. Written from years of building production React apps.
+  <Card title="JavaScript" icon="seti:javascript">
+    The event loop visualized step by step, closures with scope chain diagrams, prototype inheritance, async patterns from callbacks to async/await, and ES6+ features that changed how people write JS. Three interactive simulators.
   </Card>
   <Card title="TypeScript" icon="seti:typescript">
-    The type system explained through real patterns: structural typing, narrowing, generics, utility types, and advanced tricks like branded types and discriminated unions. Interactive demos let you click through type inference step by step.
+    Structural typing, unions, narrowing, generics, utility types, and advanced patterns like branded types and discriminated unions. Interactive demos let you click through type inference and narrowing step by step.
+  </Card>
+  <Card title="React" icon="seti:react">
+    How rendering actually works (not what you think), hooks explained through what they replaced, state management decisions, component patterns, and performance. Three interactive demos showing re-renders, hook lifecycles, and memo behavior.
   </Card>
   <Card title="Learning Go" icon="rocket">
-    Coming from TypeScript/Node, I'm learning Go by building distributed systems experiments. These articles document the mental model shifts, the things that surprised me, and the concepts I had to unlearn and relearn.
+    Coming from TypeScript/Node, documenting the mental model shift to goroutines and channels. What surprised me, what I had to unlearn, and what clicked faster than expected.
   </Card>
   <Card title="Experiments" icon="puzzle">
-    Each experiment isolates a real problem (rate limiting, saga orchestration, concurrent processing) and builds a working solution. The code lives in the [distributed-systems-lab](https://github.com/nisanth-alla/distributed-systems-lab). These pages go deeper than the README.
+    Rate limiting, saga orchestration, concurrent file processing. Each experiment isolates a real problem, builds a working solution, breaks it on purpose, and documents what happened. Code in the [distributed-systems-lab](https://github.com/nisanth-alla/distributed-systems-lab).
   </Card>
   <Card title="System Design" icon="open-book">
-    Structured notes on caching, queues, consistency, retries, and more. Short enough to re-read in five minutes, detailed enough to hold up in a design review. See the [system-design-notes](https://github.com/nisanth-alla/system-design-notes) repo.
+    Caching, queues, consistency, retries, database design, API design. Short enough to re-read in five minutes, with runnable experiments and [interactive visualizations](https://nisanth-alla.github.io/system-design-notes/).
   </Card>
 </CardGrid>
 
 ## How to use this
 
-If you're learning distributed systems or Go, start with whatever topic is relevant to you right now. Each article is self-contained. If you want to follow the same path I did, start with the Go section and then work through the experiments.
+Pick whatever's relevant to you right now. Each article is self-contained. If you're prepping for interviews, every article ends with an "Interview angles" section covering the questions that actually come up and what a strong answer looks like.
 
-If you're here because you saw my [portfolio](https://portfolio-ulzg.vercel.app/) and want to see how I think about engineering problems, the Go section shows my learning process and the experiments section shows how I build and test ideas.
+If you want to go deep on one stack, the JavaScript, TypeScript, and React sections build on each other (JS covers the foundations, TS adds the type system, React applies both). The Go section is independent.
 
 ## Connected repos
 
 | Repo | What it is |
 |---|---|
 | [distributed-systems-lab](https://github.com/nisanth-alla/distributed-systems-lab) | Runnable experiments in TypeScript and Go. The code that these articles reference. |
-| [system-design-notes](https://github.com/nisanth-alla/system-design-notes) | Structured notes on core distributed systems concepts, with interactive visualizations. |
-| [reliable-job-platform](https://github.com/nisanth-alla/reliable-job-platform) | A production-style job processing system. The project where these lessons come together. |
+| [system-design-notes](https://github.com/nisanth-alla/system-design-notes) | Structured notes with interactive visualizations for cache stampedes and idempotent retries. |
+| [reliable-job-platform](https://github.com/nisanth-alla/reliable-job-platform) | Production-style job processing system. The project where these lessons come together. |
