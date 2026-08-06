@@ -17,12 +17,12 @@ function calculateTotal(price, quantity) {
 }
 
 // Works fine
-calculateTotal(29.99, 3);  // 89.97
+calculateTotal(29.99, 3); // 89.97
 
 // Also "works" but the result is garbage
-calculateTotal("29.99", "3");  // 89.97 (string coercion, lucky)
-calculateTotal("free", 3);     // NaN (silent failure)
-calculateTotal({ price: 29.99 }, 3);  // NaN (silent failure)
+calculateTotal("29.99", "3"); // 89.97 (string coercion, lucky)
+calculateTotal("free", 3); // NaN (silent failure)
+calculateTotal({ price: 29.99 }, 3); // NaN (silent failure)
 ```
 
 None of these throw an error. JavaScript happily multiplies an object by a number, gets `NaN`, and keeps going. The bug surfaces three function calls later when a component tries to render the total and shows "NaN" to the user. Or worse, it works in development because you always pass numbers, and the first time someone else calls your function with a string, production breaks.
@@ -38,9 +38,9 @@ function calculateTotal(price: number, quantity: number): number {
   return price * quantity;
 }
 
-calculateTotal(29.99, 3);        // fine
-calculateTotal("free", 3);       // compile error: "free" is not a number
-calculateTotal({ price: 29.99 }, 3);  // compile error: object is not a number
+calculateTotal(29.99, 3); // fine
+calculateTotal("free", 3); // compile error: "free" is not a number
+calculateTotal({ price: 29.99 }, 3); // compile error: object is not a number
 ```
 
 The `: number` annotations are the only difference. The compiled output is just the JavaScript version with the types stripped out. TypeScript adds zero runtime overhead. The types exist only at compile time, not at runtime.
@@ -86,7 +86,7 @@ TypeScript won because it had the best developer experience. The language server
 type User = { name: string; age: number };
 
 // TypeScript believes you, but the API might send { name: null, age: "thirty" }
-const user: User = await fetch("/api/user").then(r => r.json());
+const user: User = await fetch("/api/user").then((r) => r.json());
 ```
 
 This is the biggest source of production TypeScript bugs: assuming that data from external sources matches your types. It often doesn't.

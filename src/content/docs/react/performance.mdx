@@ -5,13 +5,13 @@ sidebar:
   order: 6
 ---
 
-import MemoComparison from '../../../components/MemoComparison';
+import MemoComparison from "../../../components/MemoComparison";
 
 ## Most React apps don't have a performance problem
 
 I'm putting this first because the most common performance mistake in React isn't failing to optimize. It's optimizing things that don't need optimization.
 
-I've reviewed codebases where every component is wrapped in `React.memo`, every function in `useCallback`, and every computed value in `useMemo`. The code is harder to read, harder to maintain, and in some cases actually *slower* because the memoization overhead exceeds the cost of just re-rendering.
+I've reviewed codebases where every component is wrapped in `React.memo`, every function in `useCallback`, and every computed value in `useMemo`. The code is harder to read, harder to maintain, and in some cases actually _slower_ because the memoization overhead exceeds the cost of just re-rendering.
 
 Here's the rule I follow: **measure first, optimize second.** If you can't point to a specific, measurable slowness, don't add memoization. React is fast by default for the vast majority of use cases.
 
@@ -22,6 +22,7 @@ Two tools that actually help:
 ### React DevTools Profiler
 
 Open React DevTools, go to the Profiler tab, click Record, interact with your app, click Stop. You get a flame chart showing:
+
 - Which components rendered
 - How long each render took
 - Why each component rendered (props changed? parent re-rendered? state changed?)
@@ -42,7 +43,7 @@ For frame drops and jank, the browser Performance tab is better than React DevTo
 const ExpensiveList = memo(function ExpensiveList({ items, onSelect }) {
   return (
     <ul>
-      {items.map(item => (
+      {items.map((item) => (
         <li key={item.id} onClick={() => onSelect(item)}>
           {item.name}
         </li>
@@ -59,7 +60,7 @@ function Parent() {
   const [count, setCount] = useState(0);
 
   // New function every render! Memo on Child is defeated.
-  const handleClick = () => console.log('clicked');
+  const handleClick = () => console.log("clicked");
 
   return <MemoizedChild onClick={handleClick} />;
 }
@@ -70,7 +71,7 @@ The `handleClick` function is recreated on every render. `memo` compares `prevPr
 The fix: `useCallback` to stabilize the function reference:
 
 ```jsx
-const handleClick = useCallback(() => console.log('clicked'), []);
+const handleClick = useCallback(() => console.log("clicked"), []);
 ```
 
 Now `handleClick` is the same reference across renders. `memo` can actually skip the re-render.
@@ -91,22 +92,28 @@ The right side stays at 1 render until you click "Change child prop." That's mem
 function ProductList({ products, filter }) {
   // Only re-sorts when products or filter change
   const filtered = useMemo(() => {
-    return products
-      .filter(p => p.category === filter)
-      .sort((a, b) => b.price - a.price);
+    return products.filter((p) => p.category === filter).sort((a, b) => b.price - a.price);
   }, [products, filter]);
 
-  return <ul>{filtered.map(p => <ProductItem key={p.id} product={p} />)}</ul>;
+  return (
+    <ul>
+      {filtered.map((p) => (
+        <ProductItem key={p.id} product={p} />
+      ))}
+    </ul>
+  );
 }
 ```
 
 Without `useMemo`, the filter and sort would run on every render, even if `products` and `filter` haven't changed. For 50 items, that's invisible. For 50,000 items, that's the difference between smooth and janky.
 
 **When to use useMemo:**
+
 - The computation is genuinely expensive (sorting/filtering large arrays, complex calculations)
 - The result is passed as a prop to a memoized child component (stabilizes the reference)
 
 **When NOT to use useMemo:**
+
 - The computation is trivial (string concatenation, simple math)
 - Nothing depends on the reference stability of the result
 - You're using it "just in case." The memoization itself has a cost (storing the previous result, comparing dependencies). For cheap computations, this overhead can exceed the cost of just recomputing.
@@ -117,15 +124,17 @@ Without `useMemo`, the filter and sort would run on every render, even if `produ
 
 ```jsx
 const handleSubmit = useCallback((data) => {
-  api.post('/orders', data);
-}, []);  // no dependencies: same function forever
+  api.post("/orders", data);
+}, []); // no dependencies: same function forever
 ```
 
 You need `useCallback` when:
+
 1. You pass the function as a prop to a `memo`-wrapped child (so memo can detect that the prop didn't change)
 2. You use the function as a dependency in another hook's dependency array (so the hook doesn't re-run on every render)
 
 You DON'T need `useCallback` when:
+
 - The function is used only inside the current component
 - No child is memoized
 - You're not using it in a dependency array
@@ -135,7 +144,7 @@ You DON'T need `useCallback` when:
 For large apps, not everything needs to load upfront. `React.lazy` splits a component into its own bundle that loads on demand.
 
 ```jsx
-const AdminDashboard = lazy(() => import('./AdminDashboard'));
+const AdminDashboard = lazy(() => import("./AdminDashboard"));
 
 function App() {
   return (
@@ -157,6 +166,7 @@ function App() {
 The `AdminDashboard` bundle only downloads when the user navigates to `/admin`. If most users never visit the admin page, you've saved them from downloading that code entirely.
 
 Good split points:
+
 - **Routes.** Each page loads independently.
 - **Modals and dialogs.** They don't show on initial load.
 - **Heavy features** that only some users access (admin panels, analytics dashboards, editors).
@@ -169,24 +179,24 @@ When you genuinely have thousands of items in a list, rendering all of them is s
 Virtualization renders only the items currently visible in the viewport, plus a small buffer above and below. As the user scrolls, items enter and leave the rendered set.
 
 ```jsx
-import { useVirtualizer } from '@tanstack/react-virtual';
+import { useVirtualizer } from "@tanstack/react-virtual";
 
 function BigList({ items }) {
   const parentRef = useRef(null);
   const virtualizer = useVirtualizer({
     count: items.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => 50,  // estimated row height in px
+    estimateSize: () => 50, // estimated row height in px
   });
 
   return (
-    <div ref={parentRef} style={{ height: '400px', overflow: 'auto' }}>
+    <div ref={parentRef} style={{ height: "400px", overflow: "auto" }}>
       <div style={{ height: virtualizer.getTotalSize() }}>
-        {virtualizer.getVirtualItems().map(virtualRow => (
+        {virtualizer.getVirtualItems().map((virtualRow) => (
           <div
             key={virtualRow.key}
             style={{
-              position: 'absolute',
+              position: "absolute",
               top: virtualRow.start,
               height: virtualRow.size,
             }}

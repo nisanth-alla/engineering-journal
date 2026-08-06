@@ -13,15 +13,9 @@ The most common state management mistake I've seen in production codebases is re
 
 ```jsx
 function SearchBar() {
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState("");
 
-  return (
-    <input
-      value={query}
-      onChange={(e) => setQuery(e.target.value)}
-      placeholder="Search..."
-    />
-  );
+  return <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search..." />;
 }
 ```
 
@@ -33,7 +27,7 @@ When two sibling components need the same data, the React answer is to move the 
 
 ```jsx
 function ProductPage() {
-  const [selectedSize, setSelectedSize] = useState('M');
+  const [selectedSize, setSelectedSize] = useState("M");
 
   return (
     <div>
@@ -53,10 +47,10 @@ This pattern works well for 2-3 levels of components. At 5+ levels, you start pa
 React Context lets you make a value available to any component in a subtree without passing it through every level.
 
 ```jsx
-const ThemeContext = createContext('light');
+const ThemeContext = createContext("light");
 
 function App() {
-  const [theme, setTheme] = useState('light');
+  const [theme, setTheme] = useState("light");
   return (
     <ThemeContext.Provider value={theme}>
       <Header />
@@ -69,7 +63,7 @@ function App() {
 // Deep inside the tree, any component can read the theme
 function IconButton() {
   const theme = useContext(ThemeContext);
-  return <button className={theme === 'dark' ? 'icon-light' : 'icon-dark'}>...</button>;
+  return <button className={theme === "dark" ? "icon-light" : "icon-dark"}>...</button>;
 }
 ```
 
@@ -79,7 +73,7 @@ Context is great for values that change rarely and affect many components: theme
 
 ```jsx
 // This re-renders every consumer on every state change, even if they only read 'user'
-const AppContext = createContext({ user: null, theme: 'light', notifications: [] });
+const AppContext = createContext({ user: null, theme: "light", notifications: [] });
 ```
 
 The fix: split contexts by update frequency. User rarely changes. Notifications change often. They should be separate contexts so notification updates don't re-render components that only read the user.
@@ -99,14 +93,15 @@ External state management libraries (Zustand, Jotai, Redux Toolkit) solve proble
 Zustand is a tiny store (1KB) with a minimal API. You define state and actions in one place. Components subscribe to the parts they need.
 
 ```jsx
-import { create } from 'zustand';
+import { create } from "zustand";
 
 const useCartStore = create((set) => ({
   items: [],
   addItem: (item) => set((state) => ({ items: [...state.items, item] })),
-  removeItem: (id) => set((state) => ({
-    items: state.items.filter((i) => i.id !== id),
-  })),
+  removeItem: (id) =>
+    set((state) => ({
+      items: state.items.filter((i) => i.id !== id),
+    })),
   total: () => {
     // derived state: computed from items
   },
@@ -129,7 +124,7 @@ If you're starting a new project today and the state management needs are "moder
 
 ## Server state vs client state
 
-This distinction changed how I think about state management. Most of the "state" in a typical web app isn't really *your* state. It's a cached copy of server data.
+This distinction changed how I think about state management. Most of the "state" in a typical web app isn't really _your_ state. It's a cached copy of server data.
 
 A list of products isn't client state. It came from the server. Your local copy is a cache. It can go stale. It needs loading states, error states, and refetching logic.
 
@@ -138,8 +133,8 @@ A list of products isn't client state. It came from the server. Your local copy 
 ```jsx
 function ProductList() {
   const { data, isLoading, error } = useQuery({
-    queryKey: ['products'],
-    queryFn: () => fetch('/api/products').then(r => r.json()),
+    queryKey: ["products"],
+    queryFn: () => fetch("/api/products").then((r) => r.json()),
   });
 
   if (isLoading) return <Spinner />;

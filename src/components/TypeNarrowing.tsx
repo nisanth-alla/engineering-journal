@@ -137,8 +137,7 @@ export default function TypeNarrowing() {
           margin: "0 0 1rem",
         }}
       >
-        Pick a narrowing pattern, then click each guard to see how the type
-        changes.
+        Pick a narrowing pattern, then click each guard to see how the type changes.
       </p>
 
       <div className="demo-controls">
@@ -192,19 +191,12 @@ export default function TypeNarrowing() {
                 Guard: <code>{step.guard}</code>
               </button>
               {activeStep === i && (
-                <div
-                  className="demo-output"
-                  style={{ marginTop: "0.25rem" }}
-                >
+                <div className="demo-output" style={{ marginTop: "0.25rem" }}>
                   <div>
                     <strong>Narrowed type:</strong>{" "}
-                    <code style={{ color: "var(--sl-color-accent)" }}>
-                      {step.narrowedType}
-                    </code>
+                    <code style={{ color: "var(--sl-color-accent)" }}>{step.narrowedType}</code>
                   </div>
-                  <div style={{ marginTop: "0.5rem", lineHeight: 1.5 }}>
-                    {step.explanation}
-                  </div>
+                  <div style={{ marginTop: "0.5rem", lineHeight: 1.5 }}>{step.explanation}</div>
                 </div>
               )}
             </div>

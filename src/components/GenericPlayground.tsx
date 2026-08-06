@@ -18,7 +18,8 @@ const scenarios: Scenario[] = [
       {
         call: 'identity("hello")',
         inferred: "T = string",
-        explanation: 'You passed a string literal, so TypeScript infers T as string. The return type is string, not "any" or "unknown".',
+        explanation:
+          'You passed a string literal, so TypeScript infers T as string. The return type is string, not "any" or "unknown".',
       },
       {
         call: "identity(42)",
@@ -28,7 +29,8 @@ const scenarios: Scenario[] = [
       {
         call: "identity({ name: 'Alice', age: 30 })",
         inferred: "T = { name: string; age: number }",
-        explanation: "T infers the full object shape. The return value has the same type, so you get autocomplete on .name and .age.",
+        explanation:
+          "T infers the full object shape. The return value has the same type, so you get autocomplete on .name and .age.",
       },
     ],
   },
@@ -49,12 +51,14 @@ const scenarios: Scenario[] = [
       {
         call: "getLength([1, 2, 3])",
         inferred: "T = number[] (has .length)",
-        explanation: "Arrays have length too. The constraint doesn't care about the specific type, just that .length exists.",
+        explanation:
+          "Arrays have length too. The constraint doesn't care about the specific type, just that .length exists.",
       },
       {
         call: "getLength(42)",
         inferred: "ERROR: number has no .length",
-        explanation: "Numbers don't have a length property. TypeScript catches this at compile time. The constraint protects you from calling the function with something that would fail at runtime.",
+        explanation:
+          "Numbers don't have a length property. TypeScript catches this at compile time. The constraint protects you from calling the function with something that would fail at runtime.",
       },
     ],
   },
@@ -71,17 +75,20 @@ const scenarios: Scenario[] = [
       {
         call: 'pick({ name: "Alice", age: 30 }, "name")',
         inferred: "T = { name: string; age: number }, K = 'name', returns string",
-        explanation: '"name" is a valid key of the object. The return type is T[K] = string. TypeScript knows the result is a string, not string | number.',
+        explanation:
+          '"name" is a valid key of the object. The return type is T[K] = string. TypeScript knows the result is a string, not string | number.',
       },
       {
         call: 'pick({ name: "Alice", age: 30 }, "age")',
         inferred: "K = 'age', returns number",
-        explanation: "Same object, different key. The return type narrows to number because T['age'] is number.",
+        explanation:
+          "Same object, different key. The return type narrows to number because T['age'] is number.",
       },
       {
         call: 'pick({ name: "Alice", age: 30 }, "email")',
         inferred: 'ERROR: "email" is not in keyof T',
-        explanation: "The object has no 'email' key. keyof T is 'name' | 'age', and 'email' isn't in that union. Caught at compile time, not runtime.",
+        explanation:
+          "The object has no 'email' key. keyof T is 'name' | 'age', and 'email' isn't in that union. Caught at compile time, not runtime.",
       },
     ],
   },
@@ -95,17 +102,20 @@ const scenarios: Scenario[] = [
       {
         call: "wrapInArray(42)",
         inferred: "T = number, returns number[]",
-        explanation: "The return type is T[], so with T = number you get number[]. Without generics, you'd get (string | number | ...)[] or unknown[].",
+        explanation:
+          "The return type is T[], so with T = number you get number[]. Without generics, you'd get (string | number | ...)[] or unknown[].",
       },
       {
         call: 'wrapInArray("hello")',
         inferred: "T = string, returns string[]",
-        explanation: "Same function, returns string[]. The generic preserves the relationship between input and output types.",
+        explanation:
+          "Same function, returns string[]. The generic preserves the relationship between input and output types.",
       },
       {
         call: "wrapInArray({ id: 1 })",
         inferred: "T = { id: number }, returns { id: number }[]",
-        explanation: "Works with objects too. The returned array is typed as { id: number }[], so you get autocomplete on array[0].id.",
+        explanation:
+          "Works with objects too. The returned array is typed as { id: number }[], so you get autocomplete on array[0].id.",
       },
     ],
   },
@@ -126,8 +136,8 @@ export default function GenericPlayground() {
           margin: "0 0 1rem",
         }}
       >
-        Pick a generic pattern, then click each function call to see what
-        TypeScript infers for the type parameters.
+        Pick a generic pattern, then click each function call to see what TypeScript infers for the
+        type parameters.
       </p>
 
       <div className="demo-controls">
@@ -174,33 +184,24 @@ export default function GenericPlayground() {
               <div key={i}>
                 <button
                   className={`demo-button ${expandedCall === i ? "primary" : ""}`}
-                  onClick={() =>
-                    setExpandedCall(expandedCall === i ? null : i)
-                  }
+                  onClick={() => setExpandedCall(expandedCall === i ? null : i)}
                   style={{ width: "100%", textAlign: "left" }}
                 >
                   <code>{usage.call}</code>
                 </button>
                 {expandedCall === i && (
-                  <div
-                    className="demo-output"
-                    style={{ marginTop: "0.25rem" }}
-                  >
+                  <div className="demo-output" style={{ marginTop: "0.25rem" }}>
                     <div>
                       <strong>Inferred:</strong>{" "}
                       <code
                         style={{
-                          color: isError
-                            ? "#ef4444"
-                            : "var(--sl-color-accent)",
+                          color: isError ? "#ef4444" : "var(--sl-color-accent)",
                         }}
                       >
                         {usage.inferred}
                       </code>
                     </div>
-                    <div style={{ marginTop: "0.5rem", lineHeight: 1.5 }}>
-                      {usage.explanation}
-                    </div>
+                    <div style={{ marginTop: "0.5rem", lineHeight: 1.5 }}>{usage.explanation}</div>
                   </div>
                 )}
               </div>

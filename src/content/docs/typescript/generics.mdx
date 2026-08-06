@@ -5,7 +5,7 @@ sidebar:
   order: 3
 ---
 
-import GenericPlayground from '../../../components/GenericPlayground';
+import GenericPlayground from "../../../components/GenericPlayground";
 
 ## The problem generics solve
 
@@ -49,9 +49,9 @@ function wrap<T>(value: T): { wrapped: T } {
   return { wrapped: value };
 }
 
-wrap("hello");   // T inferred as string → returns { wrapped: string }
-wrap(42);        // T inferred as number → returns { wrapped: number }
-wrap(true);      // T inferred as boolean → returns { wrapped: boolean }
+wrap("hello"); // T inferred as string → returns { wrapped: string }
+wrap(42); // T inferred as number → returns { wrapped: number }
+wrap(true); // T inferred as boolean → returns { wrapped: boolean }
 ```
 
 You CAN be explicit: `wrap<string>("hello")`. But you almost never need to. Inference handles it.
@@ -63,17 +63,19 @@ function createState<T>(initial: T) {
   let value = initial;
   return {
     get: () => value,
-    set: (newValue: T) => { value = newValue; },
+    set: (newValue: T) => {
+      value = newValue;
+    },
   };
 }
 
 // TypeScript infers T = "hello" (the literal type, not string)
 const state = createState("hello");
-state.set("world");  // error: "world" is not assignable to "hello"
+state.set("world"); // error: "world" is not assignable to "hello"
 
 // Fix: explicitly widen to string
 const state = createState<string>("hello");
-state.set("world");  // fine
+state.set("world"); // fine
 ```
 
 ## Try it: see inference in action
@@ -94,9 +96,9 @@ function longest<T extends { length: number }>(a: T, b: T): T {
   return a.length >= b.length ? a : b;
 }
 
-longest("hello", "world");         // T = string, works
-longest([1, 2], [1, 2, 3]);       // T = number[], works
-longest(42, 100);                   // error: number has no .length
+longest("hello", "world"); // T = string, works
+longest([1, 2], [1, 2, 3]); // T = number[], works
+longest(42, 100); // error: number has no .length
 ```
 
 The `extends` keyword here doesn't mean inheritance. It means "must be assignable to." `T extends { length: number }` means "T must be a type that has a `length` property of type `number`." Strings, arrays, and any object with a `length` field qualify.
@@ -110,9 +112,9 @@ function getProperty<T extends object, K extends keyof T>(obj: T, key: K): T[K] 
 }
 
 const user = { name: "Alice", age: 30 };
-getProperty(user, "name");   // returns string
-getProperty(user, "age");    // returns number
-getProperty(user, "email");  // error: "email" is not a key of typeof user
+getProperty(user, "name"); // returns string
+getProperty(user, "age"); // returns number
+getProperty(user, "email"); // error: "email" is not a key of typeof user
 ```
 
 `K extends keyof T` means K must be one of the actual keys of whatever object you pass. TypeScript checks this at the call site, so typos in key names are caught at compile time.
@@ -136,7 +138,7 @@ async function fetchApi<T>(url: string): Promise<ApiResponse<T>> {
 
 // Usage: the response is typed
 const users = await fetchApi<User[]>("/api/users");
-users.data[0].name;  // autocomplete works
+users.data[0].name; // autocomplete works
 ```
 
 ### Event emitter
@@ -158,7 +160,7 @@ class Emitter<Events extends Record<string, unknown>> {
 
   emit<K extends keyof Events>(event: K, payload: Events[K]) {
     const handlers = this.handlers.get(event as string) || [];
-    handlers.forEach(h => h(payload));
+    handlers.forEach((h) => h(payload));
   }
 }
 
@@ -168,7 +170,7 @@ emitter.on("userLogin", (payload) => {
   console.log(payload.userId);
 });
 emitter.emit("userLogin", { userId: "123", timestamp: new Date() });
-emitter.emit("userLogin", { wrong: "shape" });  // compile error
+emitter.emit("userLogin", { wrong: "shape" }); // compile error
 ```
 
 The `Events` generic ensures that event names and their payloads are type-checked. You can't emit a `userLogin` event with the wrong payload shape, and the handler receives the correct type automatically.
@@ -192,9 +194,9 @@ class QueryBuilder<T extends Record<string, unknown>> {
 type UserQuery = { name: string; age: number; active: boolean };
 
 const query = new QueryBuilder<UserQuery>()
-  .where("name", "Alice")      // value must be string
-  .where("age", 30)             // value must be number
-  .where("age", "thirty");      // compile error: string not assignable to number
+  .where("name", "Alice") // value must be string
+  .where("age", 30) // value must be number
+  .where("age", "thirty"); // compile error: string not assignable to number
 ```
 
 ## When to stop

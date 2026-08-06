@@ -7,17 +7,17 @@ sidebar:
 
 ## Quick reference
 
-| Question | One-line answer |
-|---|---|
-| useEffect vs useLayoutEffect | useEffect after paint (async). useLayoutEffect before paint (sync). |
-| React Fiber | Rewrite of reconciler enabling incremental rendering. Work can be paused/resumed. |
-| useState vs useReducer | useState for simple values. useReducer for complex transitions with multiple sub-values. |
-| React.memo | Skips re-render if props unchanged (shallow compare). Needs stable function refs to work. |
-| Virtual DOM diffing | Compares old/new trees. Assumes different element types = different trees. Keys identify list items. |
-| Lifecycle vs hooks | componentDidMount = useEffect(fn, []). componentDidUpdate = useEffect(fn, [deps]). componentWillUnmount = useEffect return. |
-| Next.js SSR | Server renders React to HTML per request. Client hydrates. |
-| Server Components | Run on server only. No hooks, no JS shipped. Can access DB directly. |
-| Protected routes | Middleware for edge redirects. Layout-level session checks. Never client-only. |
+| Question                     | One-line answer                                                                                                             |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| useEffect vs useLayoutEffect | useEffect after paint (async). useLayoutEffect before paint (sync).                                                         |
+| React Fiber                  | Rewrite of reconciler enabling incremental rendering. Work can be paused/resumed.                                           |
+| useState vs useReducer       | useState for simple values. useReducer for complex transitions with multiple sub-values.                                    |
+| React.memo                   | Skips re-render if props unchanged (shallow compare). Needs stable function refs to work.                                   |
+| Virtual DOM diffing          | Compares old/new trees. Assumes different element types = different trees. Keys identify list items.                        |
+| Lifecycle vs hooks           | componentDidMount = useEffect(fn, []). componentDidUpdate = useEffect(fn, [deps]). componentWillUnmount = useEffect return. |
+| Next.js SSR                  | Server renders React to HTML per request. Client hydrates.                                                                  |
+| Server Components            | Run on server only. No hooks, no JS shipped. Can access DB directly.                                                        |
+| Protected routes             | Middleware for edge redirects. Layout-level session checks. Never client-only.                                              |
 
 ---
 
@@ -65,8 +65,12 @@ It doesn't handle them. If two effects depend on each other's output, you get an
 const [a, setA] = useState(0);
 const [b, setB] = useState(0);
 
-useEffect(() => { setA(b + 1); }, [b]);
-useEffect(() => { setB(a + 1); }, [a]);
+useEffect(() => {
+  setA(b + 1);
+}, [b]);
+useEffect(() => {
+  setB(a + 1);
+}, [a]);
 // a changes → b changes → a changes → ...
 ```
 

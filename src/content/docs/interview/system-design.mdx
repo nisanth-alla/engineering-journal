@@ -5,7 +5,7 @@ sidebar:
   order: 4
 ---
 
-import InterviewTradeoffLab from '../../../components/InterviewTradeoffLab';
+import InterviewTradeoffLab from "../../../components/InterviewTradeoffLab";
 
 ## How frontend system design differs
 
@@ -44,6 +44,7 @@ Think: Google Docs. Multiple users editing the same document simultaneously.
 **Real-time transport:** WebSocket connection to the server. Each keystroke sends an operation (insert/delete at position). The server broadcasts to all connected clients. The CRDT ensures all clients converge to the same document state regardless of operation order.
 
 **Component structure:**
+
 - `Editor` (manages the document model, handles input)
 - `Toolbar` (formatting controls)
 - `CursorOverlay` (renders remote users' cursors)
@@ -170,7 +171,7 @@ function createStore(initialState) {
     getState: () => state,
     setState: (updater) => {
       state = typeof updater === "function" ? updater(state) : updater;
-      listeners.forEach(fn => fn(state));
+      listeners.forEach((fn) => fn(state));
     },
     subscribe: (listener) => {
       listeners.add(listener);

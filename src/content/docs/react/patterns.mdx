@@ -13,7 +13,7 @@ React's component model is built on composition. A component takes children and 
 
 ```jsx
 <Dropdown
-  options={['Apple', 'Banana', 'Cherry']}
+  options={["Apple", "Banana", "Cherry"]}
   onChange={handleSelect}
   placeholder="Select fruit"
   searchable={true}
@@ -70,11 +70,7 @@ function Dropdown({ children, onSelect }) {
 
 Dropdown.Trigger = function Trigger({ children }) {
   const { open, setOpen, selected } = useContext(DropdownContext);
-  return (
-    <button onClick={() => setOpen(!open)}>
-      {selected ?? children}
-    </button>
-  );
+  return <button onClick={() => setOpen(!open)}>{selected ?? children}</button>;
 };
 
 Dropdown.Menu = function Menu({ children }) {
@@ -86,10 +82,7 @@ Dropdown.Menu = function Menu({ children }) {
 Dropdown.Item = function Item({ value, children }) {
   const { select, selected } = useContext(DropdownContext);
   return (
-    <div
-      className={selected === value ? 'selected' : ''}
-      onClick={() => select(value)}
-    >
+    <div className={selected === value ? "selected" : ""} onClick={() => select(value)}>
       {children}
     </div>
   );
@@ -108,7 +101,9 @@ Before hooks, React had two patterns for logic reuse: Higher-Order Components (H
 function withWindowSize(WrappedComponent) {
   return function WithWindowSize(props) {
     const [size, setSize] = useState({ width: window.innerWidth });
-    useEffect(() => { /* resize listener */ }, []);
+    useEffect(() => {
+      /* resize listener */
+    }, []);
     return <WrappedComponent {...props} windowSize={size} />;
   };
 }
@@ -130,8 +125,8 @@ function useWindowSize() {
     function handleResize() {
       setSize({ width: window.innerWidth, height: window.innerHeight });
     }
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   return size;
@@ -146,6 +141,7 @@ function MyComponent() {
 No wrappers. No injected props. The hook is called directly. You can see exactly where the data comes from by reading the component. And if two hooks return the same-named value, you just destructure with different names.
 
 Custom hooks I've written in production:
+
 - `useDebounce(value, delay)` for search inputs
 - `useLocalStorage(key, defaultValue)` for persisted preferences
 - `useMediaQuery(query)` for responsive logic
@@ -182,12 +178,13 @@ class ErrorBoundary extends React.Component {
 // Usage: wrap any subtree
 <ErrorBoundary>
   <SomeFeature />
-</ErrorBoundary>
+</ErrorBoundary>;
 ```
 
 Without error boundaries, a thrown error in any component takes down the entire app. With boundaries, only the wrapped subtree shows the fallback. The rest of the app keeps working.
 
 In production, I put error boundaries around:
+
 - Each major page section (header, main content, sidebar)
 - Third-party components (if their code throws, your app survives)
 - Data-dependent components that might receive unexpected shapes
@@ -202,7 +199,7 @@ This pattern applies mostly to form inputs, but the concept is general.
 
 ```jsx
 function Controlled() {
-  const [value, setValue] = useState('');
+  const [value, setValue] = useState("");
   return <input value={value} onChange={(e) => setValue(e.target.value)} />;
 }
 ```
@@ -216,7 +213,7 @@ function Uncontrolled() {
   const inputRef = useRef();
 
   function handleSubmit() {
-    console.log(inputRef.current.value);  // read from DOM
+    console.log(inputRef.current.value); // read from DOM
   }
 
   return <input ref={inputRef} defaultValue="" />;
@@ -226,6 +223,7 @@ function Uncontrolled() {
 No state updates on every keystroke. The input manages its own state internally. You just grab the value when you need it (usually on submit).
 
 When to use which:
+
 - **Controlled** when you need real-time validation, formatting (phone numbers, currency), or the value drives other UI
 - **Uncontrolled** when you just need the value on submit and don't want the re-render cost of controlled inputs (rare, but relevant for large forms)
 - **React Hook Form** when you want the performance of uncontrolled with the validation power of controlled. It uses refs internally but gives you a controlled-feeling API.

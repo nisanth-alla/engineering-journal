@@ -86,9 +86,7 @@ export default function StreamPipeline() {
         }
 
         // Detect backpressure: chunks pile up because writer is slow
-        const waiting = next.filter(
-          (c) => c.stage >= 0 && c.stage < 3
-        ).length;
+        const waiting = next.filter((c) => c.stage >= 0 && c.stage < 3).length;
         setBackpressure(writerBusy && waiting > 2);
 
         // Check if all done
@@ -124,15 +122,12 @@ export default function StreamPipeline() {
           margin: "0 0 1rem",
         }}
       >
-        Watch data chunks flow through a Readable → Transform → Writable
-        pipeline. Switch to "Slow writer" to see backpressure in action.
+        Watch data chunks flow through a Readable → Transform → Writable pipeline. Switch to "Slow
+        writer" to see backpressure in action.
       </p>
 
       <div className="demo-controls">
-        <button
-          className="demo-button primary"
-          onClick={running ? stop : start}
-        >
+        <button className="demo-button primary" onClick={running ? stop : start}>
           {running ? "Stop" : "Start pipeline"}
         </button>
         <button
@@ -155,7 +150,10 @@ export default function StreamPipeline() {
       <div className="demo-pipeline">
         {stages.map((stage, si) => (
           <Fragment key={stage.name}>
-            <div className="demo-pipeline-stage" style={{ "--pipeline-color": stage.color } as React.CSSProperties}>
+            <div
+              className="demo-pipeline-stage"
+              style={{ "--pipeline-color": stage.color } as React.CSSProperties}
+            >
               <div className="demo-pipeline-stage-title">{stage.name}</div>
               <div className="demo-pipeline-stage-items">
                 {chunks
@@ -199,7 +197,8 @@ export default function StreamPipeline() {
 
       {!running && chunks.length > 0 && chunks.every((c) => c.stage === 3) && (
         <div className="demo-output" style={{ marginTop: "0.75rem" }}>
-          All chunks processed. {speed === "slow-writer"
+          All chunks processed.{" "}
+          {speed === "slow-writer"
             ? "Notice how the slow writer caused chunks to wait at the transform stage. In real Node.js streams, this triggers the 'drain' event pattern: the readable pauses until the writable signals it's ready for more."
             : "Try 'Slow writer' to see what happens when one stage can't keep up with the others."}
         </div>

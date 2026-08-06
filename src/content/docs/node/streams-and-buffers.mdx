@@ -5,7 +5,7 @@ sidebar:
   order: 3
 ---
 
-import StreamPipeline from '../../../components/StreamPipeline';
+import StreamPipeline from "../../../components/StreamPipeline";
 
 ## The problem streams solve
 
@@ -13,7 +13,7 @@ Imagine you need to process a 2GB log file. The naive approach:
 
 ```javascript
 const data = fs.readFileSync("access.log"); // 2GB loaded into memory
-const lines = data.toString().split("\n");   // another 2GB for the string
+const lines = data.toString().split("\n"); // another 2GB for the string
 // Your process is now using 4GB+ of RAM for one file
 ```
 
@@ -89,7 +89,7 @@ await pipeline(
   fs.createReadStream("input.csv"),
   csvParser(),
   filterTransform,
-  fs.createWriteStream("output.csv")
+  fs.createWriteStream("output.csv"),
 );
 // Automatically cleans up all streams on error
 // Throws if any stream fails
@@ -144,7 +144,7 @@ Buffers are Node's way of handling raw binary data. They're fixed-size chunks of
 ```javascript
 // Create a buffer
 const buf = Buffer.from("Hello, world!");
-console.log(buf);        // <Buffer 48 65 6c 6c 6f ...>
+console.log(buf); // <Buffer 48 65 6c 6c 6f ...>
 console.log(buf.length); // 13 (bytes, not characters)
 console.log(buf.toString("utf-8")); // "Hello, world!"
 
@@ -159,10 +159,14 @@ When you read a file without specifying an encoding, you get a Buffer. When you 
 
 ```javascript
 // Returns Buffer
-fs.readFile("data.bin", (err, buf) => { /* buf is Buffer */ });
+fs.readFile("data.bin", (err, buf) => {
+  /* buf is Buffer */
+});
 
 // Returns string
-fs.readFile("data.txt", "utf-8", (err, str) => { /* str is string */ });
+fs.readFile("data.txt", "utf-8", (err, str) => {
+  /* str is string */
+});
 ```
 
 Streams work with Buffers by default. Each `data` event gives you a Buffer chunk. If you're working with text, set the stream's encoding or convert manually with `.toString()`.

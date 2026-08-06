@@ -55,6 +55,7 @@ export default function ProductCard({ product }) {
 ```
 
 What it does behind the scenes:
+
 - Serves WebP/AVIF (smaller file size) to browsers that support them
 - Generates multiple sizes and serves the right one based on viewport
 - Lazy loads images below the fold (uses Intersection Observer)
@@ -110,12 +111,12 @@ The `matcher` controls which routes trigger middleware. The regex above excludes
 
 Next.js has multiple caching layers. Understanding them prevents stale data bugs:
 
-| Layer | What it caches | Where | How to control |
-|---|---|---|---|
-| **Request memoization** | Duplicate `fetch` calls within a single render | Server | Automatic for same URL in same render pass |
-| **Data cache** | `fetch` responses across requests | Server | `revalidate`, `cache: "no-store"` |
-| **Full route cache** | Rendered HTML of static routes | Server/CDN | `dynamic`, `revalidate`, `revalidatePath()` |
-| **Router cache** | Previously visited pages in the browser | Client | Time-based (30s for dynamic, 5min for static) |
+| Layer                   | What it caches                                 | Where      | How to control                                |
+| ----------------------- | ---------------------------------------------- | ---------- | --------------------------------------------- |
+| **Request memoization** | Duplicate `fetch` calls within a single render | Server     | Automatic for same URL in same render pass    |
+| **Data cache**          | `fetch` responses across requests              | Server     | `revalidate`, `cache: "no-store"`             |
+| **Full route cache**    | Rendered HTML of static routes                 | Server/CDN | `dynamic`, `revalidate`, `revalidatePath()`   |
+| **Router cache**        | Previously visited pages in the browser        | Client     | Time-based (30s for dynamic, 5min for static) |
 
 The most common confusion: you update data in the database but the page still shows old content. Check which cache layer is serving stale data:
 
@@ -125,13 +126,13 @@ import { revalidatePath } from "next/cache";
 
 export async function updateProduct(id: string, data: ProductData) {
   await db.products.update(id, data);
-  revalidatePath(`/products/${id}`);  // bust the cache for this page
+  revalidatePath(`/products/${id}`); // bust the cache for this page
 }
 
 // Or revalidate by tag
 const res = await fetch(url, { next: { tags: ["products"] } });
 // Later:
-revalidateTag("products");  // bust all fetches tagged "products"
+revalidateTag("products"); // bust all fetches tagged "products"
 ```
 
 ## API Routes

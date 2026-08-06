@@ -9,14 +9,14 @@ sidebar:
 
 Every folder inside `app/` is a URL segment. Special filenames define behavior:
 
-| File | Purpose |
-|---|---|
-| `page.tsx` | The route's UI. Makes the route publicly accessible. |
-| `layout.tsx` | Shared UI that wraps child routes. Preserves state across navigation. |
-| `loading.tsx` | Loading UI shown while the page's async data loads. |
-| `error.tsx` | Error boundary for the route segment. |
-| `not-found.tsx` | UI for 404 responses. |
-| `route.ts` | API endpoint (GET, POST, etc.). Can't coexist with `page.tsx` in the same folder. |
+| File            | Purpose                                                                           |
+| --------------- | --------------------------------------------------------------------------------- |
+| `page.tsx`      | The route's UI. Makes the route publicly accessible.                              |
+| `layout.tsx`    | Shared UI that wraps child routes. Preserves state across navigation.             |
+| `loading.tsx`   | Loading UI shown while the page's async data loads.                               |
+| `error.tsx`     | Error boundary for the route segment.                                             |
+| `not-found.tsx` | UI for 404 responses.                                                             |
+| `route.ts`      | API endpoint (GET, POST, etc.). Can't coexist with `page.tsx` in the same folder. |
 
 ```
 app/

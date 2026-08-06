@@ -52,8 +52,7 @@ export default defineConfig({
         },
       ],
       editLink: {
-        baseUrl:
-          "https://github.com/nisanth-alla/engineering-journal/edit/main/",
+        baseUrl: "https://github.com/nisanth-alla/engineering-journal/edit/main/",
       },
       customCss: ["./src/styles/components.css"],
     }),

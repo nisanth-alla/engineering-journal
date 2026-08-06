@@ -13,12 +13,12 @@ If you started building for the web after 2015, you might not realize how differ
 
 ```javascript
 // jQuery era: manually keeping the DOM in sync with state
-$('#add-to-cart').click(function() {
-  var count = parseInt($('#cart-count').text());
-  $('#cart-count').text(count + 1);
+$("#add-to-cart").click(function () {
+  var count = parseInt($("#cart-count").text());
+  $("#cart-count").text(count + 1);
   if (count + 1 > 0) {
-    $('#cart-badge').show();
-    $('#checkout-btn').removeClass('disabled');
+    $("#cart-badge").show();
+    $("#checkout-btn").removeClass("disabled");
   }
   // ... 20 more lines of DOM updates for one action
 });
@@ -32,7 +32,7 @@ The problem was obvious: for every user action, you had to manually figure out w
 
 ## What React actually solved
 
-React (released by Facebook in 2013) took a fundamentally different approach. Instead of describing *how* to update the DOM, you describe *what* the DOM should look like for a given state. React figures out the updates for you.
+React (released by Facebook in 2013) took a fundamentally different approach. Instead of describing _how_ to update the DOM, you describe _what_ the DOM should look like for a given state. React figures out the updates for you.
 
 ```jsx
 // React: describe what it should look like, not how to get there
@@ -56,7 +56,7 @@ When React was first released, the developer community reacted (no pun intended)
 
 The complaint was based on the old model where HTML was structure, CSS was style, and JavaScript was behavior. Mixing them felt wrong.
 
-But React's argument was that the old separation was along *technology* lines (HTML vs JS vs CSS), not *concern* lines. A button's structure, behavior, and logic are all one concern. Splitting them across three files doesn't make them less coupled. It just makes you open three tabs to understand one button.
+But React's argument was that the old separation was along _technology_ lines (HTML vs JS vs CSS), not _concern_ lines. A button's structure, behavior, and logic are all one concern. Splitting them across three files doesn't make them less coupled. It just makes you open three tabs to understand one button.
 
 ```jsx
 // "Separation of concerns" in the old model meant this button lives in 3 files:
@@ -70,7 +70,7 @@ function SubmitButton({ onSubmit, disabled }) {
     <button
       onClick={onSubmit}
       disabled={disabled}
-      style={{ background: disabled ? 'gray' : 'blue' }}
+      style={{ background: disabled ? "gray" : "blue" }}
     >
       Submit
     </button>
@@ -88,7 +88,7 @@ React's component model is simple. A component is a function that takes props an
 function ProductList({ products }) {
   return (
     <div>
-      {products.map(product => (
+      {products.map((product) => (
         <ProductCard key={product.id} product={product} />
       ))}
     </div>

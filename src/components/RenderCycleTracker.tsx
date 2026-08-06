@@ -17,8 +17,8 @@ export default function RenderCycleTracker() {
     <div className="interactive-demo">
       <h4>Try it: What re-renders when?</h4>
       <p style={{ fontSize: "0.85rem", color: "var(--sl-color-gray-2)", margin: "0 0 1rem" }}>
-        Click buttons at different levels. Watch which render counters go up.
-        Every component that re-renders flashes briefly.
+        Click buttons at different levels. Watch which render counters go up. Every component that
+        re-renders flashes briefly.
       </p>
 
       <TrackedBox name="App (parent)" renders={parentRenders.current}>

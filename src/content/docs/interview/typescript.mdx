@@ -7,18 +7,18 @@ sidebar:
 
 ## Quick reference
 
-| Question | One-line answer |
-|---|---|
-| Structural vs nominal typing | TS checks shape, not name. Two types with same fields are compatible. |
-| `any` vs `unknown` | `any` bypasses checks. `unknown` requires narrowing before use. Always prefer `unknown`. |
-| Generics | Type parameters that preserve relationships. `function first<T>(arr: T[]): T`. |
-| Utility types | Built-in type transformers. Partial, Pick, Omit, Record, Required, Readonly. |
-| Discriminated unions | Union with a shared literal field. Switch on it for exhaustive type narrowing. |
-| Type assertion vs type guard | Assertion (`as`) trusts you. Guard (`typeof`, `in`, custom) verifies at runtime. |
-| `interface` vs `type` | `type` is more flexible (unions, intersections). `interface` supports declaration merging. |
-| Branded types | Phantom field makes structurally identical types distinct. `UserId` vs `ProductId`. |
-| `never` | Impossible type. Used for exhaustiveness checking in switch/if chains. |
-| Conditional types | Type-level ternary. `T extends string ? A : B`. Used for type transformations. |
+| Question                     | One-line answer                                                                            |
+| ---------------------------- | ------------------------------------------------------------------------------------------ |
+| Structural vs nominal typing | TS checks shape, not name. Two types with same fields are compatible.                      |
+| `any` vs `unknown`           | `any` bypasses checks. `unknown` requires narrowing before use. Always prefer `unknown`.   |
+| Generics                     | Type parameters that preserve relationships. `function first<T>(arr: T[]): T`.             |
+| Utility types                | Built-in type transformers. Partial, Pick, Omit, Record, Required, Readonly.               |
+| Discriminated unions         | Union with a shared literal field. Switch on it for exhaustive type narrowing.             |
+| Type assertion vs type guard | Assertion (`as`) trusts you. Guard (`typeof`, `in`, custom) verifies at runtime.           |
+| `interface` vs `type`        | `type` is more flexible (unions, intersections). `interface` supports declaration merging. |
+| Branded types                | Phantom field makes structurally identical types distinct. `UserId` vs `ProductId`.        |
+| `never`                      | Impossible type. Used for exhaustiveness checking in switch/if chains.                     |
+| Conditional types            | Type-level ternary. `T extends string ? A : B`. Used for type transformations.             |
 
 ---
 
@@ -32,7 +32,9 @@ TypeScript uses structural typing. If two types have the same shape, they're com
 type Dog = { name: string; age: number };
 type Cat = { name: string; age: number };
 
-function greet(animal: Dog) { console.log(animal.name); }
+function greet(animal: Dog) {
+  console.log(animal.name);
+}
 
 const cat: Cat = { name: "Whiskers", age: 5 };
 greet(cat); // works — Cat has the same shape as Dog
@@ -101,9 +103,12 @@ type Shape =
 
 function area(shape: Shape): number {
   switch (shape.kind) {
-    case "circle": return Math.PI * shape.radius ** 2;
-    case "square": return shape.side ** 2;
-    case "triangle": return 0.5 * shape.base * shape.height;
+    case "circle":
+      return Math.PI * shape.radius ** 2;
+    case "square":
+      return shape.side ** 2;
+    case "triangle":
+      return 0.5 * shape.base * shape.height;
     default:
       const _exhaustive: never = shape;
       return _exhaustive;
@@ -123,17 +128,23 @@ This is the TypeScript equivalent of Rust's exhaustive match. It's the most prac
 type UserId = string & { readonly __brand: "UserId" };
 type OrderId = string & { readonly __brand: "OrderId" };
 
-function createUserId(id: string): UserId { return id as UserId; }
+function createUserId(id: string): UserId {
+  return id as UserId;
+}
 
-function getUser(id: UserId) { /* ... */ }
-function getOrder(id: OrderId) { /* ... */ }
+function getUser(id: UserId) {
+  /* ... */
+}
+function getOrder(id: OrderId) {
+  /* ... */
+}
 
 const userId = createUserId("u_123");
 const orderId = createOrderId("o_456");
 
-getUser(userId);   // works
-getUser(orderId);  // compile error: OrderId is not UserId
-getUser("raw");    // compile error: string is not UserId
+getUser(userId); // works
+getUser(orderId); // compile error: OrderId is not UserId
+getUser("raw"); // compile error: string is not UserId
 ```
 
 The `__brand` property doesn't exist at runtime. It's a compile-time marker that makes structurally identical types nominally distinct. Factory functions are the only entry point. Everywhere else, the type system enforces the distinction.
@@ -143,8 +154,7 @@ The `__brand` property doesn't exist at runtime. It's a compile-time marker that
 ```typescript
 // Define the API response shape once
 type ApiResponse<T> =
-  | { status: "success"; data: T }
-  | { status: "error"; error: string; code: number };
+  { status: "success"; data: T } | { status: "error"; error: string; code: number };
 
 // Usage: the response type narrows based on status check
 async function fetchUser(id: string): Promise<ApiResponse<User>> {
@@ -157,7 +167,7 @@ const result = await fetchUser("123");
 if (result.status === "success") {
   console.log(result.data.name); // data is User, fully typed
 } else {
-  console.log(result.error);     // error is string
+  console.log(result.error); // error is string
 }
 ```
 
@@ -172,7 +182,7 @@ type Events = {
   "page:view": { path: string; referrer: string | null };
 };
 
-function on<K extends keyof Events>(event: K, handler: (payload: Events[K]) => void) { }
+function on<K extends keyof Events>(event: K, handler: (payload: Events[K]) => void) {}
 
 on("user:login", (payload) => {
   // payload is { userId: string; timestamp: Date }
