@@ -5,6 +5,8 @@ sidebar:
   order: 1
 ---
 
+import NextRenderingBoundary from '../../../components/NextRenderingBoundary';
+
 ## React alone isn't enough
 
 React is a UI library. It renders components. That's it. It doesn't handle routing, data fetching on the server, static site generation, code splitting strategies, or SEO. If you build a React app with just `create-react-app` (or Vite), you get a client-side single-page application. The HTML sent to the browser is an empty `<div id="root">`, and JavaScript builds the entire page after it loads.
@@ -142,6 +144,8 @@ This is the concept that confuses people most about modern Next.js.
 - Cannot directly use server-only features (database queries, secret env vars).
 
 The pattern: server components fetch data and pass it to client components as props. Client components handle interactivity.
+
+<NextRenderingBoundary client:only="react" />
 
 ```typescript
 // app/dashboard/page.tsx (SERVER component — fetches data)
