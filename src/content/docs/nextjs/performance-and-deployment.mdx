@@ -1,0 +1,210 @@
+---
+title: Performance and deployment
+description: Code splitting, image optimization, middleware, caching strategies, and getting Next.js into production.
+sidebar:
+  order: 3
+---
+
+## Automatic code splitting
+
+Next.js splits code by route automatically. When a user visits `/products`, they only download the JavaScript for the products page, not the entire app. Navigate to `/about`, and that page's JS loads on demand.
+
+This happens without configuration. Each `page.tsx` becomes its own chunk. Shared code (React, utilities used by multiple pages) is extracted into common chunks that load once.
+
+You can go further with `next/dynamic` for component-level splitting:
+
+```typescript
+import dynamic from "next/dynamic";
+
+const HeavyChart = dynamic(() => import("@/components/HeavyChart"), {
+  loading: () => <ChartSkeleton />,
+  ssr: false, // don't render on server (chart needs browser APIs)
+});
+
+export default function AnalyticsPage() {
+  return (
+    <div>
+      <h1>Analytics</h1>
+      <HeavyChart /> {/* loads only when this page is visited */}
+    </div>
+  );
+}
+```
+
+The chart library (could be 200KB+) only downloads when the user visits the analytics page. `ssr: false` skips server rendering for components that depend on `window`, `document`, or browser-only APIs.
+
+## Image optimization
+
+`next/image` handles responsive images, lazy loading, and format conversion automatically:
+
+```typescript
+import Image from "next/image";
+
+export default function ProductCard({ product }) {
+  return (
+    <Image
+      src={product.imageUrl}
+      alt={product.name}
+      width={400}
+      height={300}
+      placeholder="blur"
+      blurDataURL={product.blurHash}
+    />
+  );
+}
+```
+
+What it does behind the scenes:
+- Serves WebP/AVIF (smaller file size) to browsers that support them
+- Generates multiple sizes and serves the right one based on viewport
+- Lazy loads images below the fold (uses Intersection Observer)
+- Prevents Cumulative Layout Shift with explicit width/height
+- Caches optimized images on the server
+
+For the landing page or hero images that should load immediately, add `priority`:
+
+```typescript
+<Image src="/hero.jpg" alt="..." width={1200} height={600} priority />
+```
+
+`priority` disables lazy loading and preloads the image. Use it for the largest visible image on the initial viewport.
+
+## Middleware
+
+Middleware runs before a request is processed. It sits between the user and your pages, running at the edge (CDN level, not your server).
+
+Common uses:
+
+```typescript
+// middleware.ts
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+
+export function middleware(request: NextRequest) {
+  // 1. Auth check
+  const session = request.cookies.get("session");
+  if (!session && request.nextUrl.pathname.startsWith("/app")) {
+    return NextResponse.redirect(new URL("/login", request.url));
+  }
+
+  // 2. Geo-based redirect
+  const country = request.geo?.country;
+  if (country === "DE" && !request.nextUrl.pathname.startsWith("/de")) {
+    return NextResponse.redirect(new URL("/de" + request.nextUrl.pathname, request.url));
+  }
+
+  // 3. Rate limiting headers
+  const response = NextResponse.next();
+  response.headers.set("X-Request-Id", crypto.randomUUID());
+  return response;
+}
+
+export const config = {
+  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+};
+```
+
+The `matcher` controls which routes trigger middleware. The regex above excludes static assets. Middleware runs on the edge, so it's fast (no cold start, no server round-trip), but it has limitations: no access to Node.js APIs, limited runtime (Web APIs only).
+
+## Caching layers
+
+Next.js has multiple caching layers. Understanding them prevents stale data bugs:
+
+| Layer | What it caches | Where | How to control |
+|---|---|---|---|
+| **Request memoization** | Duplicate `fetch` calls within a single render | Server | Automatic for same URL in same render pass |
+| **Data cache** | `fetch` responses across requests | Server | `revalidate`, `cache: "no-store"` |
+| **Full route cache** | Rendered HTML of static routes | Server/CDN | `dynamic`, `revalidate`, `revalidatePath()` |
+| **Router cache** | Previously visited pages in the browser | Client | Time-based (30s for dynamic, 5min for static) |
+
+The most common confusion: you update data in the database but the page still shows old content. Check which cache layer is serving stale data:
+
+```typescript
+// Force a specific page to revalidate after a mutation
+import { revalidatePath } from "next/cache";
+
+export async function updateProduct(id: string, data: ProductData) {
+  await db.products.update(id, data);
+  revalidatePath(`/products/${id}`);  // bust the cache for this page
+}
+
+// Or revalidate by tag
+const res = await fetch(url, { next: { tags: ["products"] } });
+// Later:
+revalidateTag("products");  // bust all fetches tagged "products"
+```
+
+## API Routes
+
+API routes in the App Router use `route.ts` files with HTTP method exports:
+
+```typescript
+// app/api/users/route.ts
+import { NextRequest, NextResponse } from "next/server";
+
+export async function GET(request: NextRequest) {
+  const users = await db.users.findAll();
+  return NextResponse.json(users);
+}
+
+export async function POST(request: NextRequest) {
+  const body = await request.json();
+  const user = await db.users.create(body);
+  return NextResponse.json(user, { status: 201 });
+}
+```
+
+Each exported function name maps to an HTTP method. No Express-style routing needed. The file location determines the URL.
+
+For most cases in 2024+, Server Actions are replacing API routes for mutations:
+
+```typescript
+// Server Action (defined in a server component or "use server" file)
+"use server";
+
+export async function createUser(formData: FormData) {
+  const name = formData.get("name") as string;
+  const user = await db.users.create({ name });
+  revalidatePath("/users");
+  redirect(`/users/${user.id}`);
+}
+
+// Used directly in a form — no API route, no fetch call
+<form action={createUser}>
+  <input name="name" />
+  <button type="submit">Create</button>
+</form>
+```
+
+Server Actions run on the server, handle mutations, and can revalidate caches and redirect, all without writing an API endpoint or a fetch call on the client.
+
+## Deployment
+
+Next.js deploys to:
+
+**Vercel** (the company behind Next.js): zero configuration. Push to git, Vercel builds and deploys. Edge functions, image optimization, analytics built in. The easiest option.
+
+**Self-hosted Node server:** `next build && next start`. Runs a Node.js server. You manage infrastructure, scaling, and CDN. Use Docker for containerization.
+
+```dockerfile
+FROM node:22-alpine
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --only=production
+COPY .next .next
+COPY public public
+EXPOSE 3000
+CMD ["npm", "start"]
+```
+
+**Static export:** `output: "export"` in `next.config.js` generates static HTML. Deploy to any static host (GitHub Pages, Netlify, S3). No server components, no SSR, no API routes. Just HTML/CSS/JS.
+
+## Interview angles
+
+**"How does Next.js automatic code splitting work?"** Each route gets its own JS bundle. Shared code (React, common utilities) is extracted into separate chunks. When a user navigates to a new route, only that route's bundle loads. `next/dynamic` adds component-level splitting for heavy components that shouldn't be in the initial bundle.
+
+**"Explain Next.js caching."** Four layers: request memoization (deduplicates fetch in a single render), data cache (persists fetch responses across requests), full route cache (caches rendered HTML), router cache (browser-side cache of visited pages). Control with `revalidate` for time-based, `revalidatePath()`/`revalidateTag()` for on-demand invalidation, `cache: "no-store"` to skip caching entirely.
+
+**"What are Server Actions?"** Functions marked with `"use server"` that run on the server but can be called from the client (via form actions or direct invocation). They replace API routes for mutations. They can access the database, revalidate caches, and redirect. The form submits directly to the server function without writing a fetch call or an API endpoint.
+
+**"How would you handle authentication in Next.js?"** Middleware for edge-level redirects (fast, runs before rendering). Layout-level session checks for server components. Never trust client-side checks alone. Store sessions in httpOnly cookies (not localStorage). Use a library like NextAuth/Auth.js or Clerk for the implementation. The session check in a layout runs once when entering the protected section, not on every sub-page navigation.

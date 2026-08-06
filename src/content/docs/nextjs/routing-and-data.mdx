@@ -1,0 +1,279 @@
+---
+title: Routing and data fetching
+description: File-based routing, dynamic routes, layouts, loading states, and the data fetching patterns that replaced getServerSideProps.
+sidebar:
+  order: 2
+---
+
+## File-based routing
+
+Every folder inside `app/` is a URL segment. Special filenames define behavior:
+
+| File | Purpose |
+|---|---|
+| `page.tsx` | The route's UI. Makes the route publicly accessible. |
+| `layout.tsx` | Shared UI that wraps child routes. Preserves state across navigation. |
+| `loading.tsx` | Loading UI shown while the page's async data loads. |
+| `error.tsx` | Error boundary for the route segment. |
+| `not-found.tsx` | UI for 404 responses. |
+| `route.ts` | API endpoint (GET, POST, etc.). Can't coexist with `page.tsx` in the same folder. |
+
+```
+app/
+├── page.tsx                    # /
+├── layout.tsx                  # wraps everything
+├── loading.tsx                 # loading state for /
+├── products/
+│   ├── page.tsx                # /products
+│   ├── [id]/
+│   │   ├── page.tsx            # /products/123
+│   │   └── loading.tsx         # loading state for /products/123
+│   └── [...slug]/
+│       └── page.tsx            # /products/a/b/c (catch-all)
+├── (marketing)/                # route group, no URL impact
+│   ├── about/page.tsx          # /about
+│   └── pricing/page.tsx        # /pricing
+└── api/
+    └── users/route.ts          # API: /api/users
+```
+
+### Dynamic segments
+
+`[id]` matches a single segment. `[...slug]` catches all remaining segments. `[[...slug]]` optionally catches all (matches the root too).
+
+```typescript
+// app/products/[id]/page.tsx
+export default async function ProductPage({
+  params,
+}: {
+  params: { id: string };
+}) {
+  const product = await getProduct(params.id);
+  if (!product) notFound(); // triggers not-found.tsx
+  return <Product data={product} />;
+}
+```
+
+### Route groups
+
+Folders wrapped in parentheses `(name)` don't affect the URL. They're for organizing code:
+
+```
+app/
+├── (auth)/
+│   ├── login/page.tsx        # /login
+│   ├── register/page.tsx     # /register
+│   └── layout.tsx            # shared auth layout (no sidebar)
+├── (dashboard)/
+│   ├── overview/page.tsx     # /overview
+│   ├── settings/page.tsx     # /settings
+│   └── layout.tsx            # shared dashboard layout (with sidebar)
+```
+
+Two different layouts for two groups of pages, without the group name appearing in the URL.
+
+## Layouts
+
+Layouts wrap child routes and persist across navigation. The root layout is required and wraps the entire app.
+
+```typescript
+// app/layout.tsx — root layout
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en">
+      <body>
+        <Header />
+        <main>{children}</main>
+        <Footer />
+      </body>
+    </html>
+  );
+}
+
+// app/dashboard/layout.tsx — nested layout
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="dashboard">
+      <Sidebar />
+      <div className="content">{children}</div>
+    </div>
+  );
+}
+```
+
+When you navigate from `/dashboard/settings` to `/dashboard/overview`, the dashboard layout doesn't remount. The sidebar stays, only the content swaps. This is why layouts are separate from pages: they represent persistent UI that doesn't re-render on navigation.
+
+## Data fetching
+
+The App Router simplified data fetching. No more `getServerSideProps` or `getStaticProps`. Just `async/await` in server components.
+
+```typescript
+// Old (Pages Router)
+export async function getServerSideProps() {
+  const res = await fetch("https://api.example.com/products");
+  const products = await res.json();
+  return { props: { products } };
+}
+
+// New (App Router)
+export default async function ProductsPage() {
+  const res = await fetch("https://api.example.com/products");
+  const products = await res.json();
+  return <ProductList products={products} />;
+}
+```
+
+The component is async. The `await` happens on the server. The client receives the rendered HTML with products already in it.
+
+### Caching and revalidation
+
+Next.js caches `fetch` responses by default. You control the behavior per-request:
+
+```typescript
+// Cached forever (like SSG)
+const data = await fetch(url);
+
+// Revalidate every 60 seconds (like ISR)
+const data = await fetch(url, { next: { revalidate: 60 } });
+
+// Never cache (like SSR)
+const data = await fetch(url, { cache: "no-store" });
+```
+
+You can also set caching at the page level:
+
+```typescript
+export const revalidate = 3600; // revalidate every hour
+export const dynamic = "force-dynamic"; // always SSR
+export const dynamic = "force-static"; // always SSG
+```
+
+### Parallel data fetching
+
+If a page needs data from multiple sources, don't await them sequentially:
+
+```typescript
+// SLOW: sequential (200ms + 200ms = 400ms)
+export default async function Dashboard() {
+  const user = await getUser();
+  const orders = await getOrders(user.id);
+  return <DashboardView user={user} orders={orders} />;
+}
+
+// FAST: parallel (max(200ms, 200ms) = 200ms)
+export default async function Dashboard() {
+  const userPromise = getUser();
+  const ordersPromise = getOrders();
+  const [user, orders] = await Promise.all([userPromise, ordersPromise]);
+  return <DashboardView user={user} orders={orders} />;
+}
+```
+
+If orders depends on user (needs user.id), you can't parallelize those two. But you can parallelize everything else that's independent.
+
+## Loading and error states
+
+### loading.tsx
+
+A `loading.tsx` file automatically wraps the page in a `Suspense` boundary. While the async page component is fetching data, Next.js shows the loading UI.
+
+```typescript
+// app/products/loading.tsx
+export default function Loading() {
+  return (
+    <div className="grid grid-cols-3 gap-4">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <div key={i} className="skeleton h-48 rounded" />
+      ))}
+    </div>
+  );
+}
+```
+
+Users see the skeleton immediately. When data arrives, the skeleton is replaced with the real content. No loading spinners blocking the entire page.
+
+### error.tsx
+
+An `error.tsx` file creates an error boundary for the route segment:
+
+```typescript
+"use client"; // error boundaries must be client components
+
+export default function Error({
+  error,
+  reset,
+}: {
+  error: Error;
+  reset: () => void;
+}) {
+  return (
+    <div>
+      <h2>Something went wrong</h2>
+      <p>{error.message}</p>
+      <button onClick={reset}>Try again</button>
+    </div>
+  );
+}
+```
+
+If the page component throws during rendering or data fetching, this error UI shows instead. The `reset` function re-renders the page component, which retries the data fetch. The rest of the app (layout, other routes) keeps working.
+
+## Protected routes
+
+There's no built-in "protected route" component in Next.js. You handle auth through middleware or layout-level checks:
+
+### Middleware approach
+
+```typescript
+// middleware.ts (runs on EVERY request before rendering)
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+
+export function middleware(request: NextRequest) {
+  const token = request.cookies.get("session");
+
+  if (!token && request.nextUrl.pathname.startsWith("/dashboard")) {
+    return NextResponse.redirect(new URL("/login", request.url));
+  }
+
+  return NextResponse.next();
+}
+
+export const config = {
+  matcher: ["/dashboard/:path*", "/settings/:path*"],
+};
+```
+
+Middleware runs at the edge, before the page renders. If there's no session cookie, the user is redirected to login. The dashboard page never even starts rendering.
+
+### Layout approach
+
+```typescript
+// app/dashboard/layout.tsx
+import { redirect } from "next/navigation";
+import { getSession } from "@/lib/auth";
+
+export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const session = await getSession();
+  if (!session) redirect("/login");
+
+  return (
+    <div>
+      <Sidebar user={session.user} />
+      <main>{children}</main>
+    </div>
+  );
+}
+```
+
+The layout checks auth before rendering any dashboard page. If unauthenticated, it redirects. Since layouts persist across navigation, the check runs once when entering the dashboard section, not on every page change within it.
+
+## Interview angles
+
+**"How does Next.js handle routing?"** File-based routing in the `app/` directory. Each folder is a URL segment. `page.tsx` makes it a route. `layout.tsx` wraps child routes and persists across navigation. `[param]` creates dynamic segments. Route groups `(name)` organize code without affecting URLs. This replaces manual route configuration with a convention that scales.
+
+**"How does data fetching work in the App Router?"** Server components can be async and fetch data directly with `await`. No more `getServerSideProps`. Next.js caches fetch responses by default. You control caching per-request with `{ next: { revalidate: N } }` for ISR or `{ cache: "no-store" }` for SSR. Use `Promise.all` for parallel fetches when requests are independent.
+
+**"How would you implement protected routes?"** Middleware for edge-level redirects (runs before rendering, fast, catches all routes matching a pattern). Layout-level auth checks for server-side session validation (runs once when entering a route group, not on every sub-page navigation). Never rely on client-side auth checks alone because the HTML has already been sent.
+
+**"Explain `loading.tsx` and `error.tsx`."** `loading.tsx` creates a Suspense boundary. While the async page component fetches data, users see the loading UI (skeleton, spinner). `error.tsx` creates an error boundary. If the page throws, the error UI shows with a retry button. Both are scoped to their route segment: a loading state in `/products/[id]` doesn't affect the rest of the page.
