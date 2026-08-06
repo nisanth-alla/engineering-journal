@@ -1,0 +1,226 @@
+---
+title: Express and beyond
+description: Express patterns, middleware, why frameworks exist on top of Node's http module, and where the ecosystem is headed.
+sidebar:
+  order: 5
+---
+
+## Why not just use http?
+
+Node's built-in `http` module can serve requests without any framework:
+
+```javascript
+const http = require("http");
+
+const server = http.createServer((req, res) => {
+  if (req.method === "GET" && req.url === "/users") {
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify([{ id: 1, name: "Alice" }]));
+  } else {
+    res.writeHead(404);
+    res.end("Not found");
+  }
+});
+
+server.listen(3000);
+```
+
+This works. For 3 routes, it's fine. For 30 routes with authentication, validation, error handling, CORS, logging, rate limiting, and file uploads, you're reinventing a framework.
+
+Frameworks provide: routing (matching URLs to handlers), middleware (composable request/response processing), parsing (JSON bodies, query strings, cookies), and error handling (centralized, consistent).
+
+## Express middleware
+
+Middleware is the core concept in Express. A middleware function receives `(req, res, next)` and can:
+
+- Read or modify the request
+- Read or modify the response
+- End the request-response cycle
+- Call `next()` to pass control to the next middleware
+
+```javascript
+// Logging middleware
+function logger(req, res, next) {
+  const start = Date.now();
+  res.on("finish", () => {
+    console.log(`${req.method} ${req.url} ${res.statusCode} ${Date.now() - start}ms`);
+  });
+  next();
+}
+
+// Auth middleware
+function requireAuth(req, res, next) {
+  const token = req.headers.authorization?.split(" ")[1];
+  if (!token) return res.status(401).json({ error: "No token" });
+
+  try {
+    req.user = jwt.verify(token, SECRET);
+    next();
+  } catch {
+    res.status(401).json({ error: "Invalid token" });
+  }
+}
+
+// Usage: middleware runs in order
+app.use(logger);                          // runs on every request
+app.use("/api", requireAuth);             // runs on /api/* routes
+app.get("/api/users", getUsers);          // only runs if auth passed
+```
+
+Middleware is just functions. You compose them. Each one does one thing. The order matters because `next()` calls the next middleware in the stack. If a middleware doesn't call `next()`, the chain stops (useful for auth: don't call `next()` if the token is invalid).
+
+## Request lifecycle
+
+A request flows through middleware in order, then the route handler runs, then error middleware (if an error was passed to `next`):
+
+```
+Request arrives
+    ↓
+cors()              — sets CORS headers
+    ↓
+express.json()      — parses JSON body
+    ↓
+logger()            — logs request
+    ↓
+requireAuth()       — validates token, sets req.user
+    ↓
+validate(schema)    — validates body against schema
+    ↓
+routeHandler()      — business logic
+    ↓
+errorHandler()      — catches errors (4-param middleware)
+    ↓
+Response sent
+```
+
+Each middleware can short-circuit the chain by sending a response without calling `next()`. Auth middleware does this when the token is invalid. Validation middleware does this when the body is malformed.
+
+## Common middleware patterns
+
+### Validation middleware
+
+```javascript
+const { z } = require("zod");
+
+function validate(schema) {
+  return (req, res, next) => {
+    const result = schema.safeParse(req.body);
+    if (!result.success) {
+      return res.status(400).json({
+        error: "Validation failed",
+        issues: result.error.issues,
+      });
+    }
+    req.validated = result.data;
+    next();
+  };
+}
+
+const createUserSchema = z.object({
+  name: z.string().min(1),
+  email: z.string().email(),
+});
+
+app.post("/users", validate(createUserSchema), async (req, res) => {
+  // req.validated is typed and validated
+  const user = await db.createUser(req.validated);
+  res.status(201).json(user);
+});
+```
+
+### Rate limiting middleware
+
+```javascript
+const rateLimit = new Map();
+
+function rateLimiter({ windowMs = 60000, max = 100 } = {}) {
+  return (req, res, next) => {
+    const key = req.ip;
+    const now = Date.now();
+    const record = rateLimit.get(key) || { count: 0, resetAt: now + windowMs };
+
+    if (now > record.resetAt) {
+      record.count = 0;
+      record.resetAt = now + windowMs;
+    }
+
+    record.count++;
+    rateLimit.set(key, record);
+
+    res.set("X-RateLimit-Remaining", String(Math.max(0, max - record.count)));
+
+    if (record.count > max) {
+      return res.status(429).json({ error: "Too many requests" });
+    }
+    next();
+  };
+}
+
+app.use("/api", rateLimiter({ max: 100, windowMs: 60000 }));
+```
+
+### Request ID middleware
+
+```javascript
+const crypto = require("crypto");
+
+function requestId(req, res, next) {
+  req.id = req.headers["x-request-id"] || crypto.randomUUID();
+  res.set("X-Request-Id", req.id);
+  next();
+}
+
+app.use(requestId);
+// Every log line can now include req.id for tracing
+```
+
+## Router organization
+
+For anything beyond a small API, split routes into router files:
+
+```javascript
+// routes/users.js
+const router = express.Router();
+
+router.get("/", listUsers);
+router.get("/:id", getUser);
+router.post("/", validate(createUserSchema), createUser);
+router.patch("/:id", validate(updateUserSchema), updateUser);
+router.delete("/:id", deleteUser);
+
+module.exports = router;
+
+// app.js
+app.use("/api/users", require("./routes/users"));
+app.use("/api/orders", require("./routes/orders"));
+app.use("/api/products", require("./routes/products"));
+```
+
+Each router file owns its routes. The main app file wires them together. This scales to 50+ route files without the main file becoming unmanageable.
+
+## Beyond Express
+
+Express is the most used Node framework, but it hasn't had a major release since 2014 (Express 4). Express 5 has been in beta for years. The ecosystem has moved:
+
+**Fastify** — built for speed. Claims 2-3x throughput over Express. Plugin-based architecture, built-in JSON schema validation, first-class TypeScript support. The performance difference matters at scale; for most applications, Express is fast enough.
+
+**Hono** — ultra-lightweight, runs everywhere (Node, Deno, Bun, Cloudflare Workers, AWS Lambda). Tiny bundle size. Web Standards API (uses `Request`/`Response` instead of Express's `req`/`res`). Growing fast in the edge computing space.
+
+**NestJS** — Angular-inspired, opinionated framework with decorators, dependency injection, and modules. Good for large teams that want enforced architecture. Heavier than Express but more structured.
+
+**tRPC** — not a traditional framework. Defines API endpoints as TypeScript functions and generates type-safe clients automatically. No REST routes, no API documentation, no runtime validation. The types ARE the contract. Works with Next.js, Express, or standalone.
+
+For new projects in 2024+, my rough guide:
+- **Simple API, small team:** Express (ecosystem, documentation, everyone knows it)
+- **Performance-sensitive:** Fastify
+- **Edge deployment:** Hono
+- **Large team, strict structure:** NestJS
+- **Full-stack TypeScript with Next.js:** tRPC
+
+## Interview angles
+
+**"How does Express middleware work?"** Middleware functions receive (req, res, next). They can modify the request/response, end the cycle, or call next() to pass to the next middleware. They execute in the order they're registered. Error middleware has four params (err, req, res, next). This composable pattern lets you build auth, validation, logging, and rate limiting as reusable functions.
+
+**"How would you structure a large Express application?"** Split routes into router modules by resource (users, orders, products). Each router file exports an Express.Router. The main app file mounts them at path prefixes. Shared middleware (auth, logging) goes in a middleware directory. Business logic goes in services, not route handlers. Route handlers are thin: validate input, call service, send response.
+
+**"Express vs Fastify vs Hono?"** Express has the largest ecosystem and community but hasn't had a major update in years. Fastify is faster (2-3x throughput) with built-in schema validation and better TypeScript support. Hono is ultra-light and runs on edge platforms (Cloudflare Workers, Deno). Choose based on deployment target and team experience.

@@ -1,0 +1,187 @@
+---
+title: Event loop deep dive
+description: "The six phases of Node's event loop, microtasks, process.nextTick, and the execution order that trips everyone up."
+sidebar:
+  order: 2
+---
+
+import EventLoopPhases from '../../../components/EventLoopPhases';
+
+## Browser event loop vs Node event loop
+
+The [JavaScript article](/engineering-journal/javascript/how-js-works/) covers the browser's event loop: call stack, microtask queue, macrotask queue. Node's event loop is more specific. Instead of one generic "macrotask queue," Node has distinct phases, each with its own queue.
+
+The browser model is enough to understand Promise ordering and setTimeout behavior. The Node model matters when you need to understand why `setImmediate` fires before `setTimeout` inside an I/O callback, or why `process.nextTick` can starve I/O.
+
+## The six phases
+
+Node's event loop cycles through six phases on every iteration. Each phase has a FIFO queue of callbacks to execute. When the queue is empty (or the max callback limit is reached), the loop moves to the next phase.
+
+<EventLoopPhases client:only="react" />
+
+The practical phases to care about:
+
+1. **Timers** — `setTimeout` and `setInterval` callbacks run here
+2. **Poll** — where Node spends most of its time. I/O callbacks (file reads, network responses, database results) run here. If nothing is pending, Node blocks here waiting for new events.
+3. **Check** — `setImmediate` callbacks run here, right after poll
+
+The rest (pending callbacks, idle/prepare, close callbacks) matter for Node internals but rarely affect application code.
+
+## Microtasks: process.nextTick and Promises
+
+Between every phase, Node drains two queues:
+
+1. **process.nextTick queue** — runs first, always
+2. **Promise microtask queue** — runs second
+
+This means `process.nextTick` has higher priority than Promise callbacks:
+
+```javascript
+Promise.resolve().then(() => console.log("promise"));
+process.nextTick(() => console.log("nextTick"));
+console.log("sync");
+
+// Output:
+// sync
+// nextTick    ← nextTick fires before the Promise
+// promise
+```
+
+Both run between event loop phases, but nextTick jumps the queue. This is a Node-specific behavior. In browsers, there's no `process.nextTick` and all microtasks have equal priority.
+
+## The setTimeout vs setImmediate question
+
+This is the most asked Node event loop question. The answer depends on where you call them.
+
+**Outside I/O (in the main script):**
+
+```javascript
+setTimeout(() => console.log("timeout"), 0);
+setImmediate(() => console.log("immediate"));
+// Order is NON-DETERMINISTIC
+// Could be: timeout, immediate
+// Could be: immediate, timeout
+```
+
+Why? When the script starts, the event loop hasn't entered any phase yet. Whether the timer phase runs first depends on how fast the process started and whether the 0ms timer has already elapsed by the time the loop begins.
+
+**Inside an I/O callback:**
+
+```javascript
+const fs = require("fs");
+
+fs.readFile("file.txt", () => {
+  setTimeout(() => console.log("timeout"), 0);
+  setImmediate(() => console.log("immediate"));
+});
+// Order is ALWAYS: immediate, timeout
+```
+
+Why? The I/O callback runs in the poll phase. After poll completes, the check phase runs next (where setImmediate lives). The timer phase doesn't come until the next iteration. So setImmediate always wins inside I/O.
+
+## process.nextTick can starve everything
+
+Because nextTick runs between every phase and before Promises, a recursive nextTick prevents the event loop from advancing:
+
+```javascript
+// DON'T DO THIS — starves I/O forever
+function starvation() {
+  process.nextTick(starvation);
+}
+starvation();
+
+// setTimeout, setImmediate, I/O callbacks, NOTHING else runs
+```
+
+This is a real footgun. A less obvious version: an EventEmitter that synchronously emits an event, which triggers a handler that calls process.nextTick, which triggers more events. The I/O callback queue grows but never drains.
+
+Use `setImmediate` instead of `process.nextTick` when you need to defer work but don't need to jump ahead of I/O. setImmediate runs in the check phase (after poll), so I/O callbacks get a chance to run first.
+
+## When each scheduling method makes sense
+
+| Method | When it runs | Use when |
+|---|---|---|
+| `process.nextTick` | Before any I/O, before Promises, between every phase | You need to run something before the event loop continues. Careful: can starve I/O. |
+| `Promise.resolve().then` | After nextTick, before I/O | Standard async scheduling. Default choice. |
+| `setImmediate` | Check phase (after I/O poll) | You want to defer but let I/O run first. Safe from starvation. |
+| `setTimeout(fn, 0)` | Timer phase (next iteration) | You want to delay at least one full event loop cycle. |
+| `queueMicrotask` | Same queue as Promise.then | Explicit microtask scheduling. Rarely needed in application code. |
+
+## The thread pool (libuv)
+
+Not all async in Node is truly async at the OS level. File system operations on most operating systems don't have proper async APIs, so libuv uses a thread pool.
+
+Default pool size: 4 threads. You can increase it:
+
+```javascript
+// Set before any I/O operations
+process.env.UV_THREADPOOL_SIZE = 8;
+```
+
+Operations that use the thread pool:
+- `fs.*` (file system operations)
+- `dns.lookup()` (not `dns.resolve()`, which uses the OS async resolver)
+- `crypto.pbkdf2()`, `crypto.randomBytes()` (CPU-heavy crypto)
+- `zlib` compression
+
+Operations that DON'T use the thread pool (use OS async primitives):
+- `net` (TCP/UDP sockets)
+- `http` / `https`
+- `dns.resolve()` (c-ares library)
+- Pipes
+
+This matters for performance. If you're doing 100 concurrent file reads with a pool size of 4, only 4 run at a time. The other 96 queue up. Increasing `UV_THREADPOOL_SIZE` helps but has diminishing returns (each thread has overhead).
+
+## Practical example: timing behavior
+
+```javascript
+const fs = require("fs");
+
+console.log("1: sync");
+
+setTimeout(() => console.log("2: setTimeout"), 0);
+
+setImmediate(() => console.log("3: setImmediate"));
+
+process.nextTick(() => console.log("4: nextTick"));
+
+Promise.resolve().then(() => console.log("5: promise"));
+
+fs.readFile(__filename, () => {
+  console.log("6: I/O callback");
+
+  setTimeout(() => console.log("7: setTimeout inside I/O"), 0);
+  setImmediate(() => console.log("8: setImmediate inside I/O"));
+  process.nextTick(() => console.log("9: nextTick inside I/O"));
+});
+
+console.log("10: sync end");
+```
+
+Output:
+```
+1: sync
+10: sync end
+4: nextTick
+5: promise
+2: setTimeout (or 3 first — non-deterministic)
+3: setImmediate (or 2 first)
+6: I/O callback
+9: nextTick inside I/O
+8: setImmediate inside I/O
+7: setTimeout inside I/O
+```
+
+Key observations:
+- Sync code runs first (1, 10)
+- nextTick before Promises (4, 5)
+- setTimeout vs setImmediate is non-deterministic in the main script (2, 3)
+- Inside I/O: nextTick first (9), then setImmediate (8), then setTimeout (7)
+
+## Interview angles
+
+**"Explain Node's event loop phases."** Node's event loop has six phases: timers (setTimeout), pending callbacks, idle/prepare (internal), poll (I/O), check (setImmediate), close callbacks. Between every phase, Node drains process.nextTick and Promise microtask queues. The poll phase is where Node spends most time, blocking for I/O when idle.
+
+**"setTimeout(0) vs setImmediate — which runs first?"** It depends. In the main script, the order is non-deterministic. Inside an I/O callback, setImmediate always runs first because the check phase follows the poll phase directly, while setTimeout waits for the next timer phase.
+
+**"What is process.nextTick and when would you use it?"** nextTick runs between event loop phases, before Promises and before I/O. Use it when you need something to run immediately after the current operation but before any I/O. Common use: emit events after a constructor returns (so listeners can be attached first). Danger: recursive nextTick starves the event loop.

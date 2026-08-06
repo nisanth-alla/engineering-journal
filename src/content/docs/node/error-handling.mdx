@@ -1,0 +1,270 @@
+---
+title: Error handling
+description: Uncaught exceptions, unhandled rejections, graceful shutdown, and how to keep a Node process alive in production.
+sidebar:
+  order: 4
+---
+
+## Why error handling in Node is different
+
+In a browser, an unhandled error shows a console message. The page keeps working (mostly). In Node, an unhandled exception crashes the entire process. Every request being served, every connection open, every timer running — all gone.
+
+This is by design. Node considers an unhandled exception an unrecoverable state. The process might have corrupted data, leaked resources, or be in an inconsistent state. Crashing and restarting is safer than limping along with unknown damage.
+
+But "crashing is fine" only works if you have a process manager (PM2, systemd, Kubernetes) that restarts the process automatically. Without one, your server goes down and stays down.
+
+## The three categories of errors
+
+### 1. Operational errors
+
+Expected things that go wrong during normal operation. The code is correct but the world isn't.
+
+- Network request times out
+- Database connection refused
+- File not found
+- Invalid user input
+- Rate limit exceeded
+
+These should be handled explicitly. They're not bugs, they're realities.
+
+```javascript
+async function getUser(id) {
+  try {
+    const user = await db.users.findById(id);
+    if (!user) return { error: "User not found", status: 404 };
+    return { data: user, status: 200 };
+  } catch (err) {
+    if (err.code === "ECONNREFUSED") {
+      return { error: "Database unavailable", status: 503 };
+    }
+    throw err; // Unknown error — let it propagate
+  }
+}
+```
+
+### 2. Programmer errors
+
+Bugs. Typos, wrong assumptions, logic errors.
+
+- Calling a method on undefined
+- Passing a string where a number is expected
+- Off-by-one in a loop
+- Accessing an array out of bounds
+
+These should NOT be caught and handled. They should crash (in development) so you find and fix them. In production, they should crash and restart so the process recovers from the inconsistent state. Catching a TypeError and continuing means your code is running in a state you didn't anticipate.
+
+### 3. The gray area
+
+Some errors could be either category depending on context. A `JSON.parse` failure is operational if you're parsing user input (users send bad JSON). It's a programmer error if you're parsing your own config file (the file should always be valid JSON).
+
+Handle accordingly. User input: catch and return 400. Config file: let it crash.
+
+## Express error handling
+
+Express has a specific pattern for error handling. If you pass an error to `next()`, Express skips to the error-handling middleware.
+
+```javascript
+// Route handler
+app.get("/users/:id", async (req, res, next) => {
+  try {
+    const user = await db.users.findById(req.params.id);
+    if (!user) return res.status(404).json({ error: "Not found" });
+    res.json(user);
+  } catch (err) {
+    next(err); // Forward to error handler
+  }
+});
+
+// Error-handling middleware (4 parameters — Express checks the arity)
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+
+  // Don't leak internal errors to clients
+  res.status(500).json({
+    error: "Internal server error",
+    ...(process.env.NODE_ENV === "development" && { stack: err.stack }),
+  });
+});
+```
+
+The four-parameter signature `(err, req, res, next)` is how Express identifies error-handling middleware. If you forget one parameter, Express treats it as a regular middleware and errors won't route to it.
+
+### The async wrapper
+
+Express doesn't catch errors thrown in async route handlers (this is fixed in Express 5, but most codebases still use Express 4):
+
+```javascript
+// Express 4: this crashes the process, not caught by error middleware
+app.get("/users", async (req, res) => {
+  const users = await db.users.findAll(); // throws, process crashes
+  res.json(users);
+});
+
+// Fix: wrap async handlers
+function asyncHandler(fn) {
+  return (req, res, next) => {
+    Promise.resolve(fn(req, res, next)).catch(next);
+  };
+}
+
+app.get("/users", asyncHandler(async (req, res) => {
+  const users = await db.users.findAll(); // throws, caught by asyncHandler, forwarded to error middleware
+  res.json(users);
+}));
+```
+
+Express 5 does this automatically. If you're still on Express 4, the `express-async-errors` package patches it in one line: `require('express-async-errors')`.
+
+## Unhandled rejections and uncaught exceptions
+
+Two global safety nets:
+
+```javascript
+// Catches thrown errors that nobody caught
+process.on("uncaughtException", (err) => {
+  console.error("Uncaught exception:", err);
+  // Log to error tracking (Sentry, Datadog)
+  // Shut down gracefully
+  process.exit(1);
+});
+
+// Catches Promise rejections that nobody .catch'd
+process.on("unhandledRejection", (reason, promise) => {
+  console.error("Unhandled rejection:", reason);
+  // Since Node 15, unhandled rejections crash the process by default
+  // In older versions, they just logged a warning
+});
+```
+
+Since Node 15, unhandled Promise rejections crash the process (same as uncaught exceptions). Before Node 15, they just printed a warning, which meant silent failures.
+
+The rule: never use these handlers to "recover" and continue running. Use them to log the error, clean up resources, and exit. A process manager restarts the process in a clean state.
+
+## Graceful shutdown
+
+When the process receives a termination signal (SIGINT from Ctrl+C, SIGTERM from Kubernetes), you want to:
+
+1. Stop accepting new requests
+2. Finish processing in-flight requests
+3. Close database connections
+4. Flush logs
+5. Exit
+
+```javascript
+const server = app.listen(3000);
+
+async function shutdown(signal) {
+  console.log(`Received ${signal}. Shutting down gracefully...`);
+
+  // Stop accepting new connections
+  server.close(async () => {
+    console.log("HTTP server closed");
+
+    try {
+      // Close database connections
+      await db.disconnect();
+      console.log("Database disconnected");
+
+      // Close Redis
+      await redis.quit();
+      console.log("Redis disconnected");
+    } catch (err) {
+      console.error("Error during shutdown:", err);
+    }
+
+    process.exit(0);
+  });
+
+  // Force exit if graceful shutdown takes too long
+  setTimeout(() => {
+    console.error("Forceful shutdown after timeout");
+    process.exit(1);
+  }, 10000);
+}
+
+process.on("SIGINT", () => shutdown("SIGINT"));
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+```
+
+The timeout is important. If a database connection hangs during disconnect, you don't want the process to wait forever. Kubernetes sends SIGTERM, waits 30 seconds (default), then sends SIGKILL. Your graceful shutdown needs to complete within that window.
+
+## Error handling patterns I use
+
+### Result type (no exceptions)
+
+```javascript
+async function findUser(id) {
+  try {
+    const user = await db.users.findById(id);
+    if (!user) return { ok: false, error: "NOT_FOUND" };
+    return { ok: true, data: user };
+  } catch (err) {
+    return { ok: false, error: "DB_ERROR", detail: err.message };
+  }
+}
+
+// Usage: no try/catch needed at the call site
+const result = await findUser(id);
+if (!result.ok) {
+  return res.status(result.error === "NOT_FOUND" ? 404 : 500).json(result);
+}
+res.json(result.data);
+```
+
+This is the same pattern as Go's `(value, error)` returns. Errors are values, not exceptions. The caller is forced to check the result because the data is only available on the `ok: true` branch.
+
+### Circuit breaker
+
+For external service calls that might be down:
+
+```javascript
+class CircuitBreaker {
+  constructor(fn, { threshold = 5, resetTimeout = 30000 } = {}) {
+    this.fn = fn;
+    this.failures = 0;
+    this.threshold = threshold;
+    this.resetTimeout = resetTimeout;
+    this.state = "CLOSED"; // CLOSED = normal, OPEN = failing, HALF_OPEN = testing
+    this.nextAttempt = 0;
+  }
+
+  async call(...args) {
+    if (this.state === "OPEN") {
+      if (Date.now() < this.nextAttempt) {
+        throw new Error("Circuit breaker is open");
+      }
+      this.state = "HALF_OPEN";
+    }
+
+    try {
+      const result = await this.fn(...args);
+      this.onSuccess();
+      return result;
+    } catch (err) {
+      this.onFailure();
+      throw err;
+    }
+  }
+
+  onSuccess() {
+    this.failures = 0;
+    this.state = "CLOSED";
+  }
+
+  onFailure() {
+    this.failures++;
+    if (this.failures >= this.threshold) {
+      this.state = "OPEN";
+      this.nextAttempt = Date.now() + this.resetTimeout;
+    }
+  }
+}
+```
+
+## Interview angles
+
+**"How do you handle errors in an Express application?"** Try/catch in async route handlers, forwarding errors to error-handling middleware via `next(err)`. The error middleware has four parameters (err, req, res, next). In Express 4, async errors need a wrapper or `express-async-errors`. Don't leak internal error details to clients in production.
+
+**"What happens when an uncaught exception occurs in Node?"** The process crashes. This is intentional: an unhandled exception means the process is in an unknown state. Use `process.on('uncaughtException')` to log the error and exit cleanly (not to recover). A process manager (PM2, Kubernetes) restarts the process. Since Node 15, unhandled Promise rejections also crash the process.
+
+**"How do you implement graceful shutdown?"** Listen for SIGINT and SIGTERM. Stop accepting new connections (`server.close()`). Wait for in-flight requests to finish. Close database and cache connections. Set a timeout for forced exit in case cleanup hangs. In Kubernetes, this must complete within the termination grace period (default 30s).
