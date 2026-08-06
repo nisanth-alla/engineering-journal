@@ -1,0 +1,199 @@
+---
+title: React & Next.js interview questions
+description: React hooks, rendering, state management, and Next.js questions at the senior frontend level.
+sidebar:
+  order: 2
+---
+
+## Quick reference
+
+| Question | One-line answer |
+|---|---|
+| useEffect vs useLayoutEffect | useEffect after paint (async). useLayoutEffect before paint (sync). |
+| React Fiber | Rewrite of reconciler enabling incremental rendering. Work can be paused/resumed. |
+| useState vs useReducer | useState for simple values. useReducer for complex transitions with multiple sub-values. |
+| React.memo | Skips re-render if props unchanged (shallow compare). Needs stable function refs to work. |
+| Virtual DOM diffing | Compares old/new trees. Assumes different element types = different trees. Keys identify list items. |
+| Lifecycle vs hooks | componentDidMount = useEffect(fn, []). componentDidUpdate = useEffect(fn, [deps]). componentWillUnmount = useEffect return. |
+| Next.js SSR | Server renders React to HTML per request. Client hydrates. |
+| Server Components | Run on server only. No hooks, no JS shipped. Can access DB directly. |
+| Protected routes | Middleware for edge redirects. Layout-level session checks. Never client-only. |
+
+---
+
+## Full answers
+
+### useEffect vs useLayoutEffect
+
+Both run after render. The difference is timing relative to the browser paint.
+
+**useEffect** runs asynchronously after the browser has painted. The user sees the rendered output, then the effect runs. This is correct for most cases: data fetching, subscriptions, analytics.
+
+**useLayoutEffect** runs synchronously before the browser paints. The user doesn't see the initial render until the effect completes. This is for DOM measurements and mutations that must happen before the user sees anything: tooltip positioning, measuring element dimensions, preventing visual flashes.
+
+```typescript
+// useLayoutEffect: measure before paint
+useLayoutEffect(() => {
+  const { height } = elementRef.current.getBoundingClientRect();
+  setTooltipPosition(calculatePosition(height));
+}, []);
+// User never sees the tooltip in the wrong position
+```
+
+If you use useEffect for DOM measurements, the user sees a frame with the wrong position, then it jumps to the right one. useLayoutEffect prevents that flash.
+
+**Rule:** start with useEffect. Switch to useLayoutEffect only if you see a visual flash caused by the effect.
+
+### What is React Fiber?
+
+React Fiber is the rewrite of React's reconciliation engine (shipped in React 16, 2017). The old reconciler ("Stack") processed the component tree synchronously. Once it started, it had to finish. If a large tree took 100ms to process, the main thread was blocked for 100ms.
+
+Fiber broke the work into units (one unit per component/element) that can be paused, prioritized, and resumed. This enabled:
+
+- **Concurrent rendering** (React 18): React can start rendering a low-priority update, pause it to handle a high-priority event (user click), then resume.
+- **Suspense**: Components can "suspend" (say "I'm not ready") and React pauses rendering that branch until data arrives.
+- **startTransition**: Marks updates as non-urgent so React can interrupt them.
+
+You don't interact with Fiber directly. It's the engine under the hood. But understanding it explains why React can handle large component trees without blocking the UI.
+
+### How does React handle circular dependencies in useEffect?
+
+It doesn't handle them. If two effects depend on each other's output, you get an infinite loop:
+
+```typescript
+// INFINITE LOOP
+const [a, setA] = useState(0);
+const [b, setB] = useState(0);
+
+useEffect(() => { setA(b + 1); }, [b]);
+useEffect(() => { setB(a + 1); }, [a]);
+// a changes → b changes → a changes → ...
+```
+
+The fix: restructure so the dependency isn't circular. Usually this means one of the effects shouldn't be an effect at all. If `a` is derived from `b`, compute it during render:
+
+```typescript
+const [b, setB] = useState(0);
+const a = b + 1; // derived, not state
+```
+
+The general rule: if you can compute a value from existing state/props, don't put it in state and don't use an effect to sync it. Just calculate it.
+
+### How to implement protected routes with Context API?
+
+The approach: an AuthProvider wraps the app. It holds the session state. Protected layouts check the session and redirect if absent.
+
+```typescript
+// context/auth.tsx
+"use client";
+const AuthContext = createContext<{ user: User | null }>({ user: null });
+
+export function AuthProvider({ children, session }) {
+  return (
+    <AuthContext.Provider value={{ user: session?.user ?? null }}>
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+export function useAuth() {
+  return useContext(AuthContext);
+}
+```
+
+For Next.js specifically, middleware is better than Context for the redirect logic (it runs before any rendering), and the Context is better for sharing user data across client components after auth is confirmed.
+
+### Next.js code splitting and SSR
+
+**Code splitting** is automatic. Each route gets its own JS bundle. `next/dynamic` adds component-level splitting. The result: users only download the JavaScript for the page they're viewing.
+
+**SSR** runs your React components on the server for each request. The server generates complete HTML (with data already rendered), sends it to the browser, and the browser hydrates it (attaches event listeners). The user sees content immediately instead of waiting for JS to download and render.
+
+The two happen together: the server renders the initial HTML (SSR), and only the JS needed for that specific page loads on the client (code splitting). Navigate to another page, and only that page's JS chunk loads.
+
+### Next.js environment variables
+
+Two categories with a hard security boundary:
+
+- `NEXT_PUBLIC_*` prefixed: bundled into client-side JavaScript. Visible in browser DevTools. Use for public API URLs, analytics IDs, feature flags.
+- No prefix: server-only. Available in Server Components, API routes, middleware. Use for database URLs, API secrets, private keys.
+
+```
+DATABASE_URL=postgres://...           # server only
+API_SECRET=sk_live_...                # server only
+NEXT_PUBLIC_API_URL=https://api.com   # visible to everyone
+```
+
+`.env.local` overrides `.env`. `.env.production` is used in production builds. `.env.local` is gitignored by default.
+
+Accidentally prefixing a secret with `NEXT_PUBLIC_` exposes it to every user. This is a real incident that has happened at multiple companies.
+
+### ReactDOM.render() vs createRoot()
+
+`ReactDOM.render()` is the React 17 and earlier API. It uses synchronous rendering.
+
+`createRoot()` is the React 18 API. It enables concurrent features (automatic batching, startTransition, Suspense for data fetching).
+
+```typescript
+// React 17
+ReactDOM.render(<App />, document.getElementById("root"));
+
+// React 18
+const root = ReactDOM.createRoot(document.getElementById("root"));
+root.render(<App />);
+```
+
+The practical difference: with `createRoot`, state updates inside setTimeout, Promises, and native event handlers are automatically batched (one re-render instead of multiple). With `ReactDOM.render`, only React event handlers got batching.
+
+### Scenario: dashboard with independent updates
+
+The question: "Charts, notifications, and data fetches must update independently. How do you architect this?"
+
+Split by concern, not by component hierarchy:
+
+1. **Charts** get their own data with TanStack Query. Each chart has its own query key and refetch interval. One chart updating doesn't re-render others.
+
+2. **Notifications** use a WebSocket connection in a custom hook (`useNotifications`). State lives in a lightweight store (Zustand) scoped to notifications. Only the notification bell re-renders when a new notification arrives.
+
+3. **Data fetches** for the main content use Server Components in Next.js. The data is fetched on the server and streamed to the client. No client-side loading states needed for initial load.
+
+4. **Context is NOT the answer** for frequent updates. Context re-renders every consumer on every change. The chart data changing would re-render the notification bell and vice versa. Use separate stores or TanStack Query for independent update cycles.
+
+### Scenario: e-commerce with optimistic updates
+
+The question: "Multiple users add items to cart. How do you use React Query/SWR with optimistic updates to prevent stale UI?"
+
+```typescript
+const queryClient = useQueryClient();
+
+const addToCart = useMutation({
+  mutationFn: (item) => api.addToCart(item),
+  onMutate: async (newItem) => {
+    // Cancel outgoing refetches
+    await queryClient.cancelQueries({ queryKey: ["cart"] });
+
+    // Snapshot previous state
+    const previous = queryClient.getQueryData(["cart"]);
+
+    // Optimistically update
+    queryClient.setQueryData(["cart"], (old) => [...old, newItem]);
+
+    return { previous }; // for rollback
+  },
+  onError: (err, newItem, context) => {
+    // Rollback on failure
+    queryClient.setQueryData(["cart"], context.previous);
+    toast.error("Failed to add item");
+  },
+  onSettled: () => {
+    // Refetch to get server truth regardless of success/failure
+    queryClient.invalidateQueries({ queryKey: ["cart"] });
+  },
+});
+```
+
+Optimistic: update the UI immediately, assume the server will succeed. If it fails, roll back to the snapshot. Then refetch to get the server's true state.
+
+Pessimistic: wait for the server response before updating the UI. Safer but slower. The user sees a loading state.
+
+Use optimistic for actions that almost always succeed (adding to cart, toggling a like). Use pessimistic for actions that can fail meaningfully (payment, inventory reservation).

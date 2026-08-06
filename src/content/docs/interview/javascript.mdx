@@ -1,0 +1,144 @@
+---
+title: JavaScript interview questions
+description: The JavaScript questions that come up in frontend interviews at the 25-30 LPA level. Summary table + full answers.
+sidebar:
+  order: 1
+---
+
+## Quick reference
+
+| Question | One-line answer |
+|---|---|
+| Event loop | Single-threaded. Microtasks (Promises) run before macrotasks (setTimeout). |
+| `===` vs `==` | `===` no coercion. `==` coerces types. Always use `===`. |
+| Closures | Function remembers variables from the scope where it was created. |
+| let/const/var | `var` is function-scoped, hoisted. `let`/`const` are block-scoped with TDZ. |
+| Hoisting | `var` declarations move to top (value stays). `let`/`const` have TDZ. Functions are fully hoisted. |
+| async/await vs Promises | Syntactic sugar. async returns a Promise. await pauses function, not thread. |
+| Deep vs shallow copy | Shallow: spread/Object.assign (nested objects shared). Deep: `structuredClone`. |
+| `??` vs `\|\|` | `\|\|` catches all falsy. `??` catches only null/undefined. |
+| WeakMap/WeakSet | Weak references. Keys can be garbage collected. Not iterable. |
+| Event delegation | One listener on parent, check event.target. Works with dynamic elements. |
+
+---
+
+## Full answers
+
+### How does event delegation work? Why is it efficient?
+
+Events in the DOM bubble up from the target element to its ancestors. Instead of attaching a click listener to every `<li>` in a list, you attach one listener to the `<ul>`. When any `<li>` is clicked, the event bubbles to the `<ul>`, and you check `event.target` to identify which item was clicked.
+
+It's efficient for two reasons: you register one listener instead of hundreds (less memory, faster setup), and dynamically added elements work automatically (no need to attach listeners to new items after insertion).
+
+```javascript
+document.querySelector(".list").addEventListener("click", (e) => {
+  const item = e.target.closest(".item");
+  if (!item) return;
+  handleItemClick(item.dataset.id);
+});
+```
+
+React uses delegation internally. It attaches a single event listener to the app root and delegates all events through its synthetic event system.
+
+**Deeper:** [Prototypes and classes](/engineering-journal/javascript/prototypes-and-classes/) covers delegation with examples.
+
+### Explain the JavaScript event loop
+
+JavaScript is single-threaded. The event loop coordinates three things: the call stack (currently executing code), the microtask queue (Promise callbacks, queueMicrotask), and the macrotask queue (setTimeout, setInterval, I/O events).
+
+When the call stack is empty, the event loop checks the microtask queue first and runs everything there. Then it picks one item from the macrotask queue. This is why `Promise.resolve().then(...)` runs before `setTimeout(..., 0)`.
+
+```javascript
+console.log("1");                           // sync: runs first
+setTimeout(() => console.log("2"), 0);       // macrotask queue
+Promise.resolve().then(() => console.log("3")); // microtask queue
+console.log("4");                           // sync: runs second
+// Output: 1, 4, 3, 2
+```
+
+**Follow-up they'll ask:** "What happens if a microtask schedules another microtask?" The event loop drains the entire microtask queue before moving to macrotasks. An infinite chain of microtasks starves setTimeout callbacks forever.
+
+**Deeper:** [How JS works](/engineering-journal/javascript/how-js-works/) has an interactive simulator.
+
+### What is a closure? Real-world use case.
+
+A closure is a function that retains access to variables from the scope where it was defined, even after that scope has finished executing.
+
+```javascript
+function createCounter() {
+  let count = 0;
+  return {
+    increment: () => ++count,
+    getCount: () => count,
+  };
+}
+const counter = createCounter();
+counter.increment(); // 1
+counter.increment(); // 2
+// count is private. No way to access it directly.
+```
+
+Real-world uses: the module pattern (private state), memoization (cache persists across calls), debounce/throttle (timer ID persists between invocations), event handler factories (capture context at creation time).
+
+**The follow-up they always ask:** The `var` loop trap. `for (var i = 0; i < 3; i++) { setTimeout(() => console.log(i), 100); }` prints `3, 3, 3` because all callbacks share one `i`. Fix with `let` (block-scoped, each iteration gets its own `i`).
+
+**Deeper:** [Closures and scope](/engineering-journal/javascript/closures-and-scope/) has an interactive scope chain visualizer.
+
+### async/await vs Promises. How does the event loop handle them?
+
+They're the same thing. async/await is syntactic sugar over Promises. An `async` function returns a Promise. `await` pauses the function until the awaited Promise resolves, but it doesn't block the thread. The rest of the function (after await) is scheduled as a microtask.
+
+```javascript
+async function getData() {
+  console.log("A");           // runs synchronously
+  await Promise.resolve();    // pauses here, schedules the rest as a microtask
+  console.log("B");           // runs as a microtask after the current call stack clears
+}
+console.log("C");
+getData();
+console.log("D");
+// Output: C, A, D, B
+```
+
+The event loop sees `await` as: "take everything after this line, wrap it in a `.then()`, and put it in the microtask queue." The function returns to the caller, the caller continues, and the awaited code runs when the stack is empty.
+
+**Key difference from .then:** Error handling. With `.then`, you need `.catch`. With async/await, you use try/catch, which reads more naturally and lets you handle errors at different points in the function.
+
+**Deeper:** [Async patterns](/engineering-journal/javascript/async-patterns/) has an interactive Promise timeline.
+
+### Deep copy vs shallow copy
+
+Shallow copy copies top-level properties. Nested objects are still the same reference.
+
+```javascript
+const original = { name: "Alice", address: { city: "Portland" } };
+const shallow = { ...original };
+shallow.address.city = "Seattle";
+original.address.city; // "Seattle" — both point to the same address object
+```
+
+Deep copy copies everything recursively. No shared references.
+
+```javascript
+const deep = structuredClone(original);
+deep.address.city = "Denver";
+original.address.city; // still "Portland"
+```
+
+`structuredClone` (2022+) is the correct modern answer. It handles Dates, Maps, Sets, ArrayBuffers, circular references. `JSON.parse(JSON.stringify(...))` is the old hack that breaks on Dates (become strings), functions (dropped), undefined (dropped), and circular references (throws).
+
+### Scenario: real-time chat with simultaneous messages
+
+The question: "You're building a real-time chat where multiple messages arrive simultaneously. How do you ensure DOM updates don't block the main thread?"
+
+The answer structure:
+
+1. **Batch updates.** Don't update the DOM for each message individually. Collect messages that arrive within a frame (16ms at 60fps) and apply them together. React does this automatically with batched state updates. Outside React, use `requestAnimationFrame` to batch DOM writes.
+
+2. **Virtualize the message list.** If the chat history is thousands of messages, don't render all of them. Use windowing (react-virtual, react-window) to only render the visible messages plus a buffer.
+
+3. **Offload heavy work.** If messages need parsing, sanitization, or markdown rendering, do it in a Web Worker. The main thread only handles the final DOM insert.
+
+4. **Use a message queue.** If messages arrive faster than you can render, queue them and process at a sustainable rate. Show a "N new messages" indicator instead of trying to render 500 messages in 1 second.
+
+The key insight: keep each main-thread task under 16ms. Anything longer causes a dropped frame and visible jank.

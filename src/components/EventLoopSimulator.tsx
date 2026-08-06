@@ -233,7 +233,7 @@ export default function EventLoopSimulator() {
         </span>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.75rem", marginTop: "1rem" }}>
+      <div className="demo-queue-grid">
         <QueueBox title="Call Stack" items={step?.callStack ?? []} color="#3b82f6" />
         <QueueBox title="Microtask Queue" items={step?.microtaskQueue ?? []} color="#f59e0b" />
         <QueueBox title="Macrotask Queue" items={step?.macrotaskQueue ?? []} color="#8b5cf6" />
@@ -256,31 +256,17 @@ export default function EventLoopSimulator() {
 
 function QueueBox({ title, items, color }: { title: string; items: string[]; color: string }) {
   return (
-    <div style={{
-      border: `1px solid var(--sl-color-gray-5)`,
-      borderRadius: "6px",
-      padding: "0.5rem",
-      background: "var(--sl-color-gray-6)",
-      minHeight: "80px",
-    }}>
-      <div style={{
-        fontSize: "0.7rem", fontWeight: 600, textTransform: "uppercase",
-        letterSpacing: "0.05em", color: "var(--sl-color-gray-3)", marginBottom: "0.4rem",
-      }}>
+    <div className="queue-box">
+      <div className="queue-box-title">
         {title}
       </div>
       {items.length === 0 && (
-        <div style={{ fontSize: "0.75rem", color: "var(--sl-color-gray-4)", fontStyle: "italic" }}>
+        <div className="queue-empty">
           empty
         </div>
       )}
       {items.map((item, i) => (
-        <div key={i} style={{
-          fontSize: "0.75rem", padding: "0.2rem 0.4rem", marginBottom: "0.2rem",
-          borderRadius: "3px", fontFamily: "var(--sl-font-mono)",
-          background: `color-mix(in srgb, ${color} 15%, transparent)`,
-          color: color,
-        }}>
+        <div key={i} className="queue-item" style={{ "--queue-color": color } as React.CSSProperties}>
           {item}
         </div>
       ))}

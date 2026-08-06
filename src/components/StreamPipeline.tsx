@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { Fragment, useState, useEffect, useRef } from "react";
 
 type PipeStage = {
   name: string;
@@ -152,98 +152,42 @@ export default function StreamPipeline() {
       </div>
 
       {/* Pipeline visualization */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 30px 1fr 30px 1fr",
-          alignItems: "start",
-          gap: "0",
-          marginTop: "1rem",
-        }}
-      >
+      <div className="demo-pipeline">
         {stages.map((stage, si) => (
-          <>
-            <div
-              key={stage.name}
-              style={{
-                border: `1px solid ${stage.color}40`,
-                borderTop: `3px solid ${stage.color}`,
-                borderRadius: "6px",
-                padding: "0.5rem",
-                minHeight: "120px",
-                background: "var(--sl-color-gray-6)",
-              }}
-            >
-              <div
-                style={{
-                  fontSize: "0.7rem",
-                  fontWeight: 600,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.05em",
-                  color: stage.color,
-                  marginBottom: "0.4rem",
-                }}
-              >
-                {stage.name}
-              </div>
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "0.2rem",
-                }}
-              >
+          <Fragment key={stage.name}>
+            <div className="demo-pipeline-stage" style={{ "--pipeline-color": stage.color } as React.CSSProperties}>
+              <div className="demo-pipeline-stage-title">{stage.name}</div>
+              <div className="demo-pipeline-stage-items">
                 {chunks
                   .filter((c) => c.stage === si)
                   .map((c) => (
-                    <div
-                      key={c.id}
-                      style={{
-                        fontSize: "0.75rem",
-                        padding: "0.15rem 0.4rem",
-                        borderRadius: "3px",
-                        fontFamily: "var(--sl-font-mono)",
-                        background: `color-mix(in srgb, ${stage.color} 15%, transparent)`,
-                        color: stage.color,
-                      }}
-                    >
+                    <div key={c.id} className="demo-pipeline-chunk">
                       {c.label}
                     </div>
                   ))}
               </div>
             </div>
             {si < 2 && (
-              <div
-                key={`arrow-${si}`}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  height: "100%",
-                  minHeight: "120px",
-                  color: "var(--sl-color-gray-4)",
-                  fontSize: "1.2rem",
-                }}
-              >
+              <div key={`arrow-${si}`} className="demo-pipeline-arrow">
                 →
               </div>
             )}
-          </>
+          </Fragment>
         ))}
       </div>
 
       {/* Status */}
-      <div style={{ display: "flex", gap: "1rem", marginTop: "0.75rem", fontSize: "0.8rem" }}>
+      <div className="demo-pipeline-stats">
         <div>
-          <span style={{ color: "var(--sl-color-gray-3)" }}>Pending: </span>
+          <span className="demo-pipeline-label">Pending: </span>
           <span>{chunks.filter((c) => c.stage === -1).length}</span>
         </div>
         <div>
-          <span style={{ color: "var(--sl-color-gray-3)" }}>In pipeline: </span>
+          <span className="demo-pipeline-label">In pipeline: </span>
           <span>{chunks.filter((c) => c.stage >= 0 && c.stage < 3).length}</span>
         </div>
         <div>
-          <span style={{ color: "var(--sl-color-gray-3)" }}>Done: </span>
+          <span className="demo-pipeline-label">Done: </span>
           <span>{chunks.filter((c) => c.stage === 3).length}</span>
         </div>
         {backpressure && (

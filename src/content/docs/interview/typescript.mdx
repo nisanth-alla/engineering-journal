@@ -1,0 +1,189 @@
+---
+title: TypeScript interview questions
+description: Type system questions, practical patterns, and coding challenges for frontend interviews.
+sidebar:
+  order: 3
+---
+
+## Quick reference
+
+| Question | One-line answer |
+|---|---|
+| Structural vs nominal typing | TS checks shape, not name. Two types with same fields are compatible. |
+| `any` vs `unknown` | `any` bypasses checks. `unknown` requires narrowing before use. Always prefer `unknown`. |
+| Generics | Type parameters that preserve relationships. `function first<T>(arr: T[]): T`. |
+| Utility types | Built-in type transformers. Partial, Pick, Omit, Record, Required, Readonly. |
+| Discriminated unions | Union with a shared literal field. Switch on it for exhaustive type narrowing. |
+| Type assertion vs type guard | Assertion (`as`) trusts you. Guard (`typeof`, `in`, custom) verifies at runtime. |
+| `interface` vs `type` | `type` is more flexible (unions, intersections). `interface` supports declaration merging. |
+| Branded types | Phantom field makes structurally identical types distinct. `UserId` vs `ProductId`. |
+| `never` | Impossible type. Used for exhaustiveness checking in switch/if chains. |
+| Conditional types | Type-level ternary. `T extends string ? A : B`. Used for type transformations. |
+
+---
+
+## Full answers
+
+### Structural vs nominal typing
+
+TypeScript uses structural typing. If two types have the same shape, they're compatible regardless of their names:
+
+```typescript
+type Dog = { name: string; age: number };
+type Cat = { name: string; age: number };
+
+function greet(animal: Dog) { console.log(animal.name); }
+
+const cat: Cat = { name: "Whiskers", age: 5 };
+greet(cat); // works — Cat has the same shape as Dog
+```
+
+This is different from Java/C# where `Dog` and `Cat` would be incompatible even with identical fields. TypeScript's perspective: the function only needs `name` and `age`. The Cat has both. It will work. Why should the name matter?
+
+The edge case: when two types are structurally identical but semantically different (a `UserId` and `OrderId` are both strings). Fix with branded types (see below).
+
+**Deeper:** [Type system mental model](/engineering-journal/typescript/type-system-mental-model/)
+
+### `any` vs `unknown`
+
+Both accept any value. The difference is what you can do afterward.
+
+`any` turns off the type checker. You can call methods, access properties, assign it to anything. No errors, no safety.
+
+```typescript
+const x: any = "hello";
+x.foo.bar.baz(); // no error — any disables all checks
+const n: number = x; // no error — any is assignable to everything
+```
+
+`unknown` requires narrowing before use. You have to prove what it is before using it:
+
+```typescript
+const x: unknown = "hello";
+x.toUpperCase(); // error: unknown doesn't have toUpperCase
+
+if (typeof x === "string") {
+  x.toUpperCase(); // works — narrowed to string
+}
+```
+
+The rule: use `unknown` for values you don't know the type of (API responses, JSON.parse output, catch block errors). Use `any` only as a last resort during migration from JavaScript.
+
+### When would you use generics over union types?
+
+Generics preserve the relationship between input and output. Unions don't.
+
+```typescript
+// Union: you know it's string OR number, but you lose which one
+function identity(val: string | number): string | number {
+  return val;
+}
+const result = identity("hello"); // string | number — too wide
+
+// Generic: the specific type flows through
+function identity<T>(val: T): T {
+  return val;
+}
+const result = identity("hello"); // string — exact type preserved
+```
+
+Use generics when the return type depends on the input type. Use unions when the return type is fixed regardless of input.
+
+### Discriminated unions with exhaustiveness checking
+
+The pattern that catches missing cases at compile time:
+
+```typescript
+type Shape =
+  | { kind: "circle"; radius: number }
+  | { kind: "square"; side: number }
+  | { kind: "triangle"; base: number; height: number };
+
+function area(shape: Shape): number {
+  switch (shape.kind) {
+    case "circle": return Math.PI * shape.radius ** 2;
+    case "square": return shape.side ** 2;
+    case "triangle": return 0.5 * shape.base * shape.height;
+    default:
+      const _exhaustive: never = shape;
+      return _exhaustive;
+  }
+}
+```
+
+If someone adds `{ kind: "pentagon"; ... }` to the union, the default case fails to compile because `shape` is not `never` (the pentagon is unhandled). The developer is forced to add a case.
+
+This is the TypeScript equivalent of Rust's exhaustive match. It's the most practical advanced pattern for state machines, action handlers, and API response types.
+
+**Deeper:** [Advanced patterns](/engineering-journal/typescript/advanced-patterns/)
+
+### Branded types for type-safe IDs
+
+```typescript
+type UserId = string & { readonly __brand: "UserId" };
+type OrderId = string & { readonly __brand: "OrderId" };
+
+function createUserId(id: string): UserId { return id as UserId; }
+
+function getUser(id: UserId) { /* ... */ }
+function getOrder(id: OrderId) { /* ... */ }
+
+const userId = createUserId("u_123");
+const orderId = createOrderId("o_456");
+
+getUser(userId);   // works
+getUser(orderId);  // compile error: OrderId is not UserId
+getUser("raw");    // compile error: string is not UserId
+```
+
+The `__brand` property doesn't exist at runtime. It's a compile-time marker that makes structurally identical types nominally distinct. Factory functions are the only entry point. Everywhere else, the type system enforces the distinction.
+
+### Practical: typing API responses
+
+```typescript
+// Define the API response shape once
+type ApiResponse<T> =
+  | { status: "success"; data: T }
+  | { status: "error"; error: string; code: number };
+
+// Usage: the response type narrows based on status check
+async function fetchUser(id: string): Promise<ApiResponse<User>> {
+  const res = await fetch(`/api/users/${id}`);
+  if (!res.ok) return { status: "error", error: "Not found", code: res.status };
+  return { status: "success", data: await res.json() };
+}
+
+const result = await fetchUser("123");
+if (result.status === "success") {
+  console.log(result.data.name); // data is User, fully typed
+} else {
+  console.log(result.error);     // error is string
+}
+```
+
+This combines discriminated unions with generics. The generic `T` flows into the success branch. The discriminant `status` enables narrowing. The caller can't access `data` without checking `status` first.
+
+### Practical: type-safe event emitter
+
+```typescript
+type Events = {
+  "user:login": { userId: string; timestamp: Date };
+  "user:logout": { userId: string };
+  "page:view": { path: string; referrer: string | null };
+};
+
+function on<K extends keyof Events>(event: K, handler: (payload: Events[K]) => void) { }
+
+on("user:login", (payload) => {
+  // payload is { userId: string; timestamp: Date }
+  console.log(payload.userId, payload.timestamp);
+});
+
+on("user:login", (payload) => {
+  payload.path; // compile error: 'path' doesn't exist on login payload
+});
+```
+
+The event name constrains the payload type. You can't pass the wrong shape. The handler's parameter is automatically typed based on the event name. No runtime type checking needed.
+
+**Deeper:** [Generics](/engineering-journal/typescript/generics/)

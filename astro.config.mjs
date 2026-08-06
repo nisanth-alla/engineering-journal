@@ -43,6 +43,10 @@ export default defineConfig({
           autogenerate: { directory: "go" },
         },
         {
+          label: "Interview Prep",
+          autogenerate: { directory: "interview" },
+        },
+        {
           label: "Experiments",
           autogenerate: { directory: "experiments" },
         },
