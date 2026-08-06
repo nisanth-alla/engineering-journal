@@ -69,17 +69,17 @@ export default function HooksTimeline() {
 
       {mounted && <TrackedComponent count={count} onEvent={queueEntry} />}
 
-      <div style={{ marginTop: "1rem" }}>
+      <div className="demo-section">
         <div className="comparison-label">Timeline ({timeline.length} events)</div>
         <div className="timeline">
           {timeline.length === 0 && (
-            <span style={{ color: "var(--sl-color-gray-3)", fontSize: "0.8rem" }}>
+            <span className="timeline-empty">
               Click Increment or Unmount/Mount to see hooks execute
             </span>
           )}
           {timeline.map((entry) => (
             <div key={entry.id} className={`timeline-entry ${entry.phase}`}>
-              <span style={{ width: "60px", flexShrink: 0 }}>[{entry.phase}]</span>
+              <span>[{entry.phase}]</span>
               <span>{entry.label}</span>
             </div>
           ))}

@@ -199,7 +199,7 @@ export default function EventLoopSimulator() {
   return (
     <div className="interactive-demo">
       <h4>Try it: Event Loop Simulator</h4>
-      <p style={{ fontSize: "0.85rem", color: "var(--sl-color-gray-2)", margin: "0 0 1rem" }}>
+      <p className="demo-description">
         Pick a scenario, then step through tick by tick. Watch items move between the call stack,
         microtask queue, and macrotask queue.
       </p>
@@ -219,16 +219,7 @@ export default function EventLoopSimulator() {
         ))}
       </div>
 
-      <pre
-        style={{
-          background: "var(--sl-color-gray-6)",
-          padding: "0.75rem",
-          borderRadius: "4px",
-          fontSize: "0.8rem",
-          overflow: "auto",
-          margin: "1rem 0",
-        }}
-      >
+      <pre>
         <code>{scenario.code}</code>
       </pre>
 
@@ -243,7 +234,7 @@ export default function EventLoopSimulator() {
         <button className="demo-button" onClick={() => setStepIdx(-1)}>
           Reset
         </button>
-        <span style={{ fontSize: "0.8rem", color: "var(--sl-color-gray-3)", alignSelf: "center" }}>
+        <span className="demo-step-count">
           {stepIdx >= 0 ? `Step ${stepIdx + 1}/${scenario.steps.length}` : "Ready"}
         </span>
       </div>
@@ -256,16 +247,11 @@ export default function EventLoopSimulator() {
 
       {step && (
         <>
-          <div className="demo-output" style={{ marginTop: "0.75rem" }}>
+          <div className="demo-output">
             <strong>Console output:</strong>{" "}
             <code>{step.output.length > 0 ? step.output.join(", ") : "(empty)"}</code>
           </div>
-          <div
-            className="demo-output"
-            style={{ marginTop: "0.5rem", background: "transparent", padding: "0.5rem 0" }}
-          >
-            {step.explanation}
-          </div>
+          <div className="demo-output demo-explanation">{step.explanation}</div>
         </>
       )}
     </div>

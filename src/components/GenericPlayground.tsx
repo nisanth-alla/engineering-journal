@@ -129,13 +129,7 @@ export default function GenericPlayground() {
   return (
     <div className="interactive-demo">
       <h4>Try it: Generic Type Inference</h4>
-      <p
-        style={{
-          fontSize: "0.85rem",
-          color: "var(--sl-color-gray-2)",
-          margin: "0 0 1rem",
-        }}
-      >
+      <p className="demo-description">
         Pick a generic pattern, then click each function call to see what TypeScript infers for the
         type parameters.
       </p>
@@ -155,53 +149,37 @@ export default function GenericPlayground() {
         ))}
       </div>
 
-      <div style={{ marginTop: "0.75rem", fontSize: "0.85rem", color: "var(--sl-color-gray-2)" }}>
-        {scenario.description}
-      </div>
+      <div className="demo-description">{scenario.description}</div>
 
-      <div style={{ marginTop: "1rem" }}>
+      <div className="demo-section">
         <div className="comparison-label">Generic function</div>
-        <pre
-          style={{
-            background: "var(--sl-color-gray-6)",
-            padding: "1rem",
-            borderRadius: "4px",
-            fontSize: "0.8rem",
-            overflow: "auto",
-            margin: 0,
-          }}
-        >
+        <pre>
           <code>{scenario.genericCode}</code>
         </pre>
       </div>
 
-      <div style={{ marginTop: "1rem" }}>
+      <div className="demo-section">
         <div className="comparison-label">Click a call to see inference</div>
-        <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+        <div className="demo-stack">
           {scenario.usageLines.map((usage, i) => {
             const isError = usage.inferred.startsWith("ERROR");
             return (
-              <div key={i}>
+              <div key={i} className="demo-stack-item">
                 <button
-                  className={`demo-button ${expandedCall === i ? "primary" : ""}`}
+                  className={`demo-button demo-full-width ${expandedCall === i ? "primary" : ""}`}
                   onClick={() => setExpandedCall(expandedCall === i ? null : i)}
-                  style={{ width: "100%", textAlign: "left" }}
                 >
                   <code>{usage.call}</code>
                 </button>
                 {expandedCall === i && (
-                  <div className="demo-output" style={{ marginTop: "0.25rem" }}>
+                  <div className="demo-output">
                     <div>
                       <strong>Inferred:</strong>{" "}
-                      <code
-                        style={{
-                          color: isError ? "#ef4444" : "var(--sl-color-accent)",
-                        }}
-                      >
+                      <code className={isError ? "demo-error-code" : "demo-inline-code"}>
                         {usage.inferred}
                       </code>
                     </div>
-                    <div style={{ marginTop: "0.5rem", lineHeight: 1.5 }}>{usage.explanation}</div>
+                    <div className="demo-insight">{usage.explanation}</div>
                   </div>
                 )}
               </div>

@@ -130,13 +130,7 @@ export default function TypeNarrowing() {
   return (
     <div className="interactive-demo">
       <h4>Try it: Type Narrowing</h4>
-      <p
-        style={{
-          fontSize: "0.85rem",
-          color: "var(--sl-color-gray-2)",
-          margin: "0 0 1rem",
-        }}
-      >
+      <p className="demo-description">
         Pick a narrowing pattern, then click each guard to see how the type changes.
       </p>
 
@@ -155,48 +149,38 @@ export default function TypeNarrowing() {
         ))}
       </div>
 
-      <div style={{ marginTop: "1rem" }}>
+      <div className="demo-section">
         <div className="comparison-label">Input type</div>
         <div className="demo-output">
           <code>{example.inputType}</code>
         </div>
       </div>
 
-      <div style={{ marginTop: "1rem" }}>
+      <div className="demo-section">
         <div className="comparison-label">Code</div>
-        <pre
-          style={{
-            background: "var(--sl-color-gray-6)",
-            padding: "1rem",
-            borderRadius: "4px",
-            fontSize: "0.8rem",
-            overflow: "auto",
-            margin: 0,
-          }}
-        >
+        <pre>
           <code>{example.code}</code>
         </pre>
       </div>
 
-      <div style={{ marginTop: "1rem" }}>
+      <div className="demo-section">
         <div className="comparison-label">Click a guard to see narrowing</div>
-        <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+        <div className="demo-stack">
           {example.steps.map((step, i) => (
-            <div key={i}>
+            <div key={i} className="demo-stack-item">
               <button
-                className={`demo-button ${activeStep === i ? "primary" : ""}`}
+                className={`demo-button demo-full-width ${activeStep === i ? "primary" : ""}`}
                 onClick={() => setActiveStep(activeStep === i ? null : i)}
-                style={{ width: "100%", textAlign: "left" }}
               >
                 Guard: <code>{step.guard}</code>
               </button>
               {activeStep === i && (
-                <div className="demo-output" style={{ marginTop: "0.25rem" }}>
+                <div className="demo-output">
                   <div>
                     <strong>Narrowed type:</strong>{" "}
-                    <code style={{ color: "var(--sl-color-accent)" }}>{step.narrowedType}</code>
+                    <code className="demo-inline-code">{step.narrowedType}</code>
                   </div>
-                  <div style={{ marginTop: "0.5rem", lineHeight: 1.5 }}>{step.explanation}</div>
+                  <div className="demo-insight">{step.explanation}</div>
                 </div>
               )}
             </div>

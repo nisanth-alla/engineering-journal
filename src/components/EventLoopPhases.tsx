@@ -87,7 +87,7 @@ export default function EventLoopPhases() {
   return (
     <div className="interactive-demo">
       <h4>Try it: Node.js Event Loop Phases</h4>
-      <p style={{ fontSize: "0.85rem", color: "var(--sl-color-gray-2)", margin: "0 0 1rem" }}>
+      <p className="demo-description">
         Click a phase to see what runs there, or hit Animate to watch the loop cycle through all
         phases.
       </p>
@@ -98,84 +98,46 @@ export default function EventLoopPhases() {
         </button>
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: "0.3rem", marginTop: "1rem" }}>
+      <div className="demo-phase-list">
         {phases.map((phase, i) => {
           const isActive = activePhase === i;
           const isHighlighted = highlightIdx === i;
           return (
             <button
               key={i}
+              className={`demo-phase-button ${isActive ? "is-active" : ""} ${isHighlighted ? "is-highlighted" : ""}`}
               onClick={() => {
                 if (!animating) setActivePhase(isActive ? null : i);
               }}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "0.75rem",
-                padding: "0.5rem 0.75rem",
-                border: `1px solid ${isActive || isHighlighted ? phase.color : "var(--sl-color-gray-5)"}`,
-                borderLeft: `4px solid ${phase.color}`,
-                borderRadius: "4px",
-                background: isHighlighted
-                  ? `color-mix(in srgb, ${phase.color} 20%, var(--sl-color-gray-6))`
-                  : isActive
-                    ? `color-mix(in srgb, ${phase.color} 10%, var(--sl-color-gray-6))`
-                    : "var(--sl-color-gray-6)",
-                cursor: animating ? "default" : "pointer",
-                textAlign: "left",
-                width: "100%",
-                fontFamily: "inherit",
-                fontSize: "0.85rem",
-                color: "inherit",
-                transition: "all 0.2s",
-              }}
+              style={{ "--phase-color": phase.color } as React.CSSProperties}
             >
-              <span style={{ fontWeight: 600, color: phase.color, minWidth: "130px" }}>
-                {phase.name}
-              </span>
-              <span style={{ color: "var(--sl-color-gray-2)" }}>{phase.what}</span>
+              <span className="demo-phase-name">{phase.name}</span>
+              <span className="demo-phase-what">{phase.what}</span>
             </button>
           );
         })}
-        <div
-          style={{
-            textAlign: "center",
-            fontSize: "0.75rem",
-            color: "var(--sl-color-gray-4)",
-            padding: "0.25rem",
-          }}
-        >
-          ↑ loop repeats from Timers
-        </div>
+        <div className="demo-phase-loop">↑ loop repeats from Timers</div>
       </div>
 
       {activePhase !== null && (
-        <div className="demo-output" style={{ marginTop: "0.75rem" }}>
-          <div style={{ marginBottom: "0.5rem" }}>
-            <strong style={{ color: phases[activePhase].color }}>{phases[activePhase].name}</strong>
+        <div
+          className="demo-output"
+          style={{ "--phase-color": phases[activePhase].color } as React.CSSProperties}
+        >
+          <div className="demo-detail-title">
+            <strong>{phases[activePhase].name}</strong>
           </div>
-          <div style={{ marginBottom: "0.5rem" }}>
-            <span style={{ color: "var(--sl-color-gray-3)" }}>Runs: </span>
+          <div className="demo-detail-meta">
+            <span>Runs: </span>
             {phases[activePhase].examples.map((ex, i) => (
-              <code key={i} style={{ marginRight: "0.5rem" }}>
-                {ex}
-              </code>
+              <code key={i}>{ex}</code>
             ))}
           </div>
-          <div style={{ lineHeight: 1.6 }}>{phases[activePhase].detail}</div>
+          <div className="demo-detail-copy">{phases[activePhase].detail}</div>
         </div>
       )}
 
-      <div
-        style={{
-          marginTop: "0.75rem",
-          padding: "0.5rem 0.75rem",
-          borderRadius: "4px",
-          background: "color-mix(in srgb, #f59e0b 8%, var(--sl-color-gray-6))",
-          fontSize: "0.8rem",
-          color: "var(--sl-color-gray-2)",
-        }}
-      >
+      <div className="demo-note">
         <strong>Between every phase:</strong> Node drains the microtask queue (Promise callbacks,
         process.nextTick). process.nextTick runs before Promise callbacks. This is why nextTick can
         starve I/O if used recursively.

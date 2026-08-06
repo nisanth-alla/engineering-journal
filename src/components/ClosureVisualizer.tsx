@@ -272,7 +272,7 @@ export default function ClosureVisualizer() {
   return (
     <div className="interactive-demo">
       <h4>Try it: Closure Scope Chain</h4>
-      <p style={{ fontSize: "0.85rem", color: "var(--sl-color-gray-2)", margin: "0 0 1rem" }}>
+      <p className="demo-description">
         Step through each scenario and watch the scope chain build up. Closed-over variables stay
         alive even after their parent function returns.
       </p>
@@ -292,16 +292,7 @@ export default function ClosureVisualizer() {
         ))}
       </div>
 
-      <pre
-        style={{
-          background: "var(--sl-color-gray-6)",
-          padding: "0.75rem",
-          borderRadius: "4px",
-          fontSize: "0.8rem",
-          overflow: "auto",
-          margin: "0.75rem 0",
-        }}
-      >
+      <pre>
         <code>{scenario.code}</code>
       </pre>
 
@@ -320,41 +311,28 @@ export default function ClosureVisualizer() {
         >
           Next
         </button>
-        <span style={{ fontSize: "0.8rem", color: "var(--sl-color-gray-3)", alignSelf: "center" }}>
+        <span className="demo-step-count">
           Step {stepIdx + 1}/{scenario.steps.length}
         </span>
       </div>
 
-      <div style={{ marginTop: "0.75rem" }}>
+      <div className="demo-section">
         <div className="comparison-label">Scope chain</div>
-        <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
+        <div className="demo-scope-chain">
           {step.scopes.map((scope, i) => (
             <div
               key={i}
-              style={{
-                border: `1px solid ${scope.color}40`,
-                borderLeft: `3px solid ${scope.color}`,
-                borderRadius: "4px",
-                padding: "0.5rem 0.75rem",
-                background: `color-mix(in srgb, ${scope.color} 8%, var(--sl-color-gray-6))`,
-                marginLeft: `${i * 16}px`,
-              }}
+              className="demo-scope"
+              style={
+                { "--scope-color": scope.color, "--scope-indent": i * 1 } as React.CSSProperties
+              }
             >
-              <div
-                style={{
-                  fontSize: "0.75rem",
-                  fontWeight: 600,
-                  color: scope.color,
-                  marginBottom: "0.25rem",
-                }}
-              >
-                {scope.name}
-              </div>
+              <div className="demo-scope-name">{scope.name}</div>
               {scope.variables.map((v, j) => (
-                <div key={j} style={{ fontSize: "0.8rem", fontFamily: "var(--sl-font-mono)" }}>
-                  <span style={{ color: "var(--sl-color-gray-3)" }}>{v.name}</span>
-                  <span style={{ color: "var(--sl-color-gray-4)" }}> = </span>
-                  <span style={{ color: "var(--sl-color-accent)" }}>{v.value}</span>
+                <div key={j} className="demo-scope-variable">
+                  <span className="demo-scope-variable-name">{v.name}</span>
+                  <span className="demo-scope-variable-equals"> = </span>
+                  <span className="demo-scope-variable-value">{v.value}</span>
                 </div>
               ))}
             </div>
@@ -362,10 +340,10 @@ export default function ClosureVisualizer() {
         </div>
       </div>
 
-      <div className="demo-output" style={{ marginTop: "0.75rem" }}>
-        <div style={{ marginBottom: "0.3rem" }}>{step.description}</div>
+      <div className="demo-output">
+        <div>{step.description}</div>
         {step.output && (
-          <div style={{ marginTop: "0.3rem" }}>
+          <div className="demo-insight">
             <strong>Output:</strong> <code>{step.output}</code>
           </div>
         )}

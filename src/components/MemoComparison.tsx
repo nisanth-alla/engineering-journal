@@ -22,7 +22,7 @@ export default function MemoComparison() {
   return (
     <div className="interactive-demo">
       <h4>Try it: React.memo comparison</h4>
-      <p style={{ fontSize: "0.85rem", color: "var(--sl-color-gray-2)", margin: "0 0 1rem" }}>
+      <p className="demo-description">
         Click "Update parent" and watch the render counts. The memoized child on the right skips
         re-rendering when its props haven't changed. Then try "Change child prop" to see both
         re-render.
@@ -51,7 +51,7 @@ export default function MemoComparison() {
         </div>
       </div>
 
-      <div className="demo-output" style={{ marginTop: "1rem" }}>
+      <div className="demo-output">
         <strong>What's happening:</strong>
         <br />
         {parentCount === 0
@@ -76,11 +76,11 @@ function RegularChild({ value, onClick }: { value: string; onClick: () => void }
 
   return (
     <div key={`flash-${renders.current}`} className="demo-component highlight">
-      <div className="render-count" style={{ marginBottom: "0.3rem" }}>
+      <div className="render-count demo-render-summary">
         renders: <span className="count">{renders.current}</span>
       </div>
-      <div style={{ fontSize: "0.85rem" }}>value: "{value}"</div>
-      <button className="demo-button" style={{ marginTop: "0.3rem" }} onClick={onClick}>
+      <div className="demo-child-value">value: "{value}"</div>
+      <button className="demo-button demo-child-button" onClick={onClick}>
         Child button
       </button>
     </div>
@@ -100,11 +100,11 @@ const MemoizedChild = memo(function MemoizedChild({
 
   return (
     <div key={`flash-${renders.current}`} className="demo-component highlight">
-      <div className="render-count" style={{ marginBottom: "0.3rem" }}>
+      <div className="render-count demo-render-summary">
         renders: <span className="count">{renders.current}</span>
       </div>
-      <div style={{ fontSize: "0.85rem" }}>value: "{value}"</div>
-      <button className="demo-button" style={{ marginTop: "0.3rem" }} onClick={onClick}>
+      <div className="demo-child-value">value: "{value}"</div>
+      <button className="demo-button demo-child-button" onClick={onClick}>
         Child button
       </button>
     </div>

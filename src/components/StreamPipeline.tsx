@@ -115,13 +115,7 @@ export default function StreamPipeline() {
   return (
     <div className="interactive-demo">
       <h4>Try it: Stream Pipeline</h4>
-      <p
-        style={{
-          fontSize: "0.85rem",
-          color: "var(--sl-color-gray-2)",
-          margin: "0 0 1rem",
-        }}
-      >
+      <p className="demo-description">
         Watch data chunks flow through a Readable → Transform → Writable pipeline. Switch to "Slow
         writer" to see backpressure in action.
       </p>
@@ -188,15 +182,11 @@ export default function StreamPipeline() {
           <span className="demo-pipeline-label">Done: </span>
           <span>{chunks.filter((c) => c.stage === 3).length}</span>
         </div>
-        {backpressure && (
-          <div style={{ color: "#ef4444", fontWeight: 600 }}>
-            BACKPRESSURE — writer can't keep up
-          </div>
-        )}
+        {backpressure && <div className="demo-note-error">BACKPRESSURE — writer can't keep up</div>}
       </div>
 
       {!running && chunks.length > 0 && chunks.every((c) => c.stage === 3) && (
-        <div className="demo-output" style={{ marginTop: "0.75rem" }}>
+        <div className="demo-output">
           All chunks processed.{" "}
           {speed === "slow-writer"
             ? "Notice how the slow writer caused chunks to wait at the transform stage. In real Node.js streams, this triggers the 'drain' event pattern: the readable pauses until the writable signals it's ready for more."
