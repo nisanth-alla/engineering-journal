@@ -31,6 +31,10 @@ export default defineConfig({
           autogenerate: { directory: "react" },
         },
         {
+          label: "Next.js",
+          autogenerate: { directory: "nextjs" },
+        },
+        {
           label: "Node.js",
           autogenerate: { directory: "node" },
         },

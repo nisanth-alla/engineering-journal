@@ -1,0 +1,190 @@
+---
+title: How Next.js works
+description: Server rendering, client rendering, and why Next.js exists on top of React.
+sidebar:
+  order: 1
+---
+
+## React alone isn't enough
+
+React is a UI library. It renders components. That's it. It doesn't handle routing, data fetching on the server, static site generation, code splitting strategies, or SEO. If you build a React app with just `create-react-app` (or Vite), you get a client-side single-page application. The HTML sent to the browser is an empty `<div id="root">`, and JavaScript builds the entire page after it loads.
+
+That's fine for dashboards and internal tools. For anything public-facing (marketing pages, e-commerce, blogs), it's a problem:
+
+- **SEO:** Search engine crawlers see an empty page. Google can render JavaScript but it's slower and less reliable than reading HTML.
+- **Performance:** Users see a blank screen until the JS bundle downloads, parses, and executes. On slow connections, that's seconds.
+- **Social sharing:** Link previews (Twitter/Slack/WhatsApp cards) read the HTML. An empty div produces a blank preview.
+
+Next.js solves these by rendering React on the server first, then hydrating on the client.
+
+## The rendering spectrum
+
+Next.js gives you four rendering strategies, and you can mix them in the same application:
+
+### Static Site Generation (SSG)
+
+Pages are rendered at build time. The output is plain HTML files. A CDN serves them instantly.
+
+```typescript
+// app/blog/[slug]/page.tsx
+export async function generateStaticParams() {
+  const posts = await getAllPosts();
+  return posts.map(post => ({ slug: post.slug }));
+}
+
+export default async function BlogPost({ params }: { params: { slug: string } }) {
+  const post = await getPost(params.slug);
+  return <article>{post.content}</article>;
+}
+```
+
+`generateStaticParams` tells Next.js which pages to build. At build time, Next.js calls `getPost` for each slug and generates a static HTML file. No server needed at runtime. The page loads in milliseconds from a CDN.
+
+Use for: blog posts, documentation, marketing pages. Anything that doesn't change per-request.
+
+### Server-Side Rendering (SSR)
+
+Pages are rendered on the server for every request. The HTML is generated fresh each time.
+
+```typescript
+// app/dashboard/page.tsx
+export const dynamic = "force-dynamic"; // opt into SSR
+
+export default async function Dashboard() {
+  const stats = await fetchDashboardStats(); // runs on every request
+  return <DashboardView stats={stats} />;
+}
+```
+
+The server fetches data, renders the component to HTML, and sends the complete page. The client receives a fully rendered page and then hydrates it (attaches event listeners, makes it interactive).
+
+Use for: personalized content, real-time data, anything that changes per-user or per-request.
+
+### Incremental Static Regeneration (ISR)
+
+A hybrid. Pages are statically generated but revalidated in the background after a time interval.
+
+```typescript
+// app/products/[id]/page.tsx
+export const revalidate = 60; // revalidate every 60 seconds
+
+export default async function Product({ params }: { params: { id: string } }) {
+  const product = await getProduct(params.id);
+  return <ProductPage product={product} />;
+}
+```
+
+The first request gets the cached static page. After 60 seconds, the next request triggers a background regeneration. The stale page is served while the new one builds. Once the new version is ready, subsequent requests get the updated page.
+
+Use for: product pages, profiles, content that updates but doesn't need real-time freshness.
+
+### Client-Side Rendering (CSR)
+
+Some parts of the page don't need server rendering. Interactive widgets, user-specific data after login, anything that doesn't matter for SEO.
+
+```typescript
+"use client";
+
+import { useState, useEffect } from "react";
+
+export default function UserNotifications() {
+  const [notifications, setNotifications] = useState([]);
+
+  useEffect(() => {
+    fetchNotifications().then(setNotifications);
+  }, []);
+
+  return <NotificationList items={notifications} />;
+}
+```
+
+The `"use client"` directive tells Next.js this component runs on the client. The server sends a placeholder or skeleton, and the client fills it in after JavaScript loads.
+
+## The App Router
+
+Next.js 13+ introduced the App Router, replacing the Pages Router. The mental model is different:
+
+**Pages Router (old):** each file in `pages/` is a route. Data fetching uses `getServerSideProps` or `getStaticProps`. Components are client-side by default.
+
+**App Router (current):** each folder in `app/` is a route segment. Files named `page.tsx` are routes. `layout.tsx` wraps pages. Components are server-side by default. You opt into client rendering with `"use client"`.
+
+```
+app/
+├── layout.tsx          # root layout (wraps everything)
+├── page.tsx            # home page (/)
+├── about/
+│   └── page.tsx        # /about
+├── blog/
+│   ├── layout.tsx      # blog layout (wraps all blog pages)
+│   ├── page.tsx        # /blog (list)
+│   └── [slug]/
+│       └── page.tsx    # /blog/hello-world (dynamic)
+└── api/
+    └── users/
+        └── route.ts    # API route: GET/POST /api/users
+```
+
+The folder structure IS the routing. No configuration file, no route definitions. A folder named `[slug]` is a dynamic segment. A folder named `(group)` is a route group (organizes code without affecting the URL).
+
+## Server Components vs Client Components
+
+This is the concept that confuses people most about modern Next.js.
+
+**Server Components** (default in App Router):
+- Run on the server only. Never shipped to the browser.
+- Can directly access databases, file systems, environment variables.
+- Can use `async/await` at the top level (the component itself is async).
+- Cannot use hooks (`useState`, `useEffect`), event handlers, or browser APIs.
+
+**Client Components** (`"use client"`):
+- Run on both server (for initial HTML) and client (for hydration).
+- Can use hooks, event handlers, browser APIs.
+- Cannot directly use server-only features (database queries, secret env vars).
+
+The pattern: server components fetch data and pass it to client components as props. Client components handle interactivity.
+
+```typescript
+// app/dashboard/page.tsx (SERVER component — fetches data)
+export default async function Dashboard() {
+  const stats = await db.getStats(); // direct DB access, runs on server
+  return <DashboardClient stats={stats} />;
+}
+
+// components/DashboardClient.tsx (CLIENT component — handles interaction)
+"use client";
+export default function DashboardClient({ stats }) {
+  const [filter, setFilter] = useState("all");
+  return (
+    <div>
+      <FilterBar value={filter} onChange={setFilter} />
+      <StatsGrid stats={stats} filter={filter} />
+    </div>
+  );
+}
+```
+
+## Environment variables
+
+Next.js has specific rules about env vars that catch people:
+
+- `NEXT_PUBLIC_*` variables are inlined into the client bundle. Anyone can see them in browser DevTools. Use for: API URLs, public keys, feature flags.
+- All other env vars are server-only. They're available in server components, API routes, and middleware. Use for: database URLs, secret keys, API tokens.
+
+```bash
+# .env.local (not committed to git)
+DATABASE_URL=postgres://localhost/mydb     # server only
+API_SECRET=sk_live_abc123                  # server only
+NEXT_PUBLIC_API_URL=https://api.example.com  # exposed to client
+```
+
+Accidentally exposing a secret as `NEXT_PUBLIC_*` is a real security incident. Next.js forces you to be explicit about what crosses the server/client boundary.
+
+## Interview angles
+
+**"How does Next.js SSR work?"** The server runs your React components, generates HTML, and sends it to the browser. The browser displays the HTML immediately (fast first paint), then JavaScript loads and hydrates the page (attaches event listeners, makes it interactive). Data fetching happens on the server before rendering, so the page arrives with content already populated.
+
+**"SSG vs SSR vs ISR — when do you use each?"** SSG for content that rarely changes (blogs, docs) because it's served from a CDN with zero server cost. SSR for personalized or real-time content (dashboards, search results) because it renders fresh on every request. ISR for content that changes periodically (product pages, profiles) because it combines CDN speed with background updates.
+
+**"Explain Next.js environment variables."** Variables prefixed with `NEXT_PUBLIC_` are bundled into client JavaScript and visible to anyone. Unprefixed variables are server-only and never reach the browser. This is a security boundary: database URLs and API secrets should never have the `NEXT_PUBLIC_` prefix.
+
+**"Server Components vs Client Components?"** Server components run only on the server, can access databases directly, and ship zero JavaScript to the client. Client components run on both sides and handle interactivity (hooks, events). The pattern: server components fetch data, client components handle UI interactions. Components are server by default in the App Router; you opt into client with "use client".
