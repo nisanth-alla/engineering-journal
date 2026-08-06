@@ -5,7 +5,7 @@ sidebar:
   order: 4
 ---
 
-import PromiseTimeline from '../../../components/PromiseTimeline';
+import PromiseTimeline from "../../../components/PromiseTimeline";
 
 ## The evolution
 
@@ -23,12 +23,21 @@ The original async pattern. You pass a function to be called when the async work
 
 ```javascript
 fs.readFile("config.json", (err, data) => {
-  if (err) { console.error(err); return; }
+  if (err) {
+    console.error(err);
+    return;
+  }
   const config = JSON.parse(data);
   db.connect(config.dbUrl, (err, connection) => {
-    if (err) { console.error(err); return; }
+    if (err) {
+      console.error(err);
+      return;
+    }
     connection.query("SELECT * FROM users", (err, users) => {
-      if (err) { console.error(err); return; }
+      if (err) {
+        console.error(err);
+        return;
+      }
       // finally have the users... 3 levels deep
     });
   });
@@ -48,12 +57,13 @@ const promise = fetch("/api/users");
 // promise is a Promise object, not the response
 
 promise
-  .then(response => response.json())   // runs when fetch resolves
-  .then(users => console.log(users))    // runs when json() resolves
-  .catch(err => console.error(err));    // runs if anything in the chain rejects
+  .then((response) => response.json()) // runs when fetch resolves
+  .then((users) => console.log(users)) // runs when json() resolves
+  .catch((err) => console.error(err)); // runs if anything in the chain rejects
 ```
 
 What Promises fixed:
+
 - **Chaining instead of nesting.** `.then` returns a new Promise, so steps are flat, not nested.
 - **Centralized error handling.** One `.catch` at the end handles errors from any step.
 - **Guaranteed single resolution.** A Promise resolves or rejects once. Can't be called twice.
@@ -62,6 +72,7 @@ What Promises fixed:
 ### Promise states
 
 A Promise is always in one of three states:
+
 - **Pending:** the operation hasn't completed yet
 - **Fulfilled:** the operation completed successfully (has a value)
 - **Rejected:** the operation failed (has a reason/error)
@@ -90,11 +101,11 @@ async/await is syntax over Promises. An `async` function always returns a Promis
 // Promise version
 function getUser(id) {
   return fetch(`/api/users/${id}`)
-    .then(res => res.json())
-    .then(user => {
+    .then((res) => res.json())
+    .then((user) => {
       return fetch(`/api/orders?userId=${user.id}`)
-        .then(res => res.json())
-        .then(orders => ({ ...user, orders }));
+        .then((res) => res.json())
+        .then((orders) => ({ ...user, orders }));
     });
 }
 
@@ -132,9 +143,9 @@ async function getUser(id) {
 ```javascript
 // SLOW: each await waits for the previous one
 async function getData() {
-  const users = await fetch("/api/users").then(r => r.json());     // 200ms
-  const posts = await fetch("/api/posts").then(r => r.json());     // 200ms
-  const comments = await fetch("/api/comments").then(r => r.json()); // 200ms
+  const users = await fetch("/api/users").then((r) => r.json()); // 200ms
+  const posts = await fetch("/api/posts").then((r) => r.json()); // 200ms
+  const comments = await fetch("/api/comments").then((r) => r.json()); // 200ms
   return { users, posts, comments };
 }
 // Total: ~600ms (sequential)
@@ -142,9 +153,9 @@ async function getData() {
 // FAST: start all three, then wait for all
 async function getData() {
   const [users, posts, comments] = await Promise.all([
-    fetch("/api/users").then(r => r.json()),
-    fetch("/api/posts").then(r => r.json()),
-    fetch("/api/comments").then(r => r.json()),
+    fetch("/api/users").then((r) => r.json()),
+    fetch("/api/posts").then((r) => r.json()),
+    fetch("/api/comments").then((r) => r.json()),
   ]);
   return { users, posts, comments };
 }
@@ -197,7 +208,7 @@ Use when: timeout patterns, or when you want the fastest response from multiple 
 
 ### Promise.any
 
-Resolves with the first promise to *fulfill*. Only rejects if ALL promises reject.
+Resolves with the first promise to _fulfill_. Only rejects if ALL promises reject.
 
 ```javascript
 const fastest = await Promise.any([
@@ -225,7 +236,7 @@ async function fetchWithRetry(url, maxRetries = 3) {
     } catch (err) {
       if (attempt === maxRetries) throw err;
       const delay = Math.min(1000 * 2 ** attempt, 10000);
-      await new Promise(r => setTimeout(r, delay));
+      await new Promise((r) => setTimeout(r, delay));
     }
   }
 }
@@ -238,8 +249,7 @@ function fetchWithTimeout(url, timeoutMs = 5000) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
-  return fetch(url, { signal: controller.signal })
-    .finally(() => clearTimeout(timeout));
+  return fetch(url, { signal: controller.signal }).finally(() => clearTimeout(timeout));
 }
 ```
 
@@ -261,7 +271,7 @@ async function processWithLimit(items, fn, limit = 5) {
   const executing = new Set();
 
   for (const item of items) {
-    const promise = fn(item).then(result => {
+    const promise = fn(item).then((result) => {
       executing.delete(promise);
       return result;
     });

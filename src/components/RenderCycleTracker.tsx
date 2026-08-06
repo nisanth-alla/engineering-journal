@@ -16,9 +16,9 @@ export default function RenderCycleTracker() {
   return (
     <div className="interactive-demo">
       <h4>Try it: What re-renders when?</h4>
-      <p style={{ fontSize: "0.85rem", color: "var(--sl-color-gray-2)", margin: "0 0 1rem" }}>
-        Click buttons at different levels. Watch which render counters go up.
-        Every component that re-renders flashes briefly.
+      <p className="demo-description">
+        Click buttons at different levels. Watch which render counters go up. Every component that
+        re-renders flashes briefly.
       </p>
 
       <TrackedBox name="App (parent)" renders={parentRenders.current}>
@@ -58,7 +58,7 @@ function ChildB({ parentCount }: { parentCount: number }) {
 
   return (
     <TrackedBox name="ChildB (receives prop)" renders={renders.current}>
-      <div style={{ fontSize: "0.85rem" }}>parentCount: {parentCount}</div>
+      <div className="demo-child-value">parentCount: {parentCount}</div>
       <GrandchildB />
     </TrackedBox>
   );
@@ -70,7 +70,7 @@ function GrandchildA() {
 
   return (
     <TrackedBox name="GrandchildA" renders={renders.current} small>
-      <span style={{ fontSize: "0.8rem" }}>No props, no state</span>
+      <span className="demo-tree-copy-muted">No props, no state</span>
     </TrackedBox>
   );
 }
@@ -81,7 +81,7 @@ function GrandchildB() {
 
   return (
     <TrackedBox name="GrandchildB" renders={renders.current} small>
-      <span style={{ fontSize: "0.8rem" }}>No props, no state</span>
+      <span className="demo-tree-copy-muted">No props, no state</span>
     </TrackedBox>
   );
 }
@@ -104,21 +104,17 @@ function TrackedBox({
   return (
     <div
       key={`flash-${flashKey.current}`}
-      className="demo-component highlight"
-      style={{
-        padding: small ? "0.5rem" : "0.75rem",
-        marginTop: small ? "0.5rem" : "0",
-      }}
+      className="demo-component highlight demo-tree-box"
+      style={
+        {
+          "--tree-padding": small ? "0.5rem" : "0.75rem",
+          "--tree-margin-top": small ? "0.5rem" : "0",
+          "--tree-title-size": small ? "0.75rem" : "0.85rem",
+        } as React.CSSProperties
+      }
     >
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: "0.4rem",
-        }}
-      >
-        <strong style={{ fontSize: small ? "0.75rem" : "0.85rem" }}>{name}</strong>
+      <div className="demo-tree-header">
+        <strong>{name}</strong>
         <span className="render-count">
           renders: <span className="count">{renders}</span>
         </span>

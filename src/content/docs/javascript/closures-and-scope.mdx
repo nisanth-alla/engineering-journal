@@ -5,7 +5,7 @@ sidebar:
   order: 2
 ---
 
-import ClosureVisualizer from '../../../components/ClosureVisualizer';
+import ClosureVisualizer from "../../../components/ClosureVisualizer";
 
 ## What a closure is
 
@@ -16,7 +16,7 @@ That definition is correct but abstract. Here's what it means in practice:
 ```javascript
 function createGreeter(greeting) {
   // greeting exists in this scope
-  return function(name) {
+  return function (name) {
     // this inner function can access greeting
     // even after createGreeter has returned
     return `${greeting}, ${name}!`;
@@ -26,8 +26,8 @@ function createGreeter(greeting) {
 const hello = createGreeter("Hello");
 const howdy = createGreeter("Howdy");
 
-hello("Alice");  // "Hello, Alice!"
-howdy("Bob");    // "Howdy, Bob!"
+hello("Alice"); // "Hello, Alice!"
+howdy("Bob"); // "Howdy, Bob!"
 ```
 
 When `createGreeter("Hello")` runs, it creates a scope containing `greeting = "Hello"`. The returned function keeps a reference to that scope. Even though `createGreeter` has finished and its stack frame is gone, the scope lives on because the inner function closes over it.
@@ -63,9 +63,9 @@ function outer() {
 
     function inner() {
       // inner can access all three:
-      console.log(global);     // walks up 3 levels
-      console.log(outerVar);   // walks up 2 levels
-      console.log(middleVar);  // walks up 1 level
+      console.log(global); // walks up 3 levels
+      console.log(outerVar); // walks up 2 levels
+      console.log(middleVar); // walks up 1 level
     }
     inner();
   }
@@ -110,7 +110,7 @@ The pre-ES6 fix (for historical context and interviews):
 
 ```javascript
 for (var i = 0; i < 3; i++) {
-  (function(captured) {
+  (function (captured) {
     setTimeout(() => console.log(captured), 100);
   })(i);
 }
@@ -127,14 +127,14 @@ Before ES6 modules and class private fields, closures were the only way to creat
 
 ```javascript
 function createStore(initial) {
-  let state = initial;  // private, no direct access
+  let state = initial; // private, no direct access
   const listeners = [];
 
   return {
     getState: () => state,
     setState: (next) => {
       state = typeof next === "function" ? next(state) : next;
-      listeners.forEach(fn => fn(state));
+      listeners.forEach((fn) => fn(state));
     },
     subscribe: (fn) => {
       listeners.push(fn);
@@ -153,9 +153,9 @@ This is basically how Redux works internally. `state` and `listeners` are invisi
 
 ```javascript
 function memoize(fn) {
-  const cache = new Map();  // closed over, persists across calls
+  const cache = new Map(); // closed over, persists across calls
 
-  return function(...args) {
+  return function (...args) {
     const key = JSON.stringify(args);
     if (cache.has(key)) return cache.get(key);
 
@@ -170,8 +170,8 @@ const expensiveFn = memoize((n) => {
   return n * n;
 });
 
-expensiveFn(5);  // "computing..." → 25
-expensiveFn(5);  // 25 (no "computing...", cache hit)
+expensiveFn(5); // "computing..." → 25
+expensiveFn(5); // 25 (no "computing...", cache hit)
 ```
 
 The `cache` Map lives in the closure. Each call to the returned function checks the cache first. The cache persists because the closure keeps it alive.
@@ -180,7 +180,7 @@ The `cache` Map lives in the closure. Each call to the returned function checks 
 
 ```javascript
 function createHandler(action, analytics) {
-  return function(event) {
+  return function (event) {
     analytics.track(action, { target: event.target.id });
     // handle the event
   };
@@ -195,9 +195,9 @@ The handler closes over `action` and `analytics`. You don't need to pass them ev
 
 ```javascript
 function debounce(fn, delay) {
-  let timer = null;  // closed over
+  let timer = null; // closed over
 
-  return function(...args) {
+  return function (...args) {
     clearTimeout(timer);
     timer = setTimeout(() => fn(...args), delay);
   };
@@ -233,10 +233,10 @@ The fix: don't close over more than you need.
 ```javascript
 function processBigData() {
   const hugeArray = new Array(1000000).fill("data");
-  const length = hugeArray.length;  // extract what you need
+  const length = hugeArray.length; // extract what you need
 
   return function getLength() {
-    return length;  // closes over a number, not the array
+    return length; // closes over a number, not the array
   };
 }
 ```

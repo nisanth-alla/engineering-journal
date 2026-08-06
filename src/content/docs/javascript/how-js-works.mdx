@@ -5,7 +5,7 @@ sidebar:
   order: 1
 ---
 
-import EventLoopSimulator from '../../../components/EventLoopSimulator';
+import EventLoopSimulator from "../../../components/EventLoopSimulator";
 
 ## One thread, one stack
 
@@ -14,9 +14,15 @@ JavaScript has one thread. One call stack. One piece of code executing at any gi
 When you call a function, it goes on the call stack. When that function calls another function, the new one goes on top. When a function returns, it comes off the stack. If the stack is busy, nothing else runs. A function that takes 5 seconds blocks everything for 5 seconds: no click handlers fire, no animations run, the page freezes.
 
 ```javascript
-function multiply(a, b) { return a * b; }
-function square(n) { return multiply(n, n); }
-function printSquare(n) { console.log(square(n)); }
+function multiply(a, b) {
+  return a * b;
+}
+function square(n) {
+  return multiply(n, n);
+}
+function printSquare(n) {
+  console.log(square(n));
+}
 
 printSquare(4);
 // Stack: printSquare → square → multiply → (returns 16) → square returns → log(16) → printSquare returns
@@ -68,13 +74,13 @@ The key takeaway from the "Basic order" scenario: `setTimeout(() => ..., 0)` doe
 `==` does type coercion before comparing. `===` compares without coercion.
 
 ```javascript
-0 == ""         // true  (both coerce to 0)
-0 === ""        // false (number vs string)
-null == undefined  // true  (special case in the spec)
-null === undefined // false (different types)
-false == 0      // true  (false coerces to 0)
-false === 0     // false (boolean vs number)
-"" == false     // true  (both coerce to 0)
+0 == ""; // true  (both coerce to 0)
+0 === ""; // false (number vs string)
+null == undefined; // true  (special case in the spec)
+null === undefined; // false (different types)
+false == 0; // true  (false coerces to 0)
+false === 0; // false (boolean vs number)
+"" == false; // true  (both coerce to 0)
 ```
 
 The coercion rules are documented in the spec but nobody memorizes them. The practical rule: always use `===` unless you're intentionally checking `null == undefined` (which is the one case where `==` is arguably clearer than `x === null || x === undefined`).
@@ -88,22 +94,22 @@ Three ways to declare variables, each with different scoping and hoisting behavi
 **`var`** is function-scoped and hoisted. The declaration is moved to the top of the function, but the assignment stays in place:
 
 ```javascript
-console.log(x);  // undefined (not an error! var is hoisted)
+console.log(x); // undefined (not an error! var is hoisted)
 var x = 5;
-console.log(x);  // 5
+console.log(x); // 5
 
 // What the engine actually sees:
-var x;            // hoisted to top
-console.log(x);   // undefined
+var x; // hoisted to top
+console.log(x); // undefined
 x = 5;
-console.log(x);   // 5
+console.log(x); // 5
 ```
 
 **`let`** is block-scoped with a Temporal Dead Zone (TDZ). The variable exists from the start of the block but can't be accessed until the declaration:
 
 ```javascript
-console.log(y);  // ReferenceError: Cannot access 'y' before initialization
-let y = 5;       // This is the TDZ boundary
+console.log(y); // ReferenceError: Cannot access 'y' before initialization
+let y = 5; // This is the TDZ boundary
 ```
 
 The TDZ exists to catch bugs. With `var`, accessing a variable before its assignment silently gives you `undefined`. With `let`, you get an error that tells you something is wrong.
@@ -112,11 +118,11 @@ The TDZ exists to catch bugs. With `var`, accessing a variable before its assign
 
 ```javascript
 const z = 5;
-z = 10;  // TypeError: Assignment to constant variable
+z = 10; // TypeError: Assignment to constant variable
 
 // But: const objects and arrays CAN be mutated
 const arr = [1, 2, 3];
-arr.push(4);  // fine! The binding is constant, not the value
+arr.push(4); // fine! The binding is constant, not the value
 ```
 
 This trips people up. `const` means "this variable always points to the same thing." It doesn't mean the thing itself can't change. For true immutability you need `Object.freeze()` (shallow) or a library.
@@ -133,7 +139,7 @@ This comes up constantly in interview and in real bugs.
 const original = { name: "Alice", address: { city: "Portland" } };
 const shallow = { ...original };
 
-shallow.name = "Bob";           // doesn't affect original
+shallow.name = "Bob"; // doesn't affect original
 shallow.address.city = "Seattle"; // DOES affect original!
 // original.address.city is now "Seattle"
 ```
@@ -158,18 +164,18 @@ const deep = JSON.parse(JSON.stringify(original));
 
 Both provide fallback values. The difference matters.
 
-**`||` (logical OR):** returns the right side if the left side is *falsy*. Falsy values: `false`, `0`, `""`, `null`, `undefined`, `NaN`.
+**`||` (logical OR):** returns the right side if the left side is _falsy_. Falsy values: `false`, `0`, `""`, `null`, `undefined`, `NaN`.
 
 **`??` (nullish coalescing):** returns the right side only if the left side is `null` or `undefined`. NOT for other falsy values.
 
 ```javascript
 const count = 0;
-console.log(count || 10);  // 10  (0 is falsy, so it falls through)
-console.log(count ?? 10);  // 0   (0 is not null/undefined, so it stays)
+console.log(count || 10); // 10  (0 is falsy, so it falls through)
+console.log(count ?? 10); // 0   (0 is not null/undefined, so it stays)
 
 const name = "";
-console.log(name || "Anonymous");  // "Anonymous" (empty string is falsy)
-console.log(name ?? "Anonymous");  // ""           (empty string is not null)
+console.log(name || "Anonymous"); // "Anonymous" (empty string is falsy)
+console.log(name ?? "Anonymous"); // ""           (empty string is not null)
 ```
 
 Use `??` when `0`, `""`, or `false` are valid values that you want to keep. Use `||` when you want to treat all falsy values as "missing."
@@ -185,11 +191,12 @@ let user = { name: "Alice" };
 const metadata = new WeakMap();
 metadata.set(user, { lastLogin: Date.now() });
 
-user = null;  // No more strong references to the user object
+user = null; // No more strong references to the user object
 // The WeakMap entry is now eligible for garbage collection
 ```
 
 Use cases:
+
 - **Caching computed values** for objects without preventing garbage collection
 - **Storing private data** associated with DOM elements (the data disappears when the element is removed)
 - **Tracking objects** without memory leaks in long-running applications

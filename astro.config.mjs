@@ -43,13 +43,16 @@ export default defineConfig({
           autogenerate: { directory: "go" },
         },
         {
+          label: "Interview Prep",
+          autogenerate: { directory: "interview" },
+        },
+        {
           label: "Experiments",
           autogenerate: { directory: "experiments" },
         },
       ],
       editLink: {
-        baseUrl:
-          "https://github.com/nisanth-alla/engineering-journal/edit/main/",
+        baseUrl: "https://github.com/nisanth-alla/engineering-journal/edit/main/",
       },
       customCss: ["./src/styles/components.css"],
     }),

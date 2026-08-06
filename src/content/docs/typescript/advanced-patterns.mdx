@@ -84,10 +84,10 @@ type Model = "user" | "order" | "product";
 type EventType = `${Model}:created` | `${Model}:updated` | `${Model}:deleted`;
 // "user:created" | "user:updated" | "user:deleted" | "order:created" | ...
 
-function on(event: EventType, handler: () => void) { }
+function on(event: EventType, handler: () => void) {}
 
-on("user:created", () => { });   // fine
-on("user:destoryed", () => { }); // compile error (typo caught)
+on("user:created", () => {}); // fine
+on("user:destoryed", () => {}); // compile error (typo caught)
 ```
 
 ### Inferring parts of template literals
@@ -97,7 +97,7 @@ TypeScript can extract parts from a template literal type:
 ```typescript
 type ExtractModel<T> = T extends `${infer M}:${string}` ? M : never;
 
-type Model = ExtractModel<"user:created">;  // "user"
+type Model = ExtractModel<"user:created">; // "user"
 type Model2 = ExtractModel<"order:deleted">; // "order"
 ```
 
@@ -110,9 +110,9 @@ A type that depends on a condition. Like a ternary but for types.
 ```typescript
 type IsString<T> = T extends string ? "yes" : "no";
 
-type A = IsString<string>;   // "yes"
-type B = IsString<number>;   // "no"
-type C = IsString<"hello">;  // "yes" (string literal extends string)
+type A = IsString<string>; // "yes"
+type B = IsString<number>; // "no"
+type C = IsString<"hello">; // "yes" (string literal extends string)
 ```
 
 More practical: unwrapping container types.
@@ -120,9 +120,9 @@ More practical: unwrapping container types.
 ```typescript
 type Unwrap<T> = T extends Promise<infer U> ? U : T;
 
-type A = Unwrap<Promise<string>>;   // string
+type A = Unwrap<Promise<string>>; // string
 type B = Unwrap<Promise<number[]>>; // number[]
-type C = Unwrap<string>;            // string (not a Promise, returned as-is)
+type C = Unwrap<string>; // string (not a Promise, returned as-is)
 ```
 
 `Unwrap` says: if T is a Promise of something, give me that something. Otherwise give me T back. The `infer U` captures what's inside the Promise.
@@ -165,20 +165,21 @@ function createProductId(id: string): ProductId {
   return id as ProductId;
 }
 
-function getUser(id: UserId) { }
-function getProduct(id: ProductId) { }
+function getUser(id: UserId) {}
+function getProduct(id: ProductId) {}
 
 const userId = createUserId("user_123");
 const productId = createProductId("prod_456");
 
-getUser(userId);       // fine
-getUser(productId);    // compile error! ProductId is not assignable to UserId
+getUser(userId); // fine
+getUser(productId); // compile error! ProductId is not assignable to UserId
 getUser("raw_string"); // compile error! string is not assignable to UserId
 ```
 
 The `__brand` field doesn't exist at runtime. It's a compile-time marker that makes the type nominally distinct. The `as` assertion in the factory function is the only place where you bypass the type system. Everywhere else, the compiler enforces the distinction.
 
 I use this for:
+
 - IDs that shouldn't be mixed up (UserId, OrderId, SessionId)
 - Validated strings (EmailAddress, Url, NonEmptyString)
 - Units that shouldn't be confused (Cents vs Dollars, Milliseconds vs Seconds)
@@ -191,10 +192,10 @@ function toCents(dollars: Dollars): Cents {
   return (dollars * 100) as Cents;
 }
 
-function charge(amount: Cents) { }
+function charge(amount: Cents) {}
 
 const price = 29.99 as Dollars;
-charge(price);        // compile error: Dollars is not Cents
+charge(price); // compile error: Dollars is not Cents
 charge(toCents(price)); // fine
 ```
 
@@ -237,13 +238,13 @@ type UserForm = FormState<Pick<User, "name" | "email">>;
 
 ## When I reach for these patterns
 
-| Pattern | When I use it | When I don't |
-|---|---|---|
-| Discriminated unions | State machines, message handlers, API response variants | Simple if/else on a string |
-| Template literals | Event systems, route definitions, anything with structured string formats | Random string manipulation |
-| Conditional types | Library APIs that need to change return type based on input | Application code (too obscure for teammates) |
-| Branded types | IDs, validated values, units where mixing causes bugs | Internal strings that don't cross module boundaries |
-| Mapped types | Generating API client types from schemas, form state types | One-off type transformations (just write the type) |
+| Pattern              | When I use it                                                             | When I don't                                        |
+| -------------------- | ------------------------------------------------------------------------- | --------------------------------------------------- |
+| Discriminated unions | State machines, message handlers, API response variants                   | Simple if/else on a string                          |
+| Template literals    | Event systems, route definitions, anything with structured string formats | Random string manipulation                          |
+| Conditional types    | Library APIs that need to change return type based on input               | Application code (too obscure for teammates)        |
+| Branded types        | IDs, validated values, units where mixing causes bugs                     | Internal strings that don't cross module boundaries |
+| Mapped types         | Generating API client types from schemas, form state types                | One-off type transformations (just write the type)  |
 
 ## Interview angles
 

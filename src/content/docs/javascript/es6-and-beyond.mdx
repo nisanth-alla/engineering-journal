@@ -32,10 +32,12 @@ const [first, second, ...rest] = [1, 2, 3, 4, 5];
 // first = 1, second = 2, rest = [3, 4, 5]
 
 // Nested destructuring
-const { address: { city, zip } } = user;
+const {
+  address: { city, zip },
+} = user;
 
 // Default values
-const { role = "viewer" } = user;  // if user.role is undefined, use "viewer"
+const { role = "viewer" } = user; // if user.role is undefined, use "viewer"
 
 // Rename while destructuring
 const { name: userName, email: userEmail } = user;
@@ -46,7 +48,11 @@ This is everywhere in React:
 ```jsx
 function UserCard({ name, email, role = "member" }) {
   // Props are destructured in the parameter list
-  return <div>{name} ({role})</div>;
+  return (
+    <div>
+      {name} ({role})
+    </div>
+  );
 }
 ```
 
@@ -54,7 +60,11 @@ Before destructuring, React component props looked like:
 
 ```jsx
 function UserCard(props) {
-  return <div>{props.name} ({props.role})</div>;
+  return (
+    <div>
+      {props.name} ({props.role})
+    </div>
+  );
 }
 ```
 
@@ -74,10 +84,10 @@ const copy = [...original];
 const combined = [...arr1, ...arr2, newItem];
 
 // Copying objects (shallow)
-const updated = { ...user, name: "New Name" };  // copy user, override name
+const updated = { ...user, name: "New Name" }; // copy user, override name
 
 // Function arguments
-Math.max(...numbers);  // spreads array into individual arguments
+Math.max(...numbers); // spreads array into individual arguments
 ```
 
 **Rest:** collects remaining elements into an array.
@@ -97,7 +107,7 @@ The object spread for immutable updates is one of the most used patterns in Reac
 
 ```javascript
 // State update without mutation
-setState(prev => ({
+setState((prev) => ({
   ...prev,
   items: [...prev.items, newItem],
   count: prev.count + 1,
@@ -112,7 +122,9 @@ Shorter syntax with a crucial behavioral difference: arrow functions don't have 
 
 ```javascript
 // Regular function
-function double(x) { return x * 2; }
+function double(x) {
+  return x * 2;
+}
 
 // Arrow function
 const double = (x) => x * 2;
@@ -134,13 +146,13 @@ class Timer {
 
   start() {
     // Regular function: `this` depends on how it's called
-    setInterval(function() {
-      this.seconds++;  // BUG: `this` is not the Timer instance
+    setInterval(function () {
+      this.seconds++; // BUG: `this` is not the Timer instance
     }, 1000);
 
     // Arrow function: `this` is captured from the surrounding scope
     setInterval(() => {
-      this.seconds++;  // Works: `this` is the Timer instance
+      this.seconds++; // Works: `this` is the Timer instance
     }, 1000);
   }
 }
@@ -194,13 +206,16 @@ export function formatCurrency(amount) {
 
 export const TAX_RATE = 0.08;
 
-export default class Cart { /* ... */ }
+export default class Cart {
+  /* ... */
+}
 
 // app.js
 import Cart, { formatCurrency, TAX_RATE } from "./utils.js";
 ```
 
 Key differences from CommonJS (`require`):
+
 - ES modules are statically analyzed (imports must be at the top level, not inside if statements). This enables tree-shaking (removing unused exports from bundles).
 - ES module imports are live bindings (if the exporting module changes the value, importers see the change). CommonJS exports are copies.
 - ES modules are always strict mode. No need for `"use strict"`.
@@ -235,13 +250,13 @@ const displayName = user?.profile?.displayName ?? "Anonymous";
 ```javascript
 // Map: key-value pairs where keys can be ANY type (not just strings)
 const cache = new Map();
-cache.set(userObject, computedData);  // object as key
-cache.set(42, "the answer");          // number as key
+cache.set(userObject, computedData); // object as key
+cache.set(42, "the answer"); // number as key
 
 // Set: unique values
 const unique = new Set([1, 2, 2, 3, 3]);
 // Set { 1, 2, 3 }
-const uniqueNames = [...new Set(names)];  // deduplicate an array
+const uniqueNames = [...new Set(names)]; // deduplicate an array
 ```
 
 Maps are better than plain objects for caches and lookups because they have `.size`, iteration order is insertion order, and keys can be objects (not just strings).
@@ -251,10 +266,14 @@ Maps are better than plain objects for caches and lookups because they have `.si
 Iterates over values (not keys like `for...in`):
 
 ```javascript
-for (const item of array) { }      // arrays
-for (const char of string) { }     // strings
-for (const [key, val] of map) { }  // Maps
-for (const item of set) { }        // Sets
+for (const item of array) {
+} // arrays
+for (const char of string) {
+} // strings
+for (const [key, val] of map) {
+} // Maps
+for (const item of set) {
+} // Sets
 ```
 
 `for...in` iterates over enumerable property names (keys). `for...of` iterates over iterable values. For arrays, `for...of` is almost always what you want.
@@ -267,9 +286,9 @@ Unique identifiers that can't collide with string property names:
 const id = Symbol("id");
 const user = { [id]: 123, name: "Alice" };
 
-user[id];     // 123
-user.id;      // undefined (different property)
-Object.keys(user);  // ["name"] (symbols are not enumerable)
+user[id]; // 123
+user.id; // undefined (different property)
+Object.keys(user); // ["name"] (symbols are not enumerable)
 ```
 
 Symbols are used by the language itself (`Symbol.iterator`, `Symbol.toPrimitive`) and by libraries that need to attach metadata to objects without risking name collisions.
@@ -292,9 +311,9 @@ const handler = {
 };
 
 const user = new Proxy({}, handler);
-user.name = "Alice";  // logs: "set name = Alice"
-user.name;            // logs: "accessed name", returns "Alice"
-user.missing;         // logs: "accessed missing", returns "no such property: missing"
+user.name = "Alice"; // logs: "set name = Alice"
+user.name; // logs: "accessed name", returns "Alice"
+user.missing; // logs: "accessed missing", returns "no such property: missing"
 ```
 
 Vue 3's reactivity system is built on Proxy. When you access a reactive property, the Proxy's get trap registers a dependency. When you set a property, the set trap triggers re-renders. Elegantly simple compared to Vue 2's Object.defineProperty approach.

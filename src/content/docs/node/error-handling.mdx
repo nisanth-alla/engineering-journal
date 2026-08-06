@@ -107,10 +107,13 @@ function asyncHandler(fn) {
   };
 }
 
-app.get("/users", asyncHandler(async (req, res) => {
-  const users = await db.users.findAll(); // throws, caught by asyncHandler, forwarded to error middleware
-  res.json(users);
-}));
+app.get(
+  "/users",
+  asyncHandler(async (req, res) => {
+    const users = await db.users.findAll(); // throws, caught by asyncHandler, forwarded to error middleware
+    res.json(users);
+  }),
+);
 ```
 
 Express 5 does this automatically. If you're still on Express 4, the `express-async-errors` package patches it in one line: `require('express-async-errors')`.

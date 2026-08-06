@@ -33,9 +33,9 @@ function updateUser(id: string, changes: Partial<User>) {
   db.update(id, changes);
 }
 
-updateUser("123", { name: "Alice" });           // fine
+updateUser("123", { name: "Alice" }); // fine
 updateUser("123", { email: "a@b.com", age: 31 }); // fine
-updateUser("123", {});                            // also fine (no changes)
+updateUser("123", {}); // also fine (no changes)
 ```
 
 The classic use case: update functions. You want to accept any subset of fields without making a separate type for every possible combination. Without `Partial`, you'd need to write `{ name?: string; email?: string; age?: number }` by hand, and keep it in sync when `User` changes.
@@ -138,7 +138,7 @@ function createServer(userConfig: Config): Server {
     host: "localhost",
     port: 3000,
     debug: false,
-    ...userConfig,  // user overrides take precedence
+    ...userConfig, // user overrides take precedence
   };
   // config.host is guaranteed to be string, not string | undefined
 }
@@ -153,7 +153,7 @@ type FrozenUser = Readonly<User>;
 // { readonly name: string; readonly email: string; readonly age: number }
 
 const user: FrozenUser = { name: "Alice", email: "a@b.com", age: 30 };
-user.name = "Bob";  // compile error: cannot assign to 'name' because it is a read-only property
+user.name = "Bob"; // compile error: cannot assign to 'name' because it is a read-only property
 ```
 
 Useful for function parameters where you want to guarantee the function doesn't mutate its input:

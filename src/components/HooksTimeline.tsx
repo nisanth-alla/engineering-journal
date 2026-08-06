@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { memo, useState, useEffect, useLayoutEffect, useRef, useCallback } from "react";
 
 type TimelineEntry = {
   id: number;
@@ -15,12 +15,9 @@ export default function HooksTimeline() {
   // Batch: collect entries from the child via ref, flush once per user action
   const pendingEntries = useRef<Omit<TimelineEntry, "id">[]>([]);
 
-  const queueEntry = useCallback(
-    (phase: TimelineEntry["phase"], label: string) => {
-      pendingEntries.current.push({ phase, label });
-    },
-    []
-  );
+  const queueEntry = useCallback((phase: TimelineEntry["phase"], label: string) => {
+    pendingEntries.current.push({ phase, label });
+  }, []);
 
   // Flush pending entries after each user-triggered render cycle
   // We use count and mounted as proxies for "the user did something"
@@ -72,23 +69,17 @@ export default function HooksTimeline() {
 
       {mounted && <TrackedComponent count={count} onEvent={queueEntry} />}
 
-      <div style={{ marginTop: "1rem" }}>
-        <div className="comparison-label">
-          Timeline ({timeline.length} events)
-        </div>
+      <div className="demo-section">
+        <div className="comparison-label">Timeline ({timeline.length} events)</div>
         <div className="timeline">
           {timeline.length === 0 && (
-            <span
-              style={{ color: "var(--sl-color-gray-3)", fontSize: "0.8rem" }}
-            >
+            <span className="timeline-empty">
               Click Increment or Unmount/Mount to see hooks execute
             </span>
           )}
           {timeline.map((entry) => (
             <div key={entry.id} className={`timeline-entry ${entry.phase}`}>
-              <span style={{ width: "60px", flexShrink: 0 }}>
-                [{entry.phase}]
-              </span>
+              <span>[{entry.phase}]</span>
               <span>{entry.label}</span>
             </div>
           ))}
@@ -98,7 +89,7 @@ export default function HooksTimeline() {
   );
 }
 
-function TrackedComponent({
+const TrackedComponent = memo(function TrackedComponent({
   count,
   onEvent,
 }: {
@@ -110,8 +101,11 @@ function TrackedComponent({
 
   renderCount.current++;
 
-  // Log render phase (safe: onEvent writes to a ref, not state)
-  onEvent("render", `Component rendered (render #${renderCount.current})`);
+  // Layout effects run after React commits this render, before passive effects.
+  // Memoization prevents the timeline's own state update from creating noise.
+  useLayoutEffect(() => {
+    onEvent("render", `Component rendered (render #${renderCount.current})`);
+  }, [count, onEvent]);
 
   useEffect(() => {
     onEvent("effect", `useEffect[count] ran (count is ${count})`);
@@ -130,10 +124,7 @@ function TrackedComponent({
 
   useEffect(() => {
     if (divRef.current) {
-      onEvent(
-        "ref",
-        `useRef: div has ${divRef.current.childNodes.length} child nodes`
-      );
+      onEvent("ref", `useRef: div has ${divRef.current.childNodes.length} child nodes`);
     }
   }, [count, onEvent]);
 
@@ -147,4 +138,4 @@ function TrackedComponent({
       </div>
     </div>
   );
-}
+});

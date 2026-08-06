@@ -48,7 +48,7 @@ async function produce() {
 // Consumer takes from the queue
 async function consume() {
   while (queue.length === 0) {
-    await sleep(10);  // poll... ugly
+    await sleep(10); // poll... ugly
   }
   const value = queue.shift();
 }
@@ -115,6 +115,7 @@ The `for task := range tasks` loop is idiomatic Go. It reads values from the cha
 Closing a channel confused me at first. In Node, closing a stream means "clean up resources." In Go, closing a channel means "no more values will be sent on this channel." It's a signal, not a cleanup.
 
 The rules:
+
 - Only the sender should close a channel. Never the receiver.
 - Closing a channel that's already closed panics.
 - Sending to a closed channel panics.
@@ -192,6 +193,7 @@ Go has both channels and traditional mutexes (`sync.Mutex`). The rule of thumb:
 **Mutexes** when multiple goroutines need to access the same data in place. "We all read and write this counter." The data stays shared.
 
 In the worker pool, I use both:
+
 - Channels for the task and result flow (ownership transfer)
 - A mutex to protect the `collectedResults` slice (shared state that multiple goroutines append to)
 

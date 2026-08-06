@@ -5,7 +5,7 @@ sidebar:
   order: 2
 ---
 
-import EventLoopPhases from '../../../components/EventLoopPhases';
+import EventLoopPhases from "../../../components/EventLoopPhases";
 
 ## Browser event loop vs Node event loop
 
@@ -99,13 +99,13 @@ Use `setImmediate` instead of `process.nextTick` when you need to defer work but
 
 ## When each scheduling method makes sense
 
-| Method | When it runs | Use when |
-|---|---|---|
-| `process.nextTick` | Before any I/O, before Promises, between every phase | You need to run something before the event loop continues. Careful: can starve I/O. |
-| `Promise.resolve().then` | After nextTick, before I/O | Standard async scheduling. Default choice. |
-| `setImmediate` | Check phase (after I/O poll) | You want to defer but let I/O run first. Safe from starvation. |
-| `setTimeout(fn, 0)` | Timer phase (next iteration) | You want to delay at least one full event loop cycle. |
-| `queueMicrotask` | Same queue as Promise.then | Explicit microtask scheduling. Rarely needed in application code. |
+| Method                   | When it runs                                         | Use when                                                                            |
+| ------------------------ | ---------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| `process.nextTick`       | Before any I/O, before Promises, between every phase | You need to run something before the event loop continues. Careful: can starve I/O. |
+| `Promise.resolve().then` | After nextTick, before I/O                           | Standard async scheduling. Default choice.                                          |
+| `setImmediate`           | Check phase (after I/O poll)                         | You want to defer but let I/O run first. Safe from starvation.                      |
+| `setTimeout(fn, 0)`      | Timer phase (next iteration)                         | You want to delay at least one full event loop cycle.                               |
+| `queueMicrotask`         | Same queue as Promise.then                           | Explicit microtask scheduling. Rarely needed in application code.                   |
 
 ## The thread pool (libuv)
 
@@ -119,12 +119,14 @@ process.env.UV_THREADPOOL_SIZE = 8;
 ```
 
 Operations that use the thread pool:
+
 - `fs.*` (file system operations)
 - `dns.lookup()` (not `dns.resolve()`, which uses the OS async resolver)
 - `crypto.pbkdf2()`, `crypto.randomBytes()` (CPU-heavy crypto)
 - `zlib` compression
 
 Operations that DON'T use the thread pool (use OS async primitives):
+
 - `net` (TCP/UDP sockets)
 - `http` / `https`
 - `dns.resolve()` (c-ares library)
@@ -159,6 +161,7 @@ console.log("10: sync end");
 ```
 
 Output:
+
 ```
 1: sync
 10: sync end
@@ -173,6 +176,7 @@ Output:
 ```
 
 Key observations:
+
 - Sync code runs first (1, 10)
 - nextTick before Promises (4, 5)
 - setTimeout vs setImmediate is non-deterministic in the main script (2, 3)

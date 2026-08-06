@@ -62,9 +62,9 @@ function requireAuth(req, res, next) {
 }
 
 // Usage: middleware runs in order
-app.use(logger);                          // runs on every request
-app.use("/api", requireAuth);             // runs on /api/* routes
-app.get("/api/users", getUsers);          // only runs if auth passed
+app.use(logger); // runs on every request
+app.use("/api", requireAuth); // runs on /api/* routes
+app.get("/api/users", getUsers); // only runs if auth passed
 ```
 
 Middleware is just functions. You compose them. Each one does one thing. The order matters because `next()` calls the next middleware in the stack. If a middleware doesn't call `next()`, the chain stops (useful for auth: don't call `next()` if the token is invalid).
@@ -211,6 +211,7 @@ Express is the most used Node framework, but it hasn't had a major release since
 **tRPC** — not a traditional framework. Defines API endpoints as TypeScript functions and generates type-safe clients automatically. No REST routes, no API documentation, no runtime validation. The types ARE the contract. Works with Next.js, Express, or standalone.
 
 For new projects in 2024+, my rough guide:
+
 - **Simple API, small team:** Express (ecosystem, documentation, everyone knows it)
 - **Performance-sensitive:** Fastify
 - **Edge deployment:** Hono

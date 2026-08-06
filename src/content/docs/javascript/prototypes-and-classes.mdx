@@ -15,15 +15,17 @@ Every JavaScript object has a hidden link to another object called its prototype
 
 ```javascript
 const animal = {
-  speak() { return `${this.name} makes a sound`; }
+  speak() {
+    return `${this.name} makes a sound`;
+  },
 };
 
 const dog = Object.create(animal);
 dog.name = "Rex";
 
-dog.speak();      // "Rex makes a sound"
-dog.hasOwnProperty("name");    // true  (own property)
-dog.hasOwnProperty("speak");   // false (inherited from prototype)
+dog.speak(); // "Rex makes a sound"
+dog.hasOwnProperty("name"); // true  (own property)
+dog.hasOwnProperty("speak"); // false (inherited from prototype)
 ```
 
 `Object.create(animal)` creates a new object whose prototype is `animal`. When `dog.speak()` is called, JavaScript first checks `dog` for a `speak` property. It doesn't find one. It follows the prototype link to `animal`, finds `speak` there, and calls it.
@@ -47,19 +49,20 @@ function Dog(name, breed) {
   this.breed = breed;
 }
 
-Dog.prototype.speak = function() {
+Dog.prototype.speak = function () {
   return `${this.name} barks`;
 };
 
-Dog.prototype.fetch = function(item) {
+Dog.prototype.fetch = function (item) {
   return `${this.name} fetches the ${item}`;
 };
 
 const rex = new Dog("Rex", "Shepherd");
-rex.speak();  // "Rex barks"
+rex.speak(); // "Rex barks"
 ```
 
 The `new` keyword does four things:
+
 1. Creates a new empty object
 2. Sets the object's prototype to `Dog.prototype`
 3. Calls `Dog` with `this` pointing to the new object
@@ -93,6 +96,7 @@ const rex = new Dog("Rex", "Shepherd");
 This compiles to essentially the same prototype chain as the constructor function version. `speak` and `fetch` end up on `Dog.prototype`. `name` and `breed` are own properties on each instance.
 
 The class syntax adds a few things the old way didn't have:
+
 - `extends` for inheritance (cleaner than manually wiring prototype chains)
 - `super` for calling the parent constructor/methods
 - `static` for class-level methods
@@ -113,24 +117,24 @@ class Animal {
 
 class Dog extends Animal {
   constructor(name, breed) {
-    super(name);  // MUST call super before using this
+    super(name); // MUST call super before using this
     this.breed = breed;
   }
 
   speak() {
-    return `${this.name} barks`;  // overrides Animal.speak
+    return `${this.name} barks`; // overrides Animal.speak
   }
 
   parentSpeak() {
-    return super.speak();  // calls Animal.speak
+    return super.speak(); // calls Animal.speak
   }
 }
 
 const rex = new Dog("Rex", "Shepherd");
-rex.speak();        // "Rex barks"
-rex.parentSpeak();  // "Rex makes a sound"
-rex instanceof Dog;     // true
-rex instanceof Animal;  // true
+rex.speak(); // "Rex barks"
+rex.parentSpeak(); // "Rex makes a sound"
+rex instanceof Dog; // true
+rex instanceof Animal; // true
 ```
 
 The prototype chain: `rex → Dog.prototype → Animal.prototype → Object.prototype → null`.
@@ -143,7 +147,7 @@ ES2022 added truly private fields using the `#` prefix:
 
 ```javascript
 class BankAccount {
-  #balance;  // private, inaccessible from outside
+  #balance; // private, inaccessible from outside
 
   constructor(initial) {
     this.#balance = initial;
@@ -161,8 +165,8 @@ class BankAccount {
 
 const account = new BankAccount(100);
 account.deposit(50);
-account.getBalance();    // 150
-account.#balance;        // SyntaxError: Private field '#balance' must be declared in an enclosing class
+account.getBalance(); // 150
+account.#balance; // SyntaxError: Private field '#balance' must be declared in an enclosing class
 ```
 
 Before `#private`, people used underscores (`_balance`) as a convention. But it was just a convention. Anyone could access `account._balance`. The `#` prefix is enforced by the engine.
@@ -197,8 +201,8 @@ class User {
 }
 
 const user = User.fromJSON('{"name":"Alice","email":"a@b.com"}');
-User.validateEmail("test@example.com");  // true
-user.validateEmail;  // undefined (static methods aren't on instances)
+User.validateEmail("test@example.com"); // true
+user.validateEmail; // undefined (static methods aren't on instances)
 ```
 
 Factory methods (`fromJSON`) and utility functions (`validateEmail`) are common use cases. They don't need an instance to do their work.
@@ -208,11 +212,13 @@ Factory methods (`fromJSON`) and utility functions (`validateEmail`) are common 
 This is a genuine debate. The React community largely moved away from classes toward functions and hooks. The Node community uses classes for some patterns (EventEmitter, Transform streams) but functions for most application code.
 
 **Classes work well for:**
+
 - Objects with identity and mutable state (a database connection, a WebSocket client)
 - Inheritance hierarchies that actually make sense (EventEmitter → TypedEmitter)
 - APIs where users create instances (`new Something()`)
 
 **Functions work well for:**
+
 - Stateless transformations (most application logic)
 - Composition over inheritance (hooks, middleware, pipelines)
 - When you need closures for privacy (classes have `#` now, but closures are still simpler for simple cases)
@@ -235,7 +241,7 @@ class Timer {
   }
 
   tick() {
-    this.seconds++;  // 'this' is undefined or Window, not Timer
+    this.seconds++; // 'this' is undefined or Window, not Timer
     console.log(this.seconds);
   }
 }
@@ -270,7 +276,7 @@ Event delegation uses event bubbling to handle events on a parent element instea
 
 ```javascript
 // Instead of this (one listener per button):
-document.querySelectorAll(".item").forEach(item => {
+document.querySelectorAll(".item").forEach((item) => {
   item.addEventListener("click", handleClick);
 });
 
@@ -282,6 +288,7 @@ document.querySelector(".list").addEventListener("click", (e) => {
 ```
 
 Why delegation is better:
+
 - **Performance:** One listener vs hundreds. Less memory, fewer setup calls.
 - **Dynamic elements:** New items added to the list automatically work. No need to attach listeners to dynamically created elements.
 - **Cleanup:** Remove one listener instead of tracking hundreds.

@@ -1,0 +1,241 @@
+---
+title: Frontend system design
+description: Structured approaches to the system design questions that come up in frontend interviews.
+sidebar:
+  order: 4
+---
+
+import InterviewTradeoffLab from "../../../components/InterviewTradeoffLab";
+
+## How frontend system design differs
+
+Backend system design asks you to design a database schema, choose between SQL and NoSQL, plan a caching layer, and handle millions of requests per second. Frontend system design asks you to design the client-side architecture for a complex interactive application.
+
+<InterviewTradeoffLab client:only="react" />
+
+The evaluation criteria are different:
+
+- **Component architecture:** how do you break the UI into pieces?
+- **State management:** where does data live? how does it flow?
+- **API design:** what does the client need from the server?
+- **Performance:** what's the initial load time? what happens at scale?
+- **Real-time updates:** how do you keep the UI in sync with the server?
+- **Accessibility:** can everyone use it?
+
+Below are five common questions with structured approaches.
+
+---
+
+## Design a real-time collaborative text editor
+
+Think: Google Docs. Multiple users editing the same document simultaneously.
+
+### Core challenges
+
+1. **Conflict resolution:** Two users type at the same position. Whose edit wins?
+2. **Real-time sync:** Changes must propagate to all users within ~100ms.
+3. **Offline support:** Users should be able to type while disconnected and sync when reconnected.
+4. **Cursor presence:** Each user's cursor position is visible to others.
+
+### Architecture
+
+**Conflict resolution** uses either OT (Operational Transformation) or CRDTs (Conflict-free Replicated Data Types). CRDTs are the modern choice. Each character has a unique position ID that survives insertions and deletions by other users. Libraries: Yjs, Automerge.
+
+**Real-time transport:** WebSocket connection to the server. Each keystroke sends an operation (insert/delete at position). The server broadcasts to all connected clients. The CRDT ensures all clients converge to the same document state regardless of operation order.
+
+**Component structure:**
+
+- `Editor` (manages the document model, handles input)
+- `Toolbar` (formatting controls)
+- `CursorOverlay` (renders remote users' cursors)
+- `PresenceBar` (shows who's online)
+- `DocumentProvider` (context for the CRDT document instance)
+
+**State:** The document is a CRDT, not React state. React renders from the CRDT's current state. When the CRDT changes (local edit or remote update), it triggers a React re-render of the affected paragraph.
+
+**What to mention:** Undo/redo needs to work per-user (my undo undoes my last change, not the last change globally). Rich text formatting is operations on ranges, not individual characters. Saving uses periodic snapshots of the CRDT state to the server.
+
+---
+
+## Design a client-side rate limiter for API calls
+
+Think: preventing a search bar from making 30 API calls per second as the user types.
+
+### Approach
+
+This is simpler than the chat scenario but tests whether you think about multiple layers:
+
+**Debounce** for user input. Don't call the API on every keystroke. Wait until the user stops typing for 300ms, then call.
+
+```typescript
+function useSearch(queryFn) {
+  const [query, setQuery] = useState("");
+  const debouncedQuery = useDebounce(query, 300);
+
+  const result = useQuery({
+    queryKey: ["search", debouncedQuery],
+    queryFn: () => queryFn(debouncedQuery),
+    enabled: debouncedQuery.length > 2,
+  });
+
+  return { query, setQuery, ...result };
+}
+```
+
+**Request deduplication.** If the same query is already in flight, don't send another. TanStack Query does this automatically with query keys.
+
+**Throttle** for scroll-based or timer-based triggers. Limit to N calls per second maximum.
+
+**AbortController** for stale requests. If the user types "abc" then immediately types "abcd", abort the "abc" request since its response is no longer useful.
+
+```typescript
+const controller = new AbortController();
+fetch(`/search?q=${query}`, { signal: controller.signal });
+// On next query:
+controller.abort(); // cancels the previous request
+```
+
+**What to mention:** The rate limiter is per-endpoint, not global. The search endpoint might have a 10/sec limit while the user profile endpoint has 100/sec. Show awareness that the server has its own rate limiter (this is the client-side complement, not a replacement).
+
+---
+
+## Design an infinite scrolling pagination system
+
+Think: Twitter/Instagram feed, product listing, search results.
+
+### Key decisions
+
+**Cursor-based vs offset-based pagination.**
+
+Offset: `GET /products?page=3&limit=20`. Problem: if a new product is added while you're on page 3, page 4 shows a duplicate (items shift). Offset pagination breaks with real-time data.
+
+Cursor: `GET /products?after=abc123&limit=20`. The cursor is an opaque token (usually an encoded ID or timestamp). New insertions don't affect the cursor's position. No duplicates.
+
+### Implementation
+
+```typescript
+function useInfiniteProducts() {
+  return useInfiniteQuery({
+    queryKey: ["products"],
+    queryFn: ({ pageParam }) =>
+      fetch(`/api/products?cursor=${pageParam}&limit=20`).then(r => r.json()),
+    getNextPageParam: (lastPage) => lastPage.nextCursor,
+    initialPageParam: "",
+  });
+}
+
+function ProductList() {
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteProducts();
+  const loadMoreRef = useRef(null);
+
+  // Intersection Observer triggers fetch when sentinel is visible
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting && hasNextPage) fetchNextPage(); },
+      { rootMargin: "200px" }
+    );
+    if (loadMoreRef.current) observer.observe(loadMoreRef.current);
+    return () => observer.disconnect();
+  }, [hasNextPage, fetchNextPage]);
+
+  return (
+    <>
+      {data?.pages.flatMap(page => page.items).map(product => (
+        <ProductCard key={product.id} product={product} />
+      ))}
+      <div ref={loadMoreRef} />
+      {isFetchingNextPage && <Spinner />}
+    </>
+  );
+}
+```
+
+**Performance for long lists:** After scrolling through 1000 items, the DOM has 1000 product cards. That's slow. Use virtualization (react-virtual) to render only the ~20 visible items. The scroll container maintains its height with empty space above and below the visible window.
+
+**What to mention:** Loading states (skeleton cards while fetching), error states (retry button if a page fails), "scroll to top" behavior, keyboard navigation for accessibility, and the back-button problem (if the user clicks a product and hits back, they should return to their scroll position, not the top).
+
+---
+
+## Design a client-side state management system
+
+Think: build a simplified Redux/Zustand from scratch.
+
+### Core API
+
+```typescript
+function createStore(initialState) {
+  let state = initialState;
+  const listeners = new Set();
+
+  return {
+    getState: () => state,
+    setState: (updater) => {
+      state = typeof updater === "function" ? updater(state) : updater;
+      listeners.forEach((fn) => fn(state));
+    },
+    subscribe: (listener) => {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
+  };
+}
+```
+
+**React integration** with useSyncExternalStore:
+
+```typescript
+function useStore(store, selector) {
+  return useSyncExternalStore(
+    store.subscribe,
+    () => selector(store.getState()),
+  );
+}
+
+// Usage: only re-renders when the selected slice changes
+function CartCount() {
+  const count = useStore(cartStore, s => s.items.length);
+  return <span>{count}</span>;
+}
+```
+
+The selector is key. Without it, every component re-renders on every state change (the Redux Provider problem). With a selector, only components that read the changed slice re-render.
+
+**What to mention:** Middleware (logging, persistence), devtools integration (time-travel debugging), immutable updates (why you return new objects instead of mutating), and the performance difference between fine-grained selectors and coarse ones.
+
+---
+
+## Design a user authentication flow
+
+Think: login with email/password, social login (Google/GitHub), JWT handling, session management.
+
+### Architecture
+
+**Token storage:** httpOnly cookies, not localStorage. localStorage is accessible to any JavaScript on the page (XSS vulnerability). httpOnly cookies are sent automatically with requests and can't be read by JavaScript.
+
+**Flow:**
+
+1. User submits credentials → server validates → server sets httpOnly cookie with session token (or JWT)
+2. Every subsequent request includes the cookie automatically
+3. Server middleware checks the cookie on protected routes
+4. Token refresh happens transparently (server issues a new cookie before the old one expires)
+
+**OAuth/Social login flow:**
+
+1. Client redirects to provider (Google): `/auth/google`
+2. User authenticates on Google's page
+3. Google redirects back with an authorization code: `/auth/callback?code=abc`
+4. Server exchanges the code for an access token (server-to-server, secret never reaches client)
+5. Server creates a session and sets the cookie
+
+**Component structure:**
+
+```
+<AuthProvider>          // holds session state, provides useAuth hook
+  <LoginPage />         // email/password form + social login buttons
+  <ProtectedRoute>      // checks session, redirects if absent
+    <Dashboard />
+  </ProtectedRoute>
+</AuthProvider>
+```
+
+**What to mention:** CSRF protection (SameSite cookie attribute), token rotation (refresh tokens), account linking (user logs in with Google, then later with email, same account), rate limiting on login attempts, and the UX of session expiry (redirect to login with a return URL so the user comes back to where they were).

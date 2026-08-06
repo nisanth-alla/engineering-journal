@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { Fragment, useState, useEffect, useRef } from "react";
 
 type PipeStage = {
   name: string;
@@ -86,9 +86,7 @@ export default function StreamPipeline() {
         }
 
         // Detect backpressure: chunks pile up because writer is slow
-        const waiting = next.filter(
-          (c) => c.stage >= 0 && c.stage < 3
-        ).length;
+        const waiting = next.filter((c) => c.stage >= 0 && c.stage < 3).length;
         setBackpressure(writerBusy && waiting > 2);
 
         // Check if all done
@@ -117,22 +115,13 @@ export default function StreamPipeline() {
   return (
     <div className="interactive-demo">
       <h4>Try it: Stream Pipeline</h4>
-      <p
-        style={{
-          fontSize: "0.85rem",
-          color: "var(--sl-color-gray-2)",
-          margin: "0 0 1rem",
-        }}
-      >
-        Watch data chunks flow through a Readable → Transform → Writable
-        pipeline. Switch to "Slow writer" to see backpressure in action.
+      <p className="demo-description">
+        Watch data chunks flow through a Readable → Transform → Writable pipeline. Switch to "Slow
+        writer" to see backpressure in action.
       </p>
 
       <div className="demo-controls">
-        <button
-          className="demo-button primary"
-          onClick={running ? stop : start}
-        >
+        <button className="demo-button primary" onClick={running ? stop : start}>
           {running ? "Stop" : "Start pipeline"}
         </button>
         <button
@@ -152,110 +141,54 @@ export default function StreamPipeline() {
       </div>
 
       {/* Pipeline visualization */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 30px 1fr 30px 1fr",
-          alignItems: "start",
-          gap: "0",
-          marginTop: "1rem",
-        }}
-      >
+      <div className="demo-pipeline">
         {stages.map((stage, si) => (
-          <>
+          <Fragment key={stage.name}>
             <div
-              key={stage.name}
-              style={{
-                border: `1px solid ${stage.color}40`,
-                borderTop: `3px solid ${stage.color}`,
-                borderRadius: "6px",
-                padding: "0.5rem",
-                minHeight: "120px",
-                background: "var(--sl-color-gray-6)",
-              }}
+              className="demo-pipeline-stage"
+              style={{ "--pipeline-color": stage.color } as React.CSSProperties}
             >
-              <div
-                style={{
-                  fontSize: "0.7rem",
-                  fontWeight: 600,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.05em",
-                  color: stage.color,
-                  marginBottom: "0.4rem",
-                }}
-              >
-                {stage.name}
-              </div>
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "0.2rem",
-                }}
-              >
+              <div className="demo-pipeline-stage-title">{stage.name}</div>
+              <div className="demo-pipeline-stage-items">
                 {chunks
                   .filter((c) => c.stage === si)
                   .map((c) => (
-                    <div
-                      key={c.id}
-                      style={{
-                        fontSize: "0.75rem",
-                        padding: "0.15rem 0.4rem",
-                        borderRadius: "3px",
-                        fontFamily: "var(--sl-font-mono)",
-                        background: `color-mix(in srgb, ${stage.color} 15%, transparent)`,
-                        color: stage.color,
-                      }}
-                    >
+                    <div key={c.id} className="demo-pipeline-chunk">
                       {c.label}
                     </div>
                   ))}
               </div>
             </div>
             {si < 2 && (
-              <div
-                key={`arrow-${si}`}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  height: "100%",
-                  minHeight: "120px",
-                  color: "var(--sl-color-gray-4)",
-                  fontSize: "1.2rem",
-                }}
-              >
+              <div key={`arrow-${si}`} className="demo-pipeline-arrow">
                 →
               </div>
             )}
-          </>
+          </Fragment>
         ))}
       </div>
 
       {/* Status */}
-      <div style={{ display: "flex", gap: "1rem", marginTop: "0.75rem", fontSize: "0.8rem" }}>
+      <div className="demo-pipeline-stats">
         <div>
-          <span style={{ color: "var(--sl-color-gray-3)" }}>Pending: </span>
+          <span className="demo-pipeline-label">Pending: </span>
           <span>{chunks.filter((c) => c.stage === -1).length}</span>
         </div>
         <div>
-          <span style={{ color: "var(--sl-color-gray-3)" }}>In pipeline: </span>
+          <span className="demo-pipeline-label">In pipeline: </span>
           <span>{chunks.filter((c) => c.stage >= 0 && c.stage < 3).length}</span>
         </div>
         <div>
-          <span style={{ color: "var(--sl-color-gray-3)" }}>Done: </span>
+          <span className="demo-pipeline-label">Done: </span>
           <span>{chunks.filter((c) => c.stage === 3).length}</span>
         </div>
-        {backpressure && (
-          <div style={{ color: "#ef4444", fontWeight: 600 }}>
-            BACKPRESSURE — writer can't keep up
-          </div>
-        )}
+        {backpressure && <div className="demo-note-error">BACKPRESSURE — writer can't keep up</div>}
       </div>
 
       {!running && chunks.length > 0 && chunks.every((c) => c.stage === 3) && (
-        <div className="demo-output" style={{ marginTop: "0.75rem" }}>
-          All chunks processed. {speed === "slow-writer"
+        <div className="demo-output">
+          All chunks processed.{" "}
+          {speed === "slow-writer"
             ? "Notice how the slow writer caused chunks to wait at the transform stage. In real Node.js streams, this triggers the 'drain' event pattern: the readable pauses until the writable signals it's ready for more."
             : "Try 'Slow writer' to see what happens when one stage can't keep up with the others."}
         </div>

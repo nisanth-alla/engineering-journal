@@ -16,6 +16,7 @@ Each experiment in the [distributed-systems-lab](https://github.com/nisanth-alla
 **What's interesting:** The burst test is where the strategies diverge. Token bucket allows the first 10 requests instantly (the bucket was full), then throttles. Sliding window is stricter because it accounts for the previous window's traffic. Same total limit, different behavior under spikes.
 
 **Try it:**
+
 ```bash
 cd experiments/ts && npm install
 npm run rate-limiter:dev
@@ -36,6 +37,7 @@ npm run rate-limiter:sustained    # 3 req/sec for 30 seconds
 **What's interesting:** The compensation order matters. You cancel the shipment before releasing inventory (otherwise the carrier might pick up unreserved items). You release inventory before refunding payment (otherwise you have unreserved items paid for by nobody). Getting this wrong creates real data inconsistencies.
 
 **Try it:**
+
 ```bash
 npm run order-pipeline:dev
 npm run order-pipeline:happy           # everything succeeds
@@ -56,6 +58,7 @@ npm run order-pipeline:concurrent      # 5 orders, mixed failures
 **What's interesting:** Run the same workload with 1 worker vs 8 workers. One worker takes ~10 seconds. Eight workers take ~1.4 seconds. That's real CPU parallelism, not event loop tricks. Press Ctrl+C during a run to see graceful shutdown: workers finish their current task before exiting.
 
 **Try it:**
+
 ```bash
 cd experiments/go
 go run ./cmd/worker-pool -workers 1 -tasks 50    # sequential: ~10s

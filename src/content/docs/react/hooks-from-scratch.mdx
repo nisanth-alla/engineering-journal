@@ -5,7 +5,7 @@ sidebar:
   order: 2
 ---
 
-import HooksTimeline from '../../../components/HooksTimeline';
+import HooksTimeline from "../../../components/HooksTimeline";
 
 ## Before hooks existed
 
@@ -52,17 +52,13 @@ Three problems with this:
 function Counter() {
   const [count, setCount] = useState(0);
 
-  return (
-    <button onClick={() => setCount(count + 1)}>
-      {count}
-    </button>
-  );
+  return <button onClick={() => setCount(count + 1)}>{count}</button>;
 }
 ```
 
 The mental model: `useState` returns a pair. The current value, and a function to change it. When you call the setter, React schedules a re-render. On the next render, `useState` returns the new value.
 
-The key thing I had to internalize: **state doesn't change during a render.** When you call `setCount(count + 1)`, `count` doesn't update right away. The current render continues with the old value. The new value shows up on the *next* render. This is why:
+The key thing I had to internalize: **state doesn't change during a render.** When you call `setCount(count + 1)`, `count` doesn't update right away. The current render continues with the old value. The new value shows up on the _next_ render. This is why:
 
 ```jsx
 function Confusing() {
@@ -70,8 +66,8 @@ function Confusing() {
 
   function handleClick() {
     setCount(count + 1);
-    setCount(count + 1);  // still uses the old count!
-    console.log(count);   // still 0, even after two setCount calls
+    setCount(count + 1); // still uses the old count!
+    console.log(count); // still 0, even after two setCount calls
   }
   // ...
 }
@@ -108,7 +104,7 @@ Bad example (seen everywhere in codebases):
 ```jsx
 // Don't do this
 useEffect(() => {
-  setFullName(firstName + ' ' + lastName);
+  setFullName(firstName + " " + lastName);
 }, [firstName, lastName]);
 ```
 
@@ -116,7 +112,7 @@ This is derived state. It doesn't need an effect. Just compute it during render:
 
 ```jsx
 // Do this instead
-const fullName = firstName + ' ' + lastName;
+const fullName = firstName + " " + lastName;
 ```
 
 Effects are for external synchronization. If you're using an effect to transform state into other state, you're adding an unnecessary render cycle.
@@ -134,7 +130,7 @@ function AutoFocusInput() {
   const inputRef = useRef(null);
 
   useEffect(() => {
-    inputRef.current.focus();  // direct DOM access
+    inputRef.current.focus(); // direct DOM access
   }, []);
 
   return <input ref={inputRef} />;
@@ -148,7 +144,7 @@ function Timer() {
   const intervalRef = useRef(null);
 
   function start() {
-    intervalRef.current = setInterval(() => console.log('tick'), 1000);
+    intervalRef.current = setInterval(() => console.log("tick"), 1000);
   }
 
   function stop() {
@@ -177,9 +173,9 @@ If you put a hook inside an `if` statement, the call order changes between rende
 // Broken: hooks called in different order depending on condition
 function Bad({ isLoggedIn }) {
   if (isLoggedIn) {
-    const [name, setName] = useState('');  // sometimes hook #1, sometimes absent
+    const [name, setName] = useState(""); // sometimes hook #1, sometimes absent
   }
-  const [count, setCount] = useState(0);   // sometimes hook #1, sometimes hook #2
+  const [count, setCount] = useState(0); // sometimes hook #1, sometimes hook #2
 }
 ```
 
@@ -197,8 +193,8 @@ function useWindowWidth() {
     function handleResize() {
       setWidth(window.innerWidth);
     }
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   return width;
@@ -220,6 +216,7 @@ This demo shows a tracked component. Click buttons and watch the timeline fill u
 <HooksTimeline client:only="react" />
 
 Things to notice:
+
 - **Render happens before effects.** The component function runs first (producing the new UI), then effects run after React updates the DOM.
 - **Cleanup runs before the next effect.** When count changes, the previous effect's cleanup runs, then the new effect runs. This is how the ChatRoom connection example disconnects from the old room before connecting to the new one.
 - **Mount fires once.** The effect with `[]` dependencies runs once on mount and its cleanup runs once on unmount. Click Unmount to see it.

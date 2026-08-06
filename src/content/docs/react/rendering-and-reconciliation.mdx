@@ -5,7 +5,7 @@ sidebar:
   order: 3
 ---
 
-import RenderCycleTracker from '../../../components/RenderCycleTracker';
+import RenderCycleTracker from "../../../components/RenderCycleTracker";
 
 ## What "rendering" actually means
 
@@ -44,10 +44,14 @@ The diffing algorithm makes two assumptions to stay fast (O(n) instead of O(n^3)
 ```jsx
 // Broken with index keys: reorder items, and React reuses DOM nodes
 // in the wrong order because position 0 still maps to position 0
-{items.map((item, index) => <Item key={index} data={item} />)}
+{
+  items.map((item, index) => <Item key={index} data={item} />);
+}
 
 // Fixed with stable keys: React tracks each item correctly
-{items.map(item => <Item key={item.id} data={item} />)}
+{
+  items.map((item) => <Item key={item.id} data={item} />);
+}
 ```
 
 The practical difference: with index keys, if you insert an item at the top of a list, every item below it "re-maps" to a different DOM node. Input state, focus, and animations all break. With stable keys, React knows which item is which and only inserts the new one.
@@ -98,7 +102,7 @@ The cases where re-rendering IS a problem:
 
 ## Concurrent rendering (React 18+)
 
-React 18 introduced concurrent rendering, which changes *how* rendering happens, not *when*. The key feature: React can start rendering, pause, do something more urgent (like handling a user click), and resume where it left off.
+React 18 introduced concurrent rendering, which changes _how_ rendering happens, not _when_. The key feature: React can start rendering, pause, do something more urgent (like handling a user click), and resume where it left off.
 
 In practice, this shows up through two features:
 
@@ -106,13 +110,13 @@ In practice, this shows up through two features:
 
 ```jsx
 function Search() {
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
 
   function handleChange(e) {
-    setQuery(e.target.value);          // urgent: update the input immediately
+    setQuery(e.target.value); // urgent: update the input immediately
     startTransition(() => {
-      setResults(filterData(e.target.value));  // non-urgent: can be interrupted
+      setResults(filterData(e.target.value)); // non-urgent: can be interrupted
     });
   }
   // ...

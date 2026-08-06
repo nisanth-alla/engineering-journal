@@ -5,7 +5,7 @@ sidebar:
   order: 1
 ---
 
-import NextRenderingBoundary from '../../../components/NextRenderingBoundary';
+import NextRenderingBoundary from "../../../components/NextRenderingBoundary";
 
 ## React alone isn't enough
 
@@ -133,12 +133,14 @@ The folder structure IS the routing. No configuration file, no route definitions
 This is the concept that confuses people most about modern Next.js.
 
 **Server Components** (default in App Router):
+
 - Run on the server only. Never shipped to the browser.
 - Can directly access databases, file systems, environment variables.
 - Can use `async/await` at the top level (the component itself is async).
 - Cannot use hooks (`useState`, `useEffect`), event handlers, or browser APIs.
 
 **Client Components** (`"use client"`):
+
 - Run on both server (for initial HTML) and client (for hydration).
 - Can use hooks, event handlers, browser APIs.
 - Cannot directly use server-only features (database queries, secret env vars).

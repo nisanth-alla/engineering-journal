@@ -17,8 +17,8 @@ This works well for I/O-bound work. A Node server handling 10,000 concurrent HTT
 
 ```typescript
 // Node: looks sequential, runs concurrently via the event loop
-const user = await db.getUser(id);        // yields to event loop while waiting
-const orders = await db.getOrders(user);   // yields again
+const user = await db.getUser(id); // yields to event loop while waiting
+const orders = await db.getOrders(user); // yields again
 return { user, orders };
 ```
 
@@ -59,7 +59,7 @@ In Node, I could achieve something similar with `Promise.all()` if the work is I
 ```typescript
 // Node: this helps with I/O work, not CPU work
 const results = await Promise.all(
-  files.map(f => processFile(f))  // all start concurrently
+  files.map((f) => processFile(f)), // all start concurrently
 );
 // If processFile is mostly I/O, this is fast.
 // If processFile is mostly CPU, this is still sequential.
@@ -88,7 +88,7 @@ In Node, you carefully structure your async code: `await` this, `then` that, `Pr
 
 ### 3. "Shared state needs locks"
 
-Actually, I had to *learn* this one, not unlearn it. In Node, shared state is safe because there's one thread. Two request handlers can read and write the same object without locks because they never execute simultaneously.
+Actually, I had to _learn_ this one, not unlearn it. In Node, shared state is safe because there's one thread. Two request handlers can read and write the same object without locks because they never execute simultaneously.
 
 In Go, two goroutines can genuinely run at the same time on different cores. If they both write to the same variable, you get a data race. Go has a race detector (`go run -race`) that catches this at runtime. The first time it flagged my code, I realized I'd been spoiled by Node's single-thread safety.
 

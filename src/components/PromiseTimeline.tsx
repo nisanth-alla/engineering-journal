@@ -29,7 +29,8 @@ const scenarios: Scenario[] = [
       { label: ".then(user => console.log(user.name))", type: "then", indent: 2 },
       { label: 'output: "Alice"', type: "finally", indent: 2 },
     ],
-    explanation: "Each .then returns a new Promise. The chain is sequential: res.json() doesn't run until fetch resolves. If fetch fails, the entire chain skips to .catch.",
+    explanation:
+      "Each .then returns a new Promise. The chain is sequential: res.json() doesn't run until fetch resolves. If fetch fails, the entire chain skips to .catch.",
   },
   {
     label: "Error propagation",
@@ -48,7 +49,8 @@ const scenarios: Scenario[] = [
       { label: '.then(() => log("continues"))', type: "then", indent: 1 },
       { label: 'output: "continues"', type: "finally", indent: 2 },
     ],
-    explanation: "Errors skip .then handlers and fall through to the nearest .catch. After .catch handles the error, the chain continues normally. The .then after .catch runs because .catch itself returned a resolved promise.",
+    explanation:
+      "Errors skip .then handlers and fall through to the nearest .catch. After .catch handles the error, the chain continues normally. The .then after .catch runs because .catch itself returned a resolved promise.",
   },
   {
     label: "Promise.all",
@@ -68,7 +70,8 @@ const scenarios: Scenario[] = [
       { label: "/api/comments resolves (300ms)", type: "then", indent: 1 },
       { label: "Promise.all resolves: [user, posts, comments]", type: "finally", indent: 0 },
     ],
-    explanation: "All three fetches start at the same time. Promise.all waits for ALL of them. Total time = slowest request (300ms), not sum of all (750ms). If ANY promise rejects, the whole Promise.all rejects immediately.",
+    explanation:
+      "All three fetches start at the same time. Promise.all waits for ALL of them. Total time = slowest request (300ms), not sum of all (750ms). If ANY promise rejects, the whole Promise.all rejects immediately.",
   },
   {
     label: "async/await vs .then",
@@ -91,7 +94,8 @@ render(orders);`,
       { label: "resolved: orders array", type: "then", indent: 1 },
       { label: "render(orders) called", type: "finally", indent: 0 },
     ],
-    explanation: "async/await is syntactic sugar over Promises. The code reads top-to-bottom like synchronous code, but each await pauses the function and yields to the event loop. Under the hood, the engine transforms it into a .then chain.",
+    explanation:
+      "async/await is syntactic sugar over Promises. The code reads top-to-bottom like synchronous code, but each await pauses the function and yields to the event loop. Under the hood, the engine transforms it into a .then chain.",
   },
 ];
 
@@ -112,9 +116,8 @@ export default function PromiseTimeline() {
   return (
     <div className="interactive-demo">
       <h4>Try it: Promise Execution Flow</h4>
-      <p style={{ fontSize: "0.85rem", color: "var(--sl-color-gray-2)", margin: "0 0 1rem" }}>
-        Pick a pattern, then step through to see how promises resolve,
-        chain, and propagate errors.
+      <p className="demo-description">
+        Pick a pattern, then step through to see how promises resolve, chain, and propagate errors.
       </p>
 
       <div className="demo-controls">
@@ -122,17 +125,17 @@ export default function PromiseTimeline() {
           <button
             key={i}
             className={`demo-button ${i === scenarioIdx ? "primary" : ""}`}
-            onClick={() => { setScenarioIdx(i); setRevealed(0); }}
+            onClick={() => {
+              setScenarioIdx(i);
+              setRevealed(0);
+            }}
           >
             {s.label}
           </button>
         ))}
       </div>
 
-      <pre style={{
-        background: "var(--sl-color-gray-6)", padding: "0.75rem",
-        borderRadius: "4px", fontSize: "0.8rem", overflow: "auto", margin: "0.75rem 0",
-      }}>
+      <pre>
         <code>{scenario.code}</code>
       </pre>
 
@@ -147,49 +150,34 @@ export default function PromiseTimeline() {
         <button className="demo-button" onClick={() => setRevealed(0)}>
           Reset
         </button>
-        <button
-          className="demo-button"
-          onClick={() => setRevealed(scenario.timeline.length)}
-        >
+        <button className="demo-button" onClick={() => setRevealed(scenario.timeline.length)}>
           Show all
         </button>
       </div>
 
-      <div style={{ marginTop: "0.75rem" }}>
+      <div className="demo-section">
         <div className="comparison-label">Execution timeline</div>
-        <div style={{ display: "flex", flexDirection: "column", gap: "0.2rem" }}>
+        <div className="demo-timeline">
           {scenario.timeline.slice(0, revealed).map((item, i) => (
             <div
               key={i}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "0.5rem",
-                padding: "0.25rem 0.5rem",
-                marginLeft: `${item.indent * 20}px`,
-                borderRadius: "3px",
-                fontSize: "0.8rem",
-                fontFamily: "var(--sl-font-mono)",
-                background: `color-mix(in srgb, ${typeColors[item.type]} 10%, transparent)`,
-                color: typeColors[item.type],
-                borderLeft: `2px solid ${typeColors[item.type]}`,
-              }}
+              className="demo-timeline-item"
+              style={
+                {
+                  "--timeline-color": typeColors[item.type],
+                  "--timeline-indent": item.indent * 1.25,
+                } as React.CSSProperties
+              }
             >
               {item.label}
             </div>
           ))}
-          {revealed === 0 && (
-            <div style={{ fontSize: "0.8rem", color: "var(--sl-color-gray-4)", fontStyle: "italic", padding: "0.25rem" }}>
-              Click Start to begin
-            </div>
-          )}
+          {revealed === 0 && <div className="demo-empty">Click Start to begin</div>}
         </div>
       </div>
 
       {revealed >= scenario.timeline.length && (
-        <div className="demo-output" style={{ marginTop: "0.75rem" }}>
-          {scenario.explanation}
-        </div>
+        <div className="demo-output">{scenario.explanation}</div>
       )}
     </div>
   );
