@@ -101,8 +101,8 @@ const TrackedComponent = memo(function TrackedComponent({
 
   renderCount.current++;
 
-  // Layout effects run after React commits this render, before passive effects.
-  // Memoization prevents the timeline's own state update from creating noise.
+  // Log only committed renders. Memoization prevents the timeline update from
+  // creating a second render event for the same user action.
   useLayoutEffect(() => {
     onEvent("render", `Component rendered (render #${renderCount.current})`);
   }, [count, onEvent]);

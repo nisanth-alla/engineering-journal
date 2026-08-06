@@ -20,9 +20,20 @@ for (const path of interactivePages) {
     const pageErrors: Error[] = [];
     page.on("pageerror", (error) => pageErrors.push(error));
 
-    await page.goto(`/engineering-journal${path}`);
-    const demo = page.locator(".interactive-demo").first();
+    await page.goto(path.slice(1));
+    const island = page
+      .locator("astro-island")
+      .filter({ has: page.locator(".interactive-demo") })
+      .first();
 
+    if ((await island.count()) === 0 && pageErrors.length > 0) {
+      throw new Error(
+        `React island failed to hydrate: ${pageErrors.map((error) => error.message).join(" | ")}`,
+      );
+    }
+    await expect(island).toBeVisible();
+    await expect(island).not.toHaveAttribute("ssr", "");
+    const demo = island.locator(".interactive-demo");
     await expect(demo).toBeVisible();
     await expect(demo.locator("button").first()).toBeVisible();
     expect(pageErrors).toEqual([]);

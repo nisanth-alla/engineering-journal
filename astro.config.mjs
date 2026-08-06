@@ -47,6 +47,10 @@ export default defineConfig({
           autogenerate: { directory: "interview" },
         },
         {
+          label: "Playwright",
+          autogenerate: { directory: "playwright" },
+        },
+        {
           label: "Experiments",
           autogenerate: { directory: "experiments" },
         },

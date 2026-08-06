@@ -1,0 +1,54 @@
+---
+title: Playwright
+description: Browser automation explained from the protocol boundary to reliable production test suites.
+sidebar:
+  order: 1
+---
+
+## Test the behavior users depend on
+
+Playwright is not just a way to click buttons with JavaScript. It gives a test a real browser, an isolated context, resilient locators, network controls, and a trace of what happened when something failed.
+
+The goal is not to test every implementation detail. The goal is to prove the user-visible contract at the boundary where a person, browser, and backend meet.
+
+## The mental model
+
+```text
+test runner
+  └─ browser process
+       └─ isolated browser context
+            └─ page / tabs / cookies / storage
+                 └─ locators → actions → assertions
+```
+
+Each test should be able to start from a known context, perform a user-like action, and assert an observable result. That structure makes failures explainable and keeps tests independent.
+
+## What this section covers
+
+- **Under the hood:** browser contexts, locators, auto-waiting, and actionability.
+- **Production patterns:** network isolation, accessibility-first selectors, traces, and CI.
+- **Hands-on examples:** the journal's own interactive demos are covered by browser tests in `tests/`.
+
+## The first reliable test
+
+```typescript
+import { expect, test } from "@playwright/test";
+
+test("a search result can be opened", async ({ page }) => {
+  await page.goto("/search");
+  await page.getByRole("searchbox", { name: "Search" }).fill("distributed systems");
+  await page.getByRole("button", { name: "Search" }).click();
+
+  await expect(page.getByRole("heading", { name: /distributed systems/i })).toBeVisible();
+});
+```
+
+The important part is not the syntax. It is the boundary: navigate, perform a user action, assert the result. The test does not reach into React state or query a CSS class that exists only because of the current implementation.
+
+## Why the journal uses it
+
+The interactive demos are learning tools, so a successful build is not enough. A browser smoke test verifies that the React island hydrates, and behavior tests verify that the interaction still teaches what the page claims it teaches.
+
+The suite currently covers event-loop stepping, closure scope changes, promise timelines, type narrowing, generic inference, React render behavior, Next.js boundaries, Node phases, stream execution, and interview tradeoffs.
+
+Continue with [Under the hood](/engineering-journal/playwright/under-the-hood/) to understand how Playwright waits and locates elements.

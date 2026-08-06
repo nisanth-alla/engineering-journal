@@ -1,0 +1,59 @@
+---
+title: A production-minded suite
+description: Network control, accessibility checks, CI artifacts, and a cumulative verification command.
+sidebar:
+  order: 3
+---
+
+## Keep external systems deterministic
+
+Use the real browser, but do not make every test depend on an unstable third-party API. Route the request and fulfill a fixture when the test is about UI behavior.
+
+```typescript
+test("renders an empty state when the API returns no results", async ({ page }) => {
+  await page.route("**/api/search**", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ results: [] }),
+    });
+  });
+
+  await page.goto("/search");
+  await expect(page.getByText("No results yet")).toBeVisible();
+});
+```
+
+Keep a smaller number of end-to-end tests against the real backend for integration confidence. Use route control for repeatable UI states such as empty, error, slow, and paginated responses.
+
+## Accessibility is part of the contract
+
+Role-based locators encourage accessible markup, but they are not a complete accessibility audit. Add explicit checks for keyboard behavior, names, and focus where those are part of the product requirement.
+
+```typescript
+await page.keyboard.press("Tab");
+await expect(page.getByRole("button", { name: "Open menu" })).toBeFocused();
+```
+
+Use an accessibility testing tool such as `@axe-core/playwright` as a complementary check, not as a replacement for keyboard and screen-reader-oriented tests.
+
+## CI should answer one question
+
+The repository exposes one cumulative command:
+
+```bash
+npm run verify
+```
+
+It runs, in order:
+
+1. Prettier formatting validation.
+2. Astro content and TypeScript diagnostics.
+3. The production build and Pagefind index generation.
+4. Playwright browser and interaction tests.
+
+Each stage prints a visible header and stops on failure. CI invokes the same command developers run locally, so “green locally” and “green in CI” mean the same thing.
+
+## Artifacts matter
+
+When browser tests fail in CI, retain the Playwright report and retry traces. A pass/fail result tells you that something broke; a trace shows which page, request, locator, and visual state caused it.

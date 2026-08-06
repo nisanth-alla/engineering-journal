@@ -14,39 +14,40 @@ hero:
 ---
 
 import { Card, CardGrid } from "@astrojs/starlight/components";
+import BrandCard from "../../components/BrandCard.astro";
 
 ## What's here
 
 <CardGrid>
-  <Card title="JavaScript" icon="seti:javascript">
+  <BrandCard title="JavaScript" brand="javascript">
     The event loop visualized step by step, closures with scope chain diagrams, prototype
     inheritance, async patterns from callbacks to async/await, and ES6+ features that changed how
     people write JS. Three interactive simulators.
-  </Card>
-  <Card title="TypeScript" icon="seti:typescript">
+  </BrandCard>
+  <BrandCard title="TypeScript" brand="typescript">
     Structural typing, unions, narrowing, generics, utility types, and advanced patterns like
     branded types and discriminated unions. Interactive demos let you click through type inference
     and narrowing step by step.
-  </Card>
-  <Card title="React" icon="seti:react">
+  </BrandCard>
+  <BrandCard title="React" brand="react">
     How rendering actually works (not what you think), hooks explained through what they replaced,
     state management decisions, component patterns, and performance. Three interactive demos showing
     re-renders, hook lifecycles, and memo behavior.
-  </Card>
-  <Card title="Node.js" icon="seti:nodejs">
+  </BrandCard>
+  <BrandCard title="Node.js" brand="node">
     V8 and libuv under the hood, the event loop's six phases animated step by step, streams and
     backpressure visualized, error handling that keeps production servers alive, and Express
     middleware patterns. Two interactive demos.
-  </Card>
-  <Card title="Next.js" icon="seti:next">
+  </BrandCard>
+  <BrandCard title="Next.js" brand="next">
     Server rendering vs client rendering, the App Router mental model, Server Components vs Client
     Components, data fetching, caching layers, middleware, and deployment. The framework explained
     through what problems each feature solves.
-  </Card>
-  <Card title="Learning Go" icon="rocket">
+  </BrandCard>
+  <BrandCard title="Learning Go" brand="go">
     Coming from TypeScript/Node, documenting the mental model shift to goroutines and channels. What
     surprised me, what I had to unlearn, and what clicked faster than expected.
-  </Card>
+  </BrandCard>
   <Card title="Interview Prep" icon="document">
     Summary tables for quick scanning + full answers with context. JavaScript, React, TypeScript,
     and frontend system design questions at the senior level. Every question from the tech-specific

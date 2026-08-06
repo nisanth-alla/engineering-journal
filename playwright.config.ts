@@ -7,8 +7,11 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   reporter: process.env.CI ? "github" : "list",
   use: {
-    baseURL: "http://127.0.0.1:4321",
+    baseURL: "http://127.0.0.1:4321/engineering-journal/",
     trace: "on-first-retry",
+  },
+  expect: {
+    timeout: 15_000,
   },
   webServer: {
     command: "npm run dev -- --host 127.0.0.1",

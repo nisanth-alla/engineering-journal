@@ -12,7 +12,8 @@
     "check": "astro check",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "verify": "node scripts/verify.mjs"
   },
   "dependencies": {
     "@astrojs/react": "^6.0.2",
@@ -22,7 +23,8 @@
     "astro": "^5.7.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
-    "sharp": "^0.33.0"
+    "sharp": "^0.33.0",
+    "simple-icons": "^16.28.0"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.4",
