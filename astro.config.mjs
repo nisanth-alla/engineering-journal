@@ -9,7 +9,7 @@ export default defineConfig({
     starlight({
       title: "Engineering Journal",
       description:
-        "Deep dives into React, TypeScript, JavaScript, Go, and distributed systems. Interactive demos, real code, and interview prep.",
+        "Deep dives into JavaScript, TypeScript, React, Node.js, Next.js, Go, Playwright, and distributed systems. Interactive demos, real code, and interview prep.",
       social: [
         {
           icon: "github",

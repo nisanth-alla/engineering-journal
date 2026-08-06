@@ -1,6 +1,6 @@
 # Engineering Journal
 
-Deep dives into JavaScript, TypeScript, React, Node.js, Go, and distributed systems. Interactive demos, real code, and interview prep. Built by a working engineer, not generated from a prompt.
+Deep dives into JavaScript, TypeScript, React, Node.js, Next.js, Go, Playwright, and distributed systems. Interactive demos, real code, and interview prep. Built by a working engineer, not generated from a prompt.
 
 Live at [nisanth-alla.github.io/engineering-journal](https://nisanth-alla.github.io/engineering-journal/)
 
@@ -16,7 +16,13 @@ Built with [Starlight](https://starlight.astro.build/) and deployed to GitHub Pa
 
 **Node.js** — V8 and libuv internals, the event loop phases, streams and backpressure, error handling and graceful shutdown, Express patterns. Two interactive demos.
 
+**Next.js** — Server and client rendering, the App Router mental model, Server Components, data fetching, caching, middleware, and deployment. Includes an interactive server/client boundary trace.
+
 **Learning Go** — The mental model shift from Node's event loop to goroutines and channels, coming from TypeScript. What surprised me and what clicked.
+
+**Playwright** — Browser automation from locators and actionability to isolated contexts, network control, traces, accessibility, and CI. Includes production-minded browser tests for the journal's interactive demos.
+
+**Interview Prep** — Senior-level JavaScript, TypeScript, React, and frontend system design answers with structured reasoning and tradeoffs.
 
 **Experiments** — Rate limiting, saga orchestration, concurrent file processing. Each one isolates a real problem and builds a working solution. Code in the [distributed-systems-lab](https://github.com/nisanth-alla/distributed-systems-lab).
 
@@ -35,6 +41,16 @@ Opens at `http://localhost:4321/engineering-journal/`.
 npm run build
 npm run preview
 ```
+
+## Verify
+
+Run the complete diff-ready gate:
+
+```bash
+npm run verify
+```
+
+This checks formatting, Astro and TypeScript diagnostics, a clean production build, the Pagefind search index, and 24 Playwright browser tests against the built site.
 
 ## Deploy
 
