@@ -1,0 +1,70 @@
+---
+title: Why Node.js exists
+description: V8, libuv, and the idea that made JavaScript on the server actually work.
+sidebar:
+  order: 1
+---
+
+## The idea
+
+In 2009, Ryan Dahl had a specific frustration: web servers wasted resources waiting. Apache (the dominant server at the time) assigned one thread per connection. Each thread sat idle while waiting for database queries, file reads, or network responses. A server handling 10,000 concurrent connections needed 10,000 threads, each consuming megabytes of memory, mostly doing nothing.
+
+Dahl's insight: what if the server never waited? Instead of blocking a thread until I/O completes, hand the I/O to the operating system and do something else. When the OS finishes, pick up where you left off.
+
+This wasn't a new idea. Nginx already used event-driven I/O. What was new was combining it with JavaScript. JavaScript's single-threaded, callback-based model (designed for the browser's event loop) turned out to be a perfect fit for non-blocking I/O on the server. You couldn't block even if you wanted to, because there's only one thread.
+
+## V8 and libuv
+
+Node.js is two things glued together:
+
+**V8** is Google's JavaScript engine (the same one in Chrome). It compiles JavaScript to machine code. It's fast because Google invested heavily in it for Chrome's performance. Node gets this speed for free.
+
+**libuv** is the async I/O library. It provides the event loop, manages the thread pool for file system operations, handles TCP/UDP networking, and provides cross-platform abstractions for OS-level async primitives (epoll on Linux, kqueue on macOS, IOCP on Windows).
+
+When you call `fs.readFile()`, JavaScript doesn't read the file. libuv submits the read to a thread pool (file I/O can't be truly async on most operating systems), and the thread pool handles it. When the read completes, libuv puts your callback into the event loop queue. V8 runs your callback on the main thread.
+
+For network I/O (HTTP requests, TCP sockets, DNS lookups), libuv uses the OS's native async primitives directly. No thread pool needed. This is why Node handles thousands of concurrent HTTP connections with minimal resource usage.
+
+## What Node is good at
+
+**I/O-heavy workloads.** API servers, real-time applications (chat, notifications), proxies, streaming. Any scenario where the server spends most of its time waiting for external systems (databases, APIs, file systems) and relatively little time doing computation.
+
+**JavaScript everywhere.** Frontend team already knows JavaScript. Using the same language on the server means shared utility code, shared types (with TypeScript), and one mental model for the whole stack. This is a practical advantage, not a technical one, but it's the biggest reason most companies adopted Node.
+
+**npm ecosystem.** The largest package registry in any language. Whatever you need, there's probably a package for it. This is a double-edged sword (dependency quality varies wildly), but the breadth is undeniable.
+
+## What Node is not good at
+
+**CPU-heavy computation.** Image processing, video encoding, machine learning, complex calculations. The single thread is doing computation instead of handling I/O, so every other request waits. Worker threads help but they're heavy compared to Go's goroutines or Java's virtual threads.
+
+**Strict type safety at the language level.** TypeScript adds compile-time checking but has no runtime enforcement. Data from external sources (APIs, databases, user input) crosses a trust boundary that TypeScript can't police. You need runtime validation (Zod, io-ts) on top.
+
+**Very low-level systems programming.** If you need fine-grained memory control, direct OS system calls, or guaranteed latency, Node's garbage collector and single-threaded model get in the way. C, Rust, or Go are better fits.
+
+## The standard library question
+
+Node's built-in modules cover a lot: `http`, `https`, `fs`, `path`, `crypto`, `stream`, `events`, `child_process`, `cluster`, `net`, `dns`, `os`, `util`. You can build a working HTTP server without any npm packages.
+
+But in practice, almost nobody does. Express (or Fastify, or Hono) sits on top of `http`. A validation library sits on top of raw JSON parsing. A logging library replaces `console.log`. The standard library provides primitives. The ecosystem provides the developer experience.
+
+This is the opposite of Go, where the standard library is complete enough for production use. In Node, the standard library is a foundation. You build on it but you don't use it directly for most things.
+
+## How Node changed the industry
+
+Before Node, "full-stack developer" usually meant someone who wrote PHP/Ruby/Python on the server and jQuery/HTML/CSS on the client. Two languages, two ecosystems, two mental models.
+
+Node made JavaScript viable on the server, which enabled:
+- **Universal rendering** (Next.js, Nuxt): same components render on server and client
+- **Shared types** (TypeScript): API response types are defined once and used by both server and client
+- **One build toolchain** (Vite, webpack, esbuild): JavaScript tools build JavaScript
+- **Real-time applications** (Socket.io, WebSockets): Node's event-driven model handles persistent connections naturally
+
+Whether this is good for the industry is debatable. Some argue JavaScript's quirks make it a poor choice for server-side code. But the adoption numbers aren't debatable: Node is used by Netflix, LinkedIn, Uber, PayPal, NASA, and basically every startup that started after 2012.
+
+## Interview angles
+
+**"Why would you choose Node.js for a project?"** When the workload is I/O-bound (API servers, real-time apps, proxies) and the team already knows JavaScript/TypeScript. Node's event-driven model handles concurrent connections efficiently without the thread-per-request overhead of traditional servers. The npm ecosystem means you rarely build from scratch.
+
+**"When would you NOT choose Node.js?"** CPU-intensive workloads (image processing, ML, heavy computation) where the single thread becomes a bottleneck. Applications requiring strict memory control or guaranteed latency. Very large-scale systems where Go or Java's concurrency models scale more predictably.
+
+**"How does Node handle concurrency with one thread?"** The event loop delegates I/O to the OS (via libuv). Network I/O uses native OS async primitives. File I/O uses a thread pool (default 4 threads). When I/O completes, the callback goes into the event loop queue and runs on the main thread. The main thread never blocks on I/O, so it can handle thousands of connections.

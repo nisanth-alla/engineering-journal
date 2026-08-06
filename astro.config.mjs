@@ -31,6 +31,10 @@ export default defineConfig({
           autogenerate: { directory: "react" },
         },
         {
+          label: "Node.js",
+          autogenerate: { directory: "node" },
+        },
+        {
           label: "Learning Go",
           autogenerate: { directory: "go" },
         },

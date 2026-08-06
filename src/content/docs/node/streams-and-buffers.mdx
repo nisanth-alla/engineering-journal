@@ -1,0 +1,259 @@
+---
+title: Streams and buffers
+description: Why streams exist, how backpressure works, and practical patterns for handling data that doesn't fit in memory.
+sidebar:
+  order: 3
+---
+
+import StreamPipeline from '../../../components/StreamPipeline';
+
+## The problem streams solve
+
+Imagine you need to process a 2GB log file. The naive approach:
+
+```javascript
+const data = fs.readFileSync("access.log"); // 2GB loaded into memory
+const lines = data.toString().split("\n");   // another 2GB for the string
+// Your process is now using 4GB+ of RAM for one file
+```
+
+Streams process data in chunks. Instead of loading the entire file, you read a piece, process it, write the result, and move on. Memory usage stays constant regardless of file size.
+
+```javascript
+const readable = fs.createReadStream("access.log");
+const writable = fs.createWriteStream("output.log");
+
+readable.on("data", (chunk) => {
+  // chunk is ~64KB, not 2GB
+  const processed = transform(chunk);
+  writable.write(processed);
+});
+```
+
+This is the same idea behind Unix pipes: `cat file.log | grep ERROR | wc -l`. Each command processes data as it flows through, without any single command needing to hold the entire file.
+
+## The four stream types
+
+Node has four built-in stream types:
+
+**Readable** — produces data. Files, HTTP responses, stdin.
+
+```javascript
+const readable = fs.createReadStream("data.csv");
+readable.on("data", (chunk) => console.log(chunk.length));
+readable.on("end", () => console.log("done"));
+```
+
+**Writable** — consumes data. Files, HTTP requests, stdout.
+
+```javascript
+const writable = fs.createWriteStream("output.txt");
+writable.write("line 1\n");
+writable.write("line 2\n");
+writable.end(); // signals no more data
+```
+
+**Transform** — reads, modifies, and outputs data. Compression, encryption, parsing.
+
+```javascript
+const { Transform } = require("stream");
+const upperCase = new Transform({
+  transform(chunk, encoding, callback) {
+    this.push(chunk.toString().toUpperCase());
+    callback();
+  },
+});
+```
+
+**Duplex** — both readable and writable independently. TCP sockets, WebSockets.
+
+## pipe() and pipelines
+
+`pipe()` connects a readable to a writable (or transform). It handles backpressure automatically.
+
+```javascript
+fs.createReadStream("input.csv")
+  .pipe(csvParser())
+  .pipe(filterTransform)
+  .pipe(fs.createWriteStream("output.csv"));
+```
+
+The problem with `pipe()`: error handling is messy. If any stream in the chain errors, the others might not clean up properly. You have to attach error handlers to every stream.
+
+`pipeline()` (added in Node 10) fixes this:
+
+```javascript
+const { pipeline } = require("stream/promises");
+
+await pipeline(
+  fs.createReadStream("input.csv"),
+  csvParser(),
+  filterTransform,
+  fs.createWriteStream("output.csv")
+);
+// Automatically cleans up all streams on error
+// Throws if any stream fails
+```
+
+Always use `pipeline()` over `pipe()` in new code. It handles errors, cleanup, and returns a Promise.
+
+## Backpressure
+
+Backpressure is what happens when one stage of a pipeline is slower than the one feeding it. If a readable produces data faster than a writable can consume it, data accumulates in memory. Without backpressure handling, your process runs out of memory.
+
+Node streams handle this automatically through `pipe()` and `pipeline()`. Here's what happens under the hood:
+
+1. Readable pushes a chunk to the writable
+2. Writable's internal buffer fills up
+3. `writable.write()` returns `false` — "I'm full, stop sending"
+4. Readable pauses (stops reading from the source)
+5. Writable processes its buffer, emits `drain` — "I'm ready for more"
+6. Readable resumes
+
+If you use `pipe()`, all of this happens automatically. If you write to streams manually, you need to handle it yourself:
+
+```javascript
+const readable = fs.createReadStream("huge-file.bin");
+const writable = fs.createWriteStream("output.bin");
+
+readable.on("data", (chunk) => {
+  const canContinue = writable.write(chunk);
+  if (!canContinue) {
+    // Writable buffer is full. Pause the readable.
+    readable.pause();
+    writable.once("drain", () => {
+      // Writable is ready. Resume the readable.
+      readable.resume();
+    });
+  }
+});
+```
+
+## Try it: watch data flow through a pipeline
+
+This demo shows chunks moving through a Readable → Transform → Writable pipeline. Switch to "Slow writer" to see backpressure: chunks pile up at the transform stage because the writer can't keep up.
+
+<StreamPipeline client:only="react" />
+
+In real Node.js, the readable would pause when the writable signals it's full (write returns false). The "Slow writer" mode simulates what happens without that signal: chunks queue up in memory.
+
+## Buffers
+
+Buffers are Node's way of handling raw binary data. They're fixed-size chunks of memory outside the V8 heap.
+
+```javascript
+// Create a buffer
+const buf = Buffer.from("Hello, world!");
+console.log(buf);        // <Buffer 48 65 6c 6c 6f ...>
+console.log(buf.length); // 13 (bytes, not characters)
+console.log(buf.toString("utf-8")); // "Hello, world!"
+
+// Allocate empty buffer
+const empty = Buffer.alloc(1024); // 1KB, filled with zeros
+
+// Buffer from array
+const fromArr = Buffer.from([72, 101, 108, 108, 111]); // "Hello"
+```
+
+When you read a file without specifying an encoding, you get a Buffer. When you specify an encoding, Node converts the Buffer to a string for you:
+
+```javascript
+// Returns Buffer
+fs.readFile("data.bin", (err, buf) => { /* buf is Buffer */ });
+
+// Returns string
+fs.readFile("data.txt", "utf-8", (err, str) => { /* str is string */ });
+```
+
+Streams work with Buffers by default. Each `data` event gives you a Buffer chunk. If you're working with text, set the stream's encoding or convert manually with `.toString()`.
+
+## Practical patterns
+
+### Line-by-line file processing
+
+```javascript
+const readline = require("readline");
+
+const rl = readline.createInterface({
+  input: fs.createReadStream("access.log"),
+  crlfDelay: Infinity,
+});
+
+for await (const line of rl) {
+  if (line.includes("ERROR")) {
+    console.log(line);
+  }
+}
+// Memory usage: constant, regardless of file size
+```
+
+### HTTP response streaming
+
+```javascript
+app.get("/export", async (req, res) => {
+  res.setHeader("Content-Type", "text/csv");
+  res.setHeader("Content-Disposition", "attachment; filename=export.csv");
+
+  const cursor = db.collection("orders").find({}).stream();
+
+  cursor.on("data", (doc) => {
+    res.write(`${doc.id},${doc.total},${doc.status}\n`);
+  });
+
+  cursor.on("end", () => res.end());
+  cursor.on("error", (err) => {
+    console.error(err);
+    res.status(500).end();
+  });
+});
+// Streams database results directly to HTTP response
+// No need to load all orders into memory first
+```
+
+### Transform stream for parsing
+
+```javascript
+const { Transform } = require("stream");
+
+class JSONLineParser extends Transform {
+  constructor() {
+    super({ objectMode: true }); // output objects, not buffers
+    this.buffer = "";
+  }
+
+  _transform(chunk, encoding, callback) {
+    this.buffer += chunk.toString();
+    const lines = this.buffer.split("\n");
+    this.buffer = lines.pop(); // keep incomplete last line
+
+    for (const line of lines) {
+      if (line.trim()) {
+        try {
+          this.push(JSON.parse(line));
+        } catch (e) {
+          // skip invalid JSON lines
+        }
+      }
+    }
+    callback();
+  }
+
+  _flush(callback) {
+    // Handle the last line
+    if (this.buffer.trim()) {
+      try {
+        this.push(JSON.parse(this.buffer));
+      } catch (e) {}
+    }
+    callback();
+  }
+}
+```
+
+## Interview angles
+
+**"What are Node.js streams and why use them?"** Streams process data in chunks instead of loading everything into memory. A 2GB file processed as a stream uses maybe 64KB of memory at any point. The four types: Readable (produces data), Writable (consumes data), Transform (modifies data), Duplex (both directions). Use `pipeline()` to connect them with automatic error handling and backpressure.
+
+**"What is backpressure?"** When a data producer is faster than a consumer. Without handling it, data accumulates in memory until the process crashes. Node streams handle it automatically through pipe/pipeline: the writable signals when its buffer is full (write returns false), the readable pauses, the writable emits 'drain' when ready, the readable resumes. Manual handling requires checking the return value of `.write()`.
+
+**"Buffer vs string?"** Buffers are raw binary data. Strings are text with an encoding (UTF-8). Streams produce Buffers by default. Use Buffers for binary data (images, compressed files). Convert to strings for text processing. `Buffer.from()` to create, `.toString(encoding)` to convert. Buffers have a fixed size allocated outside V8's heap.
