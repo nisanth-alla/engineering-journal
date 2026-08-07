@@ -1,0 +1,32 @@
+---
+import goLogo from "simple-icons/icons/go.svg?raw";
+import javascriptLogo from "simple-icons/icons/javascript.svg?raw";
+import nextLogo from "simple-icons/icons/nextdotjs.svg?raw";
+import nodeLogo from "simple-icons/icons/nodedotjs.svg?raw";
+import reactLogo from "simple-icons/icons/react.svg?raw";
+import typescriptLogo from "simple-icons/icons/typescript.svg?raw";
+
+interface Props {
+  brand: "go" | "javascript" | "next" | "node" | "react" | "typescript";
+  title: string;
+}
+
+const { brand, title } = Astro.props;
+const logos = {
+  go: goLogo,
+  javascript: javascriptLogo,
+  next: nextLogo,
+  node: nodeLogo,
+  react: reactLogo,
+  typescript: typescriptLogo,
+};
+const logo = logos[brand];
+---
+
+<article class="brand-card sl-flex">
+  <p class="title sl-flex">
+    <span class="brand-icon" aria-hidden="true" set:html={logo} />
+    <span>{title}</span>
+  </p>
+  <div class="body"><slot /></div>
+</article>

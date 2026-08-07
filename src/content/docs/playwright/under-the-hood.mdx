@@ -1,0 +1,81 @@
+---
+title: Under the hood
+description: How Playwright locators, actionability checks, browser contexts, and traces make browser tests reliable.
+sidebar:
+  order: 2
+---
+
+## A locator is a query with intent
+
+`page.locator(".submit")` asks for an implementation detail. `page.getByRole("button", { name: "Submit" })` asks for an accessible user-facing control.
+
+That distinction matters when the UI is refactored. A class can change while the role and accessible name remain part of the product contract.
+
+Prefer selectors in this order:
+
+1. `getByRole` with an accessible name.
+2. `getByLabel` for form controls.
+3. `getByText` when the text is the actual contract.
+4. `getByTestId` for a stable boundary that has no good user-facing identity.
+5. CSS or XPath only when the structure itself is what you need to test.
+
+## Actions wait for actionability
+
+When Playwright clicks an element, it does not immediately dispatch a click event. It waits for the element to be attached, visible, stable, enabled, and able to receive pointer events.
+
+```typescript
+await page.getByRole("button", { name: "Save" }).click();
+```
+
+This is different from manually calling `element.click()` in a browser script. A manual click can race a layout transition or fire against an element a user could not actually reach.
+
+Assertions retry too:
+
+```typescript
+await expect(page.getByText("Saved")).toBeVisible();
+```
+
+The assertion waits for the expected state instead of forcing a fixed sleep. `waitForTimeout` hides timing problems and makes the suite slower, so it should not be the default synchronization tool.
+
+## Browser context isolation
+
+A browser context is a clean session with its own cookies, storage, permissions, and cache. The test fixture creates an isolated context for each test by default.
+
+```typescript
+test("a signed-out visitor sees the sign-in action", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.getByRole("link", { name: "Sign in" })).toBeVisible();
+});
+```
+
+One test cannot accidentally inherit a cookie from a previous test. That independence is more valuable than squeezing a few seconds out of a suite with shared mutable state.
+
+## Traces are a failure narrative
+
+The journal configures `trace: "on-first-retry"`. A failed test gets a trace on its retry containing:
+
+- the action timeline,
+- DOM snapshots,
+- screenshots,
+- console output,
+- network requests,
+- and the exact locator that was waiting.
+
+That turns “the button was not found” into a reproducible story about what the browser saw.
+
+## Test the contract, not the animation
+
+For an educational component, this is valuable:
+
+```typescript
+await page.getByRole("button", { name: "Start trace" }).click();
+await expect(page.getByText("Step 1 of 4")).toBeVisible();
+```
+
+This is fragile:
+
+```typescript
+await page.locator("div:nth-child(4) > button").click();
+```
+
+The first test explains the behavior. The second only describes the current DOM shape.
