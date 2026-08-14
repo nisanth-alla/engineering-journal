@@ -61,6 +61,7 @@ Pushes to `main` trigger the GitHub Actions workflow that builds and deploys to 
 - [distributed-systems-lab](https://github.com/nisanth-alla/distributed-systems-lab) — runnable experiments in TypeScript and Go
 - [system-design-notes](https://github.com/nisanth-alla/system-design-notes) — structured notes with interactive visualizations
 - [reliable-job-platform](https://github.com/nisanth-alla/reliable-job-platform) — production-style job processing system
+- [retail-discovery](https://github.com/nisanth-alla/retail-discovery) — [live visual retail discovery application](https://retail-discovery.onrender.com/) built with Java, Spring Boot, React, and computer vision
 
 ## License
 
