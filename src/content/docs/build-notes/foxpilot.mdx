@@ -1,0 +1,180 @@
+---
+title: FoxPilot, a profile-driven job discovery engine
+description: Why a hardcoded relevance filter was wrong, how a "two sources of truth" bug hid for hours, and how to stop LLM calls from becoming your bottleneck.
+sidebar:
+  order: 1
+---
+
+FoxPilot is a local-first career discovery tool. Upload a resume, get a private career profile, and have the system find jobs that actually match that profile, rank them with explainable reasoning, and track the applications you decide to pursue.
+
+The design goal sounds simple, but it forced a series of real engineering decisions: how to turn a resume into search queries, when to trust a deterministic filter over an expensive model, and how to keep one product from silently running on two different databases.
+
+This is a build retrospective. It covers the decisions, the bugs, and the architecture that emerged.
+
+## The product flow that shaped the architecture
+
+The intended flow was never "scrape job listings." It was:
+
+```text
+resume
+  -> private career profile
+  -> profile-specific job discovery
+  -> deterministic relevance filtering
+  -> semantic matching only where necessary
+  -> explainable recommendations
+  -> application tracking
+```
+
+Three constraints fell out of that flow:
+
+1. **Jobs must be relevant to the user's actual career**, not a generic hardcoded role list.
+2. **Resume and profile data must stay private and user-scoped.**
+3. **LLM calls should only run when semantic reasoning is genuinely required**, because they are slow, local compute is finite, and cost adds up fast.
+
+Everything else in the architecture exists to serve those three constraints.
+
+## The original static filter, and why it was wrong
+
+The first version classified jobs with hardcoded role lists. A scan would produce jobs like:
+
+```text
+Data Engineer
+Analytics Engineer
+Senior Data Analyst
+BI Engineer
+```
+
+The system held static lists for target roles, excluded roles, ML signals, and search terms. The first real classification looked like:
+
+```text
+Target: 19
+Review: 209
+Exclude: 19
+```
+
+The problem: a user with a **Full Stack** or **Software Engineering** resume could receive data-engineering jobs purely because those titles were in the default taxonomy. The system was selecting jobs based on title lists, not on career evidence from the actual resume.
+
+For a product whose whole point is personal relevance, a shared global taxonomy is not a shortcut. It is a bug.
+
+The fix was to invert the dependency. Search queries are now derived from the saved profile's `target_roles` and `current_or_recent_roles`. A query planner reads those roles, splits compound roles, normalizes whitespace and casing, removes duplicates, and refuses to fetch entirely if the profile has no usable role evidence.
+
+```text
+profile exists
+  -> derive role queries
+  -> fetch matching source results
+  -> classify against that same profile
+  -> run semantic matching only on profile-aligned jobs
+```
+
+The relevance classifier now uses profile role phrases directly. The behavior is intentionally binary and cheap:
+
+```text
+profile role phrase found in job title
+  -> TARGET
+otherwise
+  -> REVIEW
+```
+
+This deliberately avoids sending unrelated jobs to Ollama. After wiring the real resume in, the scan produced software-engineering roles instead of data-engineering ones, and the target list stopped being dictated by a global default.
+
+## Profile caching: don't pay for work you already did
+
+Generating a profile reads the resume and calls Ollama every time, even when the resume has not changed. That is wasteful in both time and local CPU.
+
+The profile cache tracks three things: the resume path, a SHA-256 content fingerprint, and a metadata sidecar. The behavior:
+
+```text
+same path + same content -> reuse profile, skip Ollama
+path changed              -> regenerate
+content changed           -> regenerate
+```
+
+The same reuse logic was added to the authenticated web flow. When a resume upload arrives, the server compares its text to the stored resume. Identical text reuses the existing profile and skips the LLM. This protects against repeated uploads of the same PDF doing unnecessary model work.
+
+## The profile-generation race condition
+
+Background jobs introduced a subtle race. Consider two uploads arriving close together:
+
+```text
+upload resume A -> job A queued
+upload resume B -> job B queued
+job A runs after B -> reads the current profile row -> may overwrite B
+```
+
+Profile-generation jobs now carry their own resume revision: the resume hash, text, and filename. When a job finishes, it verifies the stored profile still corresponds to that job's resume. If a newer upload has replaced it, the older result is marked stale and is not persisted over the newer profile.
+
+The background-job API also strips the stored resume text before returning job results to the frontend, so resume content is not needlessly exposed.
+
+## The bug that took longest: two sources of truth
+
+The most instructive bug was not in the matching logic. It was a data-location mismatch.
+
+The local CLI scan wrote to `~/.foxpilot/foxpilot.sqlite3`. The web UI read from Docker PostgreSQL. Direct inspection showed the two were completely different worlds:
+
+```text
+Local SQLite:     251 jobs, 35 matches, Software Engineer roles
+Docker PostgreSQL: 204 jobs, 38 matches, Data Engineer roles
+```
+
+The local CLI showed new software-engineering matches while the web UI kept showing stale data-engineering matches. It looked like a broken query or a wrong join.
+
+It was neither. The API mapping (`matches.user_id + matches.job_id -> jobs.job_id -> UI match card`) was correct. The problem was two separate databases, two different user scopes, and the fact that the local CLI wrote as `local-user` while web accounts used authenticated user IDs.
+
+This is a reminder that **the mapping layer can be perfect while the system is still wrong**, because the real source of truth lives in where the data is stored and who owns it. It also clarified the intended workflow: a local scan should not silently appear in a web account, and web accounts are correctly isolated from each other.
+
+## LLM cost and latency engineering
+
+The dominant latency source was serial Ollama matching. Eighteen target jobs meant eighteen local model requests, each with a generous timeout. Worst case, that is a very long wait.
+
+The prompt was tightened first:
+
+- Remove the raw `source_payload`.
+- Send only title, company, location, URL, and description.
+- Truncate descriptions above 8,000 characters, preserving the beginning and end.
+- Cap resume prompts at 24,000 characters, again keeping both ends.
+
+Ollama is only used in two places now: profile generation (cached) and job matching (one call per uncached target job). Everything else, extraction, fingerprinting, query generation, source fetching, browser automation, normalization, deduplication, filtering, storage, and API behavior, is deterministic.
+
+The larger architectural answer is a two-stage matcher. Stage one scores every job in pure Python: role/title overlap, skill overlap, seniority alignment, location and work-type alignment, description quality, source confidence, duplicate detection, and freshness. That produces a candidate score with evidence and a confidence value. Stage two sends only high-value, ambiguous jobs to Ollama: strong role fit with unclear skill gaps, jobs near the apply/consider threshold, or conflicting evidence.
+
+The intended shape:
+
+```text
+18 candidates
+  -> Python ranks all 18
+  -> Ollama analyzes the top 5-8
+```
+
+This keeps deterministic control for the obvious cases and reserves the model for the decisions that genuinely need semantic reasoning.
+
+## Deployment and the Ollama question
+
+The stack splits naturally:
+
+- **CLI**: Python package, SQLite, Ollama on the user's machine.
+- **Local web**: Docker Compose with API, PostgreSQL, and web; Ollama and interactive scanning on the host.
+- **Hosted web**: static React frontend, FastAPI service, PostgreSQL, and an explicitly configured LLM provider.
+
+A notable decision was to **not** run Ollama inside Docker on macOS. Docker Desktop runs Linux containers inside a VM, so a containerized Ollama runs CPU-only and does not get Apple Metal acceleration. The host-native Ollama is meaningfully better on a Mac. Docker Ollama makes sense on Linux with an NVIDIA GPU, on a dedicated GPU server, or when you need a fully self-contained deployment.
+
+## What is still hard
+
+The retrospective is not all wins. The honest open problems:
+
+- Matching is still serial and Ollama-dependent for every target job; the two-stage pre-ranker is the immediate next step.
+- A durable worker system is needed instead of FastAPI in-process background tasks, with atomic job claiming and lease/retry behavior.
+- Greenhouse ingestion needs proper account-linked web ownership, not just a host-CLI path.
+- API responses need pagination and compact DTOs.
+- Frontend polling should resume after refresh and retry transient failures.
+- Source health and ingestion metrics should be persisted.
+- Docker image rebuilds depend on reliable registry connectivity.
+
+## The lessons that transfer
+
+1. **A global default is the enemy of a personal system.** If relevance is the product, relevance must come from the user's data, not from a shared list.
+2. **Cache before you scale.** Identical work repeated is the cheapest thing to eliminate, and it is easy to find by measuring what you do twice.
+3. **Maps can be right while the system is wrong.** Check where data physically lives and who owns it before debugging the join.
+4. **AI should be a stage, not a pipeline.** Use the cheapest correct mechanism for each step, and reserve the model for the steps that actually need reasoning.
+5. **Write down the open problems.** A retrospective that only celebrates wins is marketing. One that lists the gaps is engineering.
+
+The project lives at [career-agent](https://github.com/siddanth99/career-agent), a personal project I continue to build on.

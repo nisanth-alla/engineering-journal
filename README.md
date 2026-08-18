@@ -1,6 +1,6 @@
 # Engineering Journal
 
-Deep dives into JavaScript, TypeScript, React, Node.js, Next.js, Go, Playwright, and distributed systems. Interactive demos, real code, and interview prep. Built by a working engineer, not generated from a prompt.
+Deep dives into JavaScript, TypeScript, React, Node.js, Next.js, Go, Playwright, and distributed systems. Interactive demos, real code, interview prep, and build notes from real projects. Built by a working engineer, not generated from a prompt.
 
 Live at [nisanth-alla.github.io/engineering-journal](https://nisanth-alla.github.io/engineering-journal/)
 
@@ -25,6 +25,8 @@ Built with [Starlight](https://starlight.astro.build/) and deployed to GitHub Pa
 **Interview Prep** — Senior-level JavaScript, TypeScript, React, and frontend system design answers with structured reasoning and tradeoffs.
 
 **Experiments** — Rate limiting, saga orchestration, concurrent file processing. Each one isolates a real problem and builds a working solution. Code in the [distributed-systems-lab](https://github.com/nisanth-alla/distributed-systems-lab).
+
+**Build Notes** — Architecture and lessons from projects I have built. Currently: FoxPilot, a profile-driven job discovery engine covering profile-based filtering, a two-database data-mismatch bug, and LLM cost/latency engineering.
 
 ## Local development
 
@@ -61,6 +63,7 @@ Pushes to `main` trigger the GitHub Actions workflow that builds and deploys to 
 - [distributed-systems-lab](https://github.com/nisanth-alla/distributed-systems-lab) — runnable experiments in TypeScript and Go
 - [system-design-notes](https://github.com/nisanth-alla/system-design-notes) — structured notes with interactive visualizations
 - [reliable-job-platform](https://github.com/nisanth-alla/reliable-job-platform) — production-style job processing system
+- [retail-discovery](https://github.com/nisanth-alla/retail-discovery) — [live visual retail discovery application](https://retail-discovery.onrender.com/) built with Java, Spring Boot, React, and computer vision
 
 ## License
 
