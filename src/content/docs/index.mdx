@@ -1,6 +1,6 @@
 ---
 title: Engineering Journal
-description: Deep dives into JavaScript, TypeScript, React, Node.js, Next.js, Go, Playwright, and distributed systems. Interactive demos, real code, and interview prep.
+description: Deep dives into JavaScript, TypeScript, React, Node.js, Next.js, Go, Playwright, and distributed systems. Interactive demos, real code, interview prep, and build notes from real projects.
 template: splash
 hero:
   tagline: Deep dives into JavaScript, TypeScript, React, Node.js, Next.js, Go, Playwright, and distributed systems. Interactive demos you can play with on the page, real code from production experience, and interview prep. Written by a working engineer, not generated from a prompt.
@@ -13,61 +13,76 @@ hero:
       variant: minimal
 ---
 
-import { Card, CardGrid } from "@astrojs/starlight/components";
-import BrandCard from "../../components/BrandCard.astro";
+import { CardGrid } from "@astrojs/starlight/components";
+import SectionCard from "../../components/SectionCard.astro";
 
 ## What's here
 
 <CardGrid>
-  <BrandCard title="JavaScript" brand="javascript">
+  <SectionCard
+    title="JavaScript"
+    brand="javascript"
+    href="/engineering-journal/javascript/how-js-works/"
+  >
     The event loop visualized step by step, closures with scope chain diagrams, prototype
     inheritance, async patterns from callbacks to async/await, and ES6+ features that changed how
     people write JS. Three interactive simulators.
-  </BrandCard>
-  <BrandCard title="TypeScript" brand="typescript">
+  </SectionCard>
+  <SectionCard
+    title="TypeScript"
+    brand="typescript"
+    href="/engineering-journal/typescript/why-typescript/"
+  >
     Structural typing, unions, narrowing, generics, utility types, and advanced patterns like
     branded types and discriminated unions. Interactive demos let you click through type inference
     and narrowing step by step.
-  </BrandCard>
-  <BrandCard title="React" brand="react">
+  </SectionCard>
+  <SectionCard title="React" brand="react" href="/engineering-journal/react/why-react/">
     How rendering actually works (not what you think), hooks explained through what they replaced,
     state management decisions, component patterns, and performance. Three interactive demos showing
     re-renders, hook lifecycles, and memo behavior.
-  </BrandCard>
-  <BrandCard title="Node.js" brand="node">
+  </SectionCard>
+  <SectionCard title="Node.js" brand="node" href="/engineering-journal/node/why-node/">
     V8 and libuv under the hood, the event loop's six phases animated step by step, streams and
     backpressure visualized, error handling that keeps production servers alive, and Express
     middleware patterns. Two interactive demos.
-  </BrandCard>
-  <BrandCard title="Next.js" brand="next">
+  </SectionCard>
+  <SectionCard title="Next.js" brand="next" href="/engineering-journal/nextjs/how-nextjs-works/">
     Server rendering vs client rendering, the App Router mental model, Server Components vs Client
     Components, data fetching, caching layers, middleware, and deployment. The framework explained
     through what problems each feature solves.
-  </BrandCard>
-  <BrandCard title="Learning Go" brand="go">
+  </SectionCard>
+  <SectionCard title="Learning Go" brand="go" href="/engineering-journal/go/why-go/">
     Coming from TypeScript/Node, documenting the mental model shift to goroutines and channels. What
     surprised me, what I had to unlearn, and what clicked faster than expected.
-  </BrandCard>
-  <Card title="Playwright" icon="puzzle">
+  </SectionCard>
+  <SectionCard title="Playwright" icon="puzzle" href="/engineering-journal/playwright/">
     Browser automation explained from locators and actionability to isolated contexts, network
     control, traces, accessibility, and CI. The journal's own interactive demos are covered by
     behavior tests.
-  </Card>
-  <Card title="Interview Prep" icon="document">
+  </SectionCard>
+  <SectionCard title="Interview Prep" icon="document" href="/engineering-journal/interview/">
     Summary tables for quick scanning + full answers with context. JavaScript, React, TypeScript,
     and frontend system design questions at the senior level. Every question from the tech-specific
     articles condensed into interview-ready format.
-  </Card>
-  <Card title="Experiments" icon="puzzle">
+  </SectionCard>
+  <SectionCard title="Experiments" icon="puzzle" href="/engineering-journal/experiments/">
     Rate limiting, saga orchestration, concurrent file processing. Each experiment isolates a real
     problem, builds a working solution, breaks it on purpose, and documents what happened. Code in
     the [distributed-systems-lab](https://github.com/nisanth-alla/distributed-systems-lab).
-  </Card>
-  <Card title="System Design" icon="open-book">
+  </SectionCard>
+  <SectionCard
+    title="System Design"
+    icon="open-book"
+    href="https://nisanth-alla.github.io/system-design-notes/"
+  >
     Caching, queues, consistency, retries, database design, API design. Short enough to re-read in
-    five minutes, with runnable experiments and [interactive
-    visualizations](https://nisanth-alla.github.io/system-design-notes/).
-  </Card>
+    five minutes, with runnable experiments and interactive visualizations.
+  </SectionCard>
+  <SectionCard title="Build Notes" icon="list-format" href="/engineering-journal/build-notes/">
+    Architecture and lessons from real projects. FoxPilot, a profile-driven job discovery engine:
+    why a hardcoded filter was wrong, a two-database bug, and LLM cost engineering.
+  </SectionCard>
 </CardGrid>
 
 ## How to use this

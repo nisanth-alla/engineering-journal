@@ -54,6 +54,10 @@ export default defineConfig({
           label: "Experiments",
           autogenerate: { directory: "experiments" },
         },
+        {
+          label: "Build Notes",
+          autogenerate: { directory: "build-notes" },
+        },
       ],
       editLink: {
         baseUrl: "https://github.com/nisanth-alla/engineering-journal/edit/main/",
