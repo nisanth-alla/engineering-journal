@@ -199,6 +199,16 @@ header.header {
   }
 }
 
+/* ─── Heading anchor: hover-only, never visible by default ───────── */
+.sl-anchor-link {
+  opacity: 0 !important;
+  transition: opacity 0.15s ease;
+}
+.sl-heading-wrapper:hover .sl-anchor-link,
+.sl-anchor-link:focus-visible {
+  opacity: 0.45 !important;
+}
+
 .interactive-demo {
   position: relative;
   box-sizing: border-box;
@@ -216,6 +226,23 @@ header.header {
 .interactive-demo *::before,
 .interactive-demo *::after {
   box-sizing: border-box;
+}
+/* Zero all Starlight adjacent-sibling margin injections inside demos.
+   Specificity 0-1-0. Subsequent class rules (also 0-1-0) placed later in this
+   file override it for elements that do need spacing (demo-section, demo-note, etc.). */
+.interactive-demo * {
+  margin-block: 0;
+}
+/* Physical margin reset for any rule Starlight applies with physical properties */
+.interactive-demo button,
+.interactive-demo input,
+.interactive-demo select,
+.interactive-demo div,
+.interactive-demo span,
+.interactive-demo p,
+.interactive-demo pre {
+  margin-top: 0;
+  margin-bottom: 0;
 }
 
 .interactive-demo::before {
@@ -389,6 +416,12 @@ header.header {
   border-radius: 12px !important;
   background: var(--ej-surface) !important;
 }
+.demo-component {
+  padding: 0.85rem 1rem !important;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
 .demo-component.highlight {
   animation: renderFlash 0.7s ease-out;
 }
@@ -422,6 +455,9 @@ header.header {
   margin-top: 1rem;
 }
 .timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
   max-height: 300px;
   overflow-y: auto;
   padding-right: 0.2rem;

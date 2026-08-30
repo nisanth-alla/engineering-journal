@@ -41,43 +41,43 @@ export default defineConfig({
       sidebar: [
         {
           label: "JavaScript",
-          autogenerate: { directory: "javascript" },
+          items: [{ autogenerate: { directory: "javascript" } }],
         },
         {
           label: "TypeScript",
-          autogenerate: { directory: "typescript" },
+          items: [{ autogenerate: { directory: "typescript" } }],
         },
         {
           label: "React",
-          autogenerate: { directory: "react" },
+          items: [{ autogenerate: { directory: "react" } }],
         },
         {
           label: "Next.js",
-          autogenerate: { directory: "nextjs" },
+          items: [{ autogenerate: { directory: "nextjs" } }],
         },
         {
           label: "Node.js",
-          autogenerate: { directory: "node" },
+          items: [{ autogenerate: { directory: "node" } }],
         },
         {
           label: "Learning Go",
-          autogenerate: { directory: "go" },
+          items: [{ autogenerate: { directory: "go" } }],
         },
         {
           label: "Interview Prep",
-          autogenerate: { directory: "interview" },
+          items: [{ autogenerate: { directory: "interview" } }],
         },
         {
           label: "Playwright",
-          autogenerate: { directory: "playwright" },
+          items: [{ autogenerate: { directory: "playwright" } }],
         },
         {
           label: "Experiments",
-          autogenerate: { directory: "experiments" },
+          items: [{ autogenerate: { directory: "experiments" } }],
         },
         {
           label: "Build Notes",
-          autogenerate: { directory: "build-notes" },
+          items: [{ autogenerate: { directory: "build-notes" } }],
         },
       ],
       editLink: {

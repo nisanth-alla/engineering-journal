@@ -1,6 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
 const usePreviewServer = process.env.PLAYWRIGHT_SERVER === "preview";
+const reuseExisting = process.env.PLAYWRIGHT_REUSE === "1";
 const serverPort = usePreviewServer ? 4322 : 4321;
 
 export default defineConfig({
@@ -21,7 +22,7 @@ export default defineConfig({
       ? `npm run preview -- --host 127.0.0.1 --port ${serverPort}`
       : "npm run dev -- --host 127.0.0.1",
     url: `http://127.0.0.1:${serverPort}/engineering-journal/`,
-    reuseExistingServer: usePreviewServer ? false : !process.env.CI,
+    reuseExistingServer: reuseExisting || !process.env.CI,
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
 });
