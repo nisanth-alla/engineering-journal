@@ -1,0 +1,161 @@
+---
+/**
+ * Custom theme selector — three icon buttons replacing Starlight's native <select>.
+ * Reads/writes the same localStorage key ("starlight-theme") so Starlight's own
+ * ThemeProvider continues to own the actual theme application logic.
+ */
+---
+
+<starlight-theme-toggle>
+  <div class="theme-toggle" role="group" aria-label="Color theme">
+    <button class="theme-btn" data-theme-value="light" aria-label="Light theme" title="Light">
+      <!-- Sun -->
+      <svg
+        width="15"
+        height="15"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+      >
+        <circle cx="12" cy="12" r="4"></circle>
+        <path
+          d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"
+        ></path>
+      </svg>
+    </button>
+    <button class="theme-btn" data-theme-value="dark" aria-label="Dark theme" title="Dark">
+      <!-- Moon -->
+      <svg
+        width="15"
+        height="15"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+      >
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+      </svg>
+    </button>
+    <button class="theme-btn" data-theme-value="auto" aria-label="System theme" title="System">
+      <!-- Monitor -->
+      <svg
+        width="15"
+        height="15"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+      >
+        <rect x="2" y="3" width="20" height="14" rx="2"></rect>
+        <path d="M8 21h8M12 17v4"></path>
+      </svg>
+    </button>
+  </div>
+</starlight-theme-toggle>
+
+<style>
+  .theme-toggle {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 3px;
+    border: 1px solid var(--ej-line);
+    border-radius: 10px;
+    background: var(--ej-surface);
+  }
+
+  .theme-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.875rem;
+    height: 1.875rem;
+    padding: 0;
+    border: none;
+    border-radius: 7px;
+    background: transparent;
+    color: var(--sl-color-gray-3);
+    cursor: pointer;
+    transition:
+      background 0.15s ease,
+      color 0.15s ease;
+  }
+
+  .theme-btn:hover {
+    background: var(--ej-line);
+    color: var(--ej-ink);
+  }
+
+  .theme-btn[data-active="true"] {
+    background: var(--ej-accent);
+    color: #fff;
+  }
+
+  .theme-btn:focus-visible {
+    outline: 2px solid var(--ej-accent);
+    outline-offset: 1px;
+  }
+
+  .theme-btn svg {
+    display: block;
+    flex-shrink: 0;
+  }
+</style>
+
+<script>
+  type Theme = "auto" | "dark" | "light";
+  const storageKey = "starlight-theme";
+
+  const parseTheme = (v: unknown): Theme =>
+    v === "auto" || v === "dark" || v === "light" ? v : "auto";
+
+  const loadTheme = (): Theme =>
+    parseTheme(typeof localStorage !== "undefined" && localStorage.getItem(storageKey));
+
+  function storeTheme(theme: Theme) {
+    if (typeof localStorage !== "undefined") {
+      localStorage.setItem(storageKey, theme === "light" || theme === "dark" ? theme : "");
+    }
+  }
+
+  const getSystem = (): "light" | "dark" =>
+    matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+
+  function applyTheme(theme: Theme) {
+    document.documentElement.dataset.theme = theme === "auto" ? getSystem() : theme;
+    storeTheme(theme);
+    document
+      .querySelectorAll<HTMLButtonElement>("starlight-theme-toggle .theme-btn")
+      .forEach((btn) => {
+        btn.dataset.active = String(btn.dataset.themeValue === theme);
+      });
+  }
+
+  matchMedia("(prefers-color-scheme: light)").addEventListener("change", () => {
+    if (loadTheme() === "auto") applyTheme("auto");
+  });
+
+  class StarlightThemeToggle extends HTMLElement {
+    constructor() {
+      super();
+      applyTheme(loadTheme());
+      this.querySelectorAll<HTMLButtonElement>(".theme-btn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          applyTheme(parseTheme(btn.dataset.themeValue));
+        });
+      });
+    }
+  }
+
+  customElements.define("starlight-theme-toggle", StarlightThemeToggle);
+</script>

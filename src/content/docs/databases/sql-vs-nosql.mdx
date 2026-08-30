@@ -1,0 +1,92 @@
+---
+title: SQL vs NoSQL
+description: The real trade-offs, not the marketing version. When each actually wins, and what it costs you to get the benefits.
+sidebar:
+  order: 4
+---
+
+## The hype is misleading
+
+"Use NoSQL for scale" is one of the most repeated pieces of advice in software engineering that is also mostly wrong. MongoDB, DynamoDB, and Cassandra were built to solve specific scaling problems at very specific companies. Those companies were at a scale where relational databases genuinely couldn't keep up. Most applications aren't.
+
+Most applications that adopted NoSQL in the 2010s did so for two reasons: schema flexibility during rapid iteration, and hype. Many later moved back to PostgreSQL or added it alongside MongoDB because they needed the query power they had given up.
+
+This doesn't mean NoSQL is bad. It means the decision requires understanding what you're actually trading.
+
+## What you're actually trading
+
+**The relational model** gives you: joins, arbitrary queries, aggregations, transactions across multiple tables, enforced foreign key relationships, and decades of tooling (ORMs, migration frameworks, monitoring). You describe what data you want; the query planner figures out how to get it.
+
+**Document stores (MongoDB, Firestore)** give you: schema flexibility (different documents can have different fields), natural modeling of nested data, and horizontal sharding without as much pain as SQL. You denormalize data aggressively — put everything a query needs into one document. In return, you lose joins, transactions across documents (MongoDB added them later, but they're expensive), and the ability to query data in ways you didn't anticipate when you structured the documents.
+
+**Key-value stores (Redis, DynamoDB)** give you: O(1) lookups by key, massive throughput, predictable latency. You lose everything else. Redis doesn't know that `user:1234:orders` and `user:1234:profile` are related. DynamoDB gives you one primary key and one optional secondary index per table — your access patterns must be designed around them before you put a row in.
+
+**Wide-column stores (Cassandra, HBase)** give you: linear write scalability across nodes, tunable consistency, geographic distribution, and efficient time-series data. You lose transactions, complex queries, and the ability to join tables. You also accept eventual consistency by default: a read might return data that's slightly out of date because a write hasn't propagated to all replicas yet.
+
+## When document stores genuinely win
+
+Documents are the right model when:
+
+**The data is deeply nested and you always read it together.** A product catalog where each product has a variable set of specifications — a laptop has RAM, CPU, storage; a T-shirt has size, color, material. In a relational database you'd use a `product_specifications` table with (product_id, key, value) rows, or a JSON column, or a polymorphic schema. In MongoDB you embed the specifications directly in the product document. If you always fetch a product with all its specs, one document read vs a join is genuinely cleaner.
+
+**The schema changes frequently during early product development.** Adding a field to a MongoDB document is zero-cost — just include it in the next write. Adding a column to a PostgreSQL table with 50 million rows requires a migration, careful timing (or a background migration + column rename dance), and coordination across application versions. For a team iterating quickly on the data model, this flexibility is real.
+
+**Denormalization matches your access patterns exactly.** If you always read a blog post with its author name, comments, and tags together, you can store all of that in one document and read it in one query. In PostgreSQL you'd join four tables. The document approach is genuinely faster for this exact query — and slower for every other query you later realize you need.
+
+The last point is the trap. Document stores are fast for the read patterns you designed around and slow or impossible for the patterns you didn't anticipate. A relational database handles new query patterns naturally because you can always write a new query. With MongoDB, adding a new access pattern sometimes requires restructuring the documents or accepting collection scans.
+
+## When relational databases win
+
+SQL wins almost everywhere that:
+
+**The queries aren't known in advance.** Analytics, reporting, ad-hoc exploration. The relational model lets you ask arbitrary questions. NoSQL requires anticipating all questions at schema design time.
+
+**Data is shared across features.** User data, financial records, inventory. Multiple features read and write the same entities with different perspectives. SQL joins let each feature query exactly what it needs. With a document store, you either duplicate data across documents (and face update consistency issues) or accept that some queries require multiple round trips.
+
+**Referential integrity matters.** Foreign key constraints prevent the orphan row problem — a `comments` row referencing a `post_id` that no longer exists. Most NoSQL stores don't enforce this at the database level. Your application is responsible, which means eventually the data is corrupt.
+
+**Transactions cross multiple entities.** Financial transfers, order fulfillment, inventory management. You need to update multiple tables atomically. SQL makes this trivial. Multi-document transactions in MongoDB are possible but expensive and limited. Cassandra has no cross-row transactions.
+
+## The Redis case
+
+Redis is often listed alongside MongoDB and Cassandra as a "NoSQL database." It is, technically, but it's used differently. Almost nobody uses Redis as a primary data store for user records or orders. They use it for:
+
+- **Caching**: store the result of expensive database queries in Redis with a TTL. Read from Redis, fall back to PostgreSQL on miss.
+- **Session storage**: fast key-value lookup for authentication tokens.
+- **Rate limiting**: atomic increment of a counter per user per minute.
+- **Queues**: simple job queues using Redis Lists or Streams.
+- **Pub/Sub**: broadcasting events across services.
+
+Redis excels at all of these because of its speed (in-memory), atomic operations, and data structure support (lists, sets, sorted sets, bitmaps, streams). It's a complement to a relational database, not a replacement.
+
+## DynamoDB and the access pattern problem
+
+DynamoDB is a key-value/document store designed for massive scale and single-digit millisecond latency at any throughput. At its scale (Amazon's shopping cart, for example), it's the right tool. At startup scale, it's usually over-engineered.
+
+The design constraint: you must define all your access patterns before you model your schema. Your primary key (partition key + optional sort key) determines everything. You can add Global Secondary Indexes (GSIs) later, but each GSI replicates data, costs money, and must also be planned.
+
+The common mistake: designing a DynamoDB schema like a relational schema ("users table, orders table, products table") and then discovering you need a query that DynamoDB can't serve efficiently. In SQL, you write a new query. In DynamoDB, you redesign the table — which often means migrating existing data.
+
+DynamoDB makes sense when:
+
+- You need guaranteed single-digit millisecond latency at extreme throughput.
+- Your access patterns are simple and known in advance (look up order by order ID, list orders by user ID).
+- You're on AWS and operational simplicity outweighs everything else.
+
+It's the wrong default for a startup that might change its data model monthly.
+
+## The honest summary
+
+PostgreSQL handles the workload of most applications at most scale. It has JSON columns (with indexing support) for schema flexibility, table inheritance, full-text search, time-series extensions (TimescaleDB), and horizontal read scaling via replication. Adding read replicas scales reads. Connection pooling (PgBouncer) handles connection count limits. Partitioning handles very large tables.
+
+The point at which you genuinely outgrow PostgreSQL — where the write throughput of a single primary node is insufficient — is a problem that most applications never hit. When you do hit it, you have the luxury of having simple, well-understood relational data that's relatively straightforward to migrate or shard.
+
+Start with PostgreSQL. Use Redis for caching and ephemeral data. Reach for a specialized store (Elasticsearch for full-text search, Cassandra for time-series at scale) when you have a specific problem it solves better — not before.
+
+## Interview angles
+
+**"What's the main advantage of a document store over a relational database?"** Schema flexibility and the ability to model deeply nested data that you always read together as a single unit. If every read needs a product with all its variable attributes, storing them together in a document avoids a join. The trade-off is losing joins for everything else, cross-document transactions, and the ability to query data in ways you didn't plan for.
+
+**"When would you choose a relational database?"** When your data is accessed by multiple features in different ways, when referential integrity matters (foreign key constraints), when you need multi-table transactions, or when your query patterns aren't known in advance. The relational model handles new queries gracefully because you can always write a new SQL statement. Document stores require anticipating access patterns at schema design time.
+
+**"What's eventual consistency?"** In a distributed database (Cassandra, DynamoDB), writes might propagate to different nodes at different times. A read from one node might return data that's a few milliseconds behind a write that went to a different node. Eventually all nodes converge to the same state — hence "eventual" consistency. Strong consistency (all reads see all writes that happened before them) requires coordination between nodes, which adds latency. Eventual consistency is a trade-off: lower latency in exchange for accepting that reads can be slightly stale.

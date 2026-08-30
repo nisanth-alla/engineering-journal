@@ -9,7 +9,7 @@ export default defineConfig({
     starlight({
       title: "Engineering Journal",
       description:
-        "Deep dives into JavaScript, TypeScript, React, Node.js, Next.js, Go, Playwright, and distributed systems. Interactive demos, real code, and interview prep.",
+        "Deep dives into JavaScript, TypeScript, React, Node.js, Next.js, Go, Databases, Playwright, and distributed systems. Interactive demos, real code, and interview prep.",
       head: [
         {
           tag: "link",
@@ -39,51 +39,25 @@ export default defineConfig({
         },
       ],
       sidebar: [
-        {
-          label: "JavaScript",
-          items: [{ autogenerate: { directory: "javascript" } }],
-        },
-        {
-          label: "TypeScript",
-          items: [{ autogenerate: { directory: "typescript" } }],
-        },
-        {
-          label: "React",
-          items: [{ autogenerate: { directory: "react" } }],
-        },
-        {
-          label: "Next.js",
-          items: [{ autogenerate: { directory: "nextjs" } }],
-        },
-        {
-          label: "Node.js",
-          items: [{ autogenerate: { directory: "node" } }],
-        },
-        {
-          label: "Learning Go",
-          items: [{ autogenerate: { directory: "go" } }],
-        },
-        {
-          label: "Interview Prep",
-          items: [{ autogenerate: { directory: "interview" } }],
-        },
-        {
-          label: "Playwright",
-          items: [{ autogenerate: { directory: "playwright" } }],
-        },
-        {
-          label: "Experiments",
-          items: [{ autogenerate: { directory: "experiments" } }],
-        },
-        {
-          label: "Build Notes",
-          items: [{ autogenerate: { directory: "build-notes" } }],
-        },
+        { label: "JavaScript", items: [{ autogenerate: { directory: "javascript" } }] },
+        { label: "TypeScript", items: [{ autogenerate: { directory: "typescript" } }] },
+        { label: "React", items: [{ autogenerate: { directory: "react" } }] },
+        { label: "Next.js", items: [{ autogenerate: { directory: "nextjs" } }] },
+        { label: "Node.js", items: [{ autogenerate: { directory: "node" } }] },
+        { label: "Learning Go", items: [{ autogenerate: { directory: "go" } }] },
+        { label: "Databases", items: [{ autogenerate: { directory: "databases" } }] },
+        { label: "Interview Prep", items: [{ autogenerate: { directory: "interview" } }] },
+        { label: "Playwright", items: [{ autogenerate: { directory: "playwright" } }] },
+        { label: "Experiments", items: [{ autogenerate: { directory: "experiments" } }] },
+        { label: "Build Notes", items: [{ autogenerate: { directory: "build-notes" } }] },
       ],
       editLink: {
         baseUrl: "https://github.com/nisanth-alla/engineering-journal/edit/main/",
       },
       customCss: ["./src/styles/components.css"],
+      components: {
+        ThemeSelect: "./src/components/ThemeSelect.astro",
+      },
     }),
     react(),
   ],

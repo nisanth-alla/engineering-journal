@@ -13,6 +13,7 @@ const interactivePages = [
   "/node/event-loop-deep-dive/",
   "/node/streams-and-buffers/",
   "/interview/system-design/",
+  "/databases/indexing/",
 ];
 
 for (const path of interactivePages) {

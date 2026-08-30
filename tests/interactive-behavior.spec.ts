@@ -84,6 +84,16 @@ test("stream pipeline starts", async ({ page }) => {
   await expect(page.getByRole("button", { name: "Stop", exact: true })).toBeVisible();
 });
 
+test("index visualizer shows sequential scan steps", async ({ page }) => {
+  await openDemo(page, "/databases/indexing/");
+  await page.getByRole("button", { name: "Sequential scan", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Read next row", exact: true })).toBeVisible();
+  // startMode sets step=0 (1 row read); each click advances by one
+  await page.getByRole("button", { name: "Read next row", exact: true }).click();
+  const readCount = await page.locator(".iv-row.is-read").count();
+  expect(readCount).toBeGreaterThanOrEqual(2);
+});
+
 test("interview lab changes the selected tradeoff", async ({ page }) => {
   await openDemo(page, "/interview/system-design/");
   await page.locator(".demo-choice").filter({ hasText: "Put it in a global store" }).click();

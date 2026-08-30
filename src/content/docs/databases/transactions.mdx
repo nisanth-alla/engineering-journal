@@ -1,0 +1,152 @@
+---
+title: Transactions and isolation
+description: ACID without the textbook, what isolation levels actually prevent, how MVCC lets readers not block writers, and what a deadlock really is.
+sidebar:
+  order: 3
+---
+
+## The bug that made it real
+
+I once shipped a feature where a user could book the last available seat at an event. Two users submitted the booking form simultaneously. Both saw the seat as available. Both bookings went through. Both got confirmation emails. The event had one seat and two confirmed attendees.
+
+The fix was two lines:
+
+```sql
+BEGIN;
+SELECT id FROM seats WHERE event_id = $1 AND status = 'available' FOR UPDATE LIMIT 1;
+-- if we got a row, mark it booked and commit
+-- if we got nothing, the seat was already taken
+COMMIT;
+```
+
+`FOR UPDATE` locks the selected row. The second concurrent transaction gets blocked when it tries to select the same row. It waits. When the first transaction commits, the second one sees the updated status and finds nothing available. Race condition gone.
+
+Understanding WHY that works required actually understanding transactions.
+
+## What ACID means without the textbook
+
+**Atomicity** means a transaction either fully succeeds or fully fails. There's no partial state. If you transfer $100 from account A to account B, either both the debit and credit happen, or neither does. The database never persists a state where $100 has left A but not yet arrived in B.
+
+**Consistency** means a transaction takes the database from one valid state to another. The database enforces constraints (foreign keys, unique constraints, NOT NULL) at commit time. If your transaction would violate a constraint, the whole thing rolls back.
+
+**Isolation** is the complex one. It determines how concurrent transactions see each other's changes. More isolation means fewer anomalies but more contention. Less isolation means higher throughput but more opportunities for read anomalies.
+
+**Durability** means committed transactions survive crashes. The database writes to a write-ahead log (WAL) before applying changes to data pages. If the server crashes after commit, the WAL lets the database replay those changes on restart.
+
+## The read anomalies isolation levels prevent
+
+There are three classic read anomalies. Whether they're possible depends on the isolation level.
+
+**Dirty read**: reading uncommitted data from another transaction.
+
+```
+Transaction A: UPDATE orders SET status = 'cancelled' WHERE id = 1
+Transaction B: SELECT status FROM orders WHERE id = 1
+-- B reads 'cancelled' even though A hasn't committed yet
+-- A rolls back. B acted on data that never existed.
+```
+
+**Non-repeatable read**: reading the same row twice in one transaction and getting different values because another transaction committed between the two reads.
+
+```
+Transaction A: SELECT price FROM products WHERE id = 1  -- gets 100
+Transaction B: UPDATE products SET price = 150 WHERE id = 1; COMMIT;
+Transaction A: SELECT price FROM products WHERE id = 1  -- gets 150
+-- A expected stable data; it changed under it
+```
+
+**Phantom read**: running the same range query twice in one transaction and getting different sets of rows because another transaction inserted rows that match the range.
+
+```
+Transaction A: SELECT COUNT(*) FROM orders WHERE status = 'pending'  -- gets 5
+Transaction B: INSERT INTO orders (status) VALUES ('pending'); COMMIT;
+Transaction A: SELECT COUNT(*) FROM orders WHERE status = 'pending'  -- gets 6
+-- New rows appeared inside A's transaction window
+```
+
+## The four isolation levels
+
+PostgreSQL and most SQL databases offer these (though behavior varies):
+
+| Level            | Dirty Read | Non-Repeatable Read | Phantom Read |
+| ---------------- | ---------- | ------------------- | ------------ |
+| READ UNCOMMITTED | possible   | possible            | possible     |
+| READ COMMITTED   | prevented  | possible            | possible     |
+| REPEATABLE READ  | prevented  | prevented           | possible     |
+| SERIALIZABLE     | prevented  | prevented           | prevented    |
+
+**READ COMMITTED** is the default in PostgreSQL. Each statement sees data committed before that statement began. Not before the transaction began — before the statement. This is the source of many subtle bugs: a long transaction can see different data in different statements.
+
+**REPEATABLE READ** gives each transaction a snapshot of the database at the moment the transaction started. Every query in the transaction sees the same data, regardless of what other transactions commit while it's running. PostgreSQL's MVCC makes this surprisingly cheap — it doesn't lock rows, it just uses the right snapshot.
+
+**SERIALIZABLE** guarantees that the result of concurrent transactions is equivalent to running them one after another in some serial order. This prevents all anomalies including the subtle ones REPEATABLE READ misses (write skew). It's the only level that's truly safe for financial transactions that read and write the same data. The cost is real: the database tracks read-write dependencies between transactions and aborts ones that would produce a non-serializable result.
+
+**READ UNCOMMITTED** shouldn't be used. PostgreSQL treats it identically to READ COMMITTED anyway.
+
+## MVCC: why readers don't block writers
+
+In a naive locking system, reading a row would require a shared lock, and writing a row would require an exclusive lock. Readers would block writers and vice versa. This makes the database slow under any real concurrency.
+
+PostgreSQL uses Multi-Version Concurrency Control instead. Every row has hidden system columns: `xmin` (the transaction ID that created this row version) and `xmax` (the transaction ID that deleted it, or 0 if it's current).
+
+When you update a row, PostgreSQL doesn't modify the existing row. It creates a new row version with the new data and marks the old version as deleted (sets `xmax`). Both versions exist on disk simultaneously.
+
+When a transaction reads the row, PostgreSQL looks at the transaction IDs and picks the version that was current at the start of the transaction (or the start of the statement, for READ COMMITTED). A concurrent writer creating a new version doesn't affect readers — they simply see the old version.
+
+This is why `SELECT` never blocks in PostgreSQL (unless you explicitly ask for `SELECT FOR UPDATE`). Readers and writers work on different row versions and never contend for the same lock.
+
+The downside: dead row versions accumulate. VACUUM's job is to reclaim space from row versions that no transaction can see anymore. A long-running transaction holds back VACUUM because the old versions are still visible to it. This is why "idle in transaction" sessions are dangerous on write-heavy tables.
+
+```sql
+-- Find transactions that have been idle too long
+SELECT pid, now() - pg_stat_activity.query_start AS duration, query, state
+FROM pg_stat_activity
+WHERE state = 'idle in transaction'
+  AND query_start < now() - INTERVAL '5 minutes';
+```
+
+## Deadlocks
+
+A deadlock happens when two transactions each hold a lock the other needs.
+
+```
+Transaction A: locks row 1, tries to lock row 2, waits
+Transaction B: locks row 2, tries to lock row 1, waits
+-- Neither can proceed. Classic deadlock.
+```
+
+PostgreSQL detects deadlocks automatically and picks one transaction to abort (the "victim"), allowing the other to proceed. The aborted transaction gets an error that includes which transactions were involved.
+
+Deadlocks aren't a sign the database is broken — they're a sign two code paths are acquiring locks in different orders. The fix is to always acquire locks in the same order across all transactions.
+
+```sql
+-- Instead of locking in arbitrary order, always lock by id ascending
+BEGIN;
+SELECT * FROM accounts WHERE id IN (1, 5) ORDER BY id FOR UPDATE;
+-- Transaction A locks id=1 then id=5
+-- Transaction B also locks id=1 then id=5
+-- They'll serialize naturally instead of deadlocking
+COMMIT;
+```
+
+Another common source: foreign key checks. Updating a row in a child table can lock a row in the parent table (to prevent the parent from being deleted). If two transactions update child rows that reference different parent rows, and those parent rows happen to be processed in different orders, you get a deadlock.
+
+## When to use SERIALIZABLE
+
+SERIALIZABLE is the right choice when:
+
+1. A transaction reads data and uses it to decide what to write, and the write must be based on the data as it existed when the read happened.
+
+The canonical example is booking systems (the seat availability case). Another: a constraint like "a user can have at most 3 active subscriptions." Under REPEATABLE READ, two concurrent transactions can both read the current count (2), both conclude 2 < 3, and both insert a subscription. Result: 4 subscriptions for a user who should have at most 3.
+
+Under SERIALIZABLE, one of those transactions would be aborted. The application retries it. Now it reads 3, concludes 3 = 3, and declines to insert. Correct behavior.
+
+The performance cost is that aborted-and-retried transactions add latency and load. For most applications at normal scale, SERIALIZABLE is fine. Tens of thousands of transactions per second with heavy write conflicts is where you'd start measuring the overhead.
+
+## Interview angles
+
+**"What does `SELECT FOR UPDATE` do?"** It acquires an exclusive row-level lock on the selected rows. Any other transaction that tries to `SELECT FOR UPDATE` or `UPDATE` those rows will block until the first transaction commits or rolls back. Used to prevent lost updates (like the seat booking race condition) by ensuring only one transaction can proceed with a given row at a time.
+
+**"What's the difference between REPEATABLE READ and SERIALIZABLE?"** REPEATABLE READ gives each transaction a consistent snapshot (no dirty or non-repeatable reads), but it doesn't prevent write skew — two transactions can each read the same data, make decisions based on it, and both write without either seeing the other's write. SERIALIZABLE prevents this by tracking read-write dependencies and aborting transactions that would produce a non-serial result.
+
+**"How does MVCC work and why does it matter?"** Instead of locking rows for reads, the database stores multiple versions of each row with transaction IDs. Readers see the version that was current when their transaction (or statement) started. Writers create new versions without affecting readers. This means reads never block writes and writes never block reads, which dramatically increases concurrency. The trade-off is dead row versions accumulating until VACUUM cleans them up.
