@@ -60,6 +60,32 @@
   font-weight: 700;
 }
 
+/* ─── Article diagrams (AI-generated images) ─────────────────────── */
+.article-diagram {
+  display: block;
+  width: 100%;
+  max-width: 780px;
+  height: auto;
+  margin: 1.5rem auto 2rem;
+  border: 1px solid var(--ej-line);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgb(0 0 0 / 8%);
+}
+
+/* White-background diagrams: keep white in light mode; add subtle shadow in dark mode so they
+   read as intentional cards rather than mismatched elements. Do NOT invert because that breaks
+   diagrams that use colour-coded elements (e.g. green/blue swimlane lanes). */
+[data-theme="dark"] .article-diagram {
+  box-shadow: 0 4px 20px rgb(0 0 0 / 32%);
+}
+
+/* Dark-background diagrams (e.g. container-namespaces) blend naturally in dark mode
+   and need a lighter border in light mode to be visible. Class applied in MDX. */
+.article-diagram-dark {
+  border-color: transparent;
+}
+
 .sl-markdown-content h2 {
   font-size: 1.5rem;
   margin-top: 3rem;

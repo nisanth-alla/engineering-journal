@@ -15,6 +15,15 @@ The browser model is enough to understand Promise ordering and setTimeout behavi
 
 ## The six phases
 
+import phasesImg from "../../../../public/images/node/event-loop-phases.png";
+import { Image } from "astro:assets";
+
+<Image
+  src={phasesImg}
+  alt="Node.js libuv event loop as a circular diagram with six clockwise segments: Timers, Pending callbacks, Idle/prepare, Poll, Check, Close callbacks. setImmediate is marked between Poll and Check. setTimeout/setInterval is marked at Timers. A center label reads microtasks drain between each phase."
+  class="article-diagram"
+/>
+
 Node's event loop cycles through six phases on every iteration. Each phase has a FIFO queue of callbacks to execute. When the queue is empty (or the max callback limit is reached), the loop moves to the next phase.
 
 <EventLoopPhases client:only="react" />

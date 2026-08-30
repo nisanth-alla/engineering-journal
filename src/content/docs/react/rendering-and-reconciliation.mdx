@@ -27,6 +27,15 @@ So when you hear "this component re-rendered 50 times," that doesn't mean the DO
 
 React keeps an in-memory representation of the UI called the virtual DOM. It's a tree of JavaScript objects that mirrors the structure of the real DOM.
 
+import vdomImg from "../../../../public/images/react/vdom-diffing.png";
+import { Image } from "astro:assets";
+
+<Image
+  src={vdomImg}
+  alt="Two VDOM trees side by side labeled Previous VDOM and Next VDOM. The trees are identical except one leaf node in the new tree has a highlighted border labeled changed. An arrow between them labeled diff points to a box below showing only that node with the label DOM update: one node."
+  class="article-diagram"
+/>
+
 When state changes:
 
 1. React calls the affected component function (render phase)

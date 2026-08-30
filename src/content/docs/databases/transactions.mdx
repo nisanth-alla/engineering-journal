@@ -9,6 +9,15 @@ sidebar:
 
 I once shipped a feature where a user could book the last available seat at an event. Two users submitted the booking form simultaneously. Both saw the seat as available. Both bookings went through. Both got confirmation emails. The event had one seat and two confirmed attendees.
 
+import raceImg from "../../../../public/images/databases/transaction-race-condition.png";
+import { Image } from "astro:assets";
+
+<Image
+  src={raceImg}
+  alt="Database transaction race condition swimlane. Two vertical lanes: Transaction A and Transaction B. Both read seats available: 1 at the same row. Both independently check count equals 1 and decide to book. Both write seats available: 0. Final state: 2 bookings, 0 seats."
+  class="article-diagram"
+/>
+
 The fix was two lines:
 
 ```sql

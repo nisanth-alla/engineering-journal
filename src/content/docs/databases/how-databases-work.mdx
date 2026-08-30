@@ -13,6 +13,15 @@ The problem wasn't the query syntax. It was that I had no model of what the data
 
 ## Data lives on disk in pages
 
+import heapImg from "../../../../public/images/databases/heap-pages.png";
+import { Image } from "astro:assets";
+
+<Image
+  src={heapImg}
+  alt="Database heap file: a vertical stack of five pages (Page 1 through Page 5), each subdivided into rows of different widths. One row has a dashed border labeled the row you want. An arrow from outside labeled Full table scan: reads all 5 pages points at the whole stack. Another arrow labeled Index: reads 1 page points directly to the highlighted row."
+  class="article-diagram"
+/>
+
 Every database stores data as pages (PostgreSQL calls them blocks, MySQL calls them pages, the idea is the same). A page is typically 8KB in PostgreSQL. It's the smallest unit of I/O — when a database reads anything, it reads at least one full page, even if you only want one row from it.
 
 Think about what that means for a query that needs rows scattered across a table. If you have 1 million rows spread across 80,000 pages, and your query matches 100 of them at random locations, the database might have to read 100 different pages from disk. At 10ms per random disk read (SSDs are faster but the principle holds), that's 1 second of I/O just to return 100 rows.

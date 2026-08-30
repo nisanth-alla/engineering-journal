@@ -50,6 +50,15 @@ The deeper problem: inversion of control. You hand your callback to someone else
 
 ## Promises
 
+import promiseImg from "../../../../public/images/javascript/promise-state-machine.png";
+import { Image } from "astro:assets";
+
+<Image
+  src={promiseImg}
+  alt="Promise state machine. A pending circle with two arrows: one to fulfilled labeled resolve(value), one to rejected labeled reject(error). From fulfilled, a .then() arrow creates a new pending. From rejected, a .catch() arrow creates a new pending. States are terminal once settled."
+  class="article-diagram"
+/>
+
 A Promise is an object that represents a value that might exist now, might exist later, or might never exist (if the operation fails).
 
 ```javascript

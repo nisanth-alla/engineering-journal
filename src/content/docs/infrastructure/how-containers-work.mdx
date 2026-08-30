@@ -29,6 +29,15 @@ The Linux kernel provides several namespace types. Docker uses most of them by d
 
 What's not isolated by default: the kernel itself, the system time, and certain `/proc` and `/sys` entries. This is why container "isolation" is not a security boundary in the way a VM is. A process that can exploit a kernel vulnerability can potentially escape its namespace. Containers reduce the attack surface but don't eliminate it.
 
+import namespacesImg from "../../../../public/images/infrastructure/container-namespaces.png";
+import { Image } from "astro:assets";
+
+<Image
+  src={namespacesImg}
+  alt="Linux container namespace isolation diagram. At the bottom, a large box labeled Linux Kernel. Above it, four boxes in a row labeled PID ns, Net ns, Mount ns, and UTS ns with dashed borders. Each contains a circle labeled process. A vertical arrow labeled syscall connects each process down to the kernel."
+  class="article-diagram article-diagram-dark"
+/>
+
 ## cgroups: what the process can use
 
 Namespaces control visibility. Control groups (cgroups) control resource consumption. When you run:

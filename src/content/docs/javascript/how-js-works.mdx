@@ -42,6 +42,15 @@ When you call `fetch()` or `setTimeout()`, JavaScript doesn't sit there waiting.
 
 The event loop is the mechanism that coordinates the call stack, the callback queues, and the browser APIs. Its job is simple:
 
+import eventLoopImg from "../../../../public/images/javascript/event-loop-flow.png";
+import { Image } from "astro:assets";
+
+<Image
+  src={eventLoopImg}
+  alt="JavaScript event loop: Call Stack on the left, Microtask Queue in the center, Macrotask Queue on the right, with a circular Event Loop arrow below connecting all three. setTimeout points to Macrotask, Promise.then points to Microtask."
+  class="article-diagram"
+/>
+
 1. Is the call stack empty?
 2. If yes, check the microtask queue. If there's something there, push it onto the stack.
 3. If the microtask queue is empty, check the macrotask queue. Push the next item onto the stack.
