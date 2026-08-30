@@ -199,6 +199,16 @@ header.header {
   }
 }
 
+/* ─── Heading anchor: hover-only, never visible by default ───────── */
+.sl-anchor-link {
+  opacity: 0 !important;
+  transition: opacity 0.15s ease;
+}
+.sl-heading-wrapper:hover .sl-anchor-link,
+.sl-anchor-link:focus-visible {
+  opacity: 0.45 !important;
+}
+
 .interactive-demo {
   position: relative;
   box-sizing: border-box;
@@ -216,6 +226,16 @@ header.header {
 .interactive-demo *::before,
 .interactive-demo *::after {
   box-sizing: border-box;
+}
+/* Reset Starlight's article margin-block on every element inside demos */
+.interactive-demo * {
+  margin-block: revert-layer;
+}
+/* But wipe it specifically for interactive controls which need 0 margin */
+.interactive-demo button,
+.interactive-demo input,
+.interactive-demo select {
+  margin: 0 !important;
 }
 
 .interactive-demo::before {
