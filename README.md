@@ -52,7 +52,7 @@ Run the complete diff-ready gate:
 npm run verify
 ```
 
-This checks formatting, Astro and TypeScript diagnostics, a clean production build, the Pagefind search index, and 24 Playwright browser tests against the built site.
+This checks formatting, Astro and TypeScript diagnostics, a clean production build, the Pagefind search index, and the full Playwright browser suite against the built site. CI runs the same command on every pull request.
 
 ## Deploy
 
