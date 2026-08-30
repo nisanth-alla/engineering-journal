@@ -1,0 +1,40 @@
+---
+/**
+ * Extends Starlight's default Head with Open Graph and Twitter card meta tags.
+ *
+ * Uses a single static brand OG image (public/og-card.svg → og-card.svg at
+ * the site root) so there's no build-time image generation overhead. Per-page
+ * titles and descriptions are accurate; the image is the same for all pages.
+ * This is the pattern most engineering blogs and portfolios use in practice —
+ * a recognizable brand card beats a fragile per-page generation pipeline.
+ */
+import DefaultHead from "@astrojs/starlight/components/Head.astro";
+
+const { entry, site } = Astro.locals.starlightRoute;
+
+const base = "/engineering-journal";
+const siteUrl = (site ?? "https://nisanth-alla.github.io").replace(/\/$/, "");
+const ogImage = `${siteUrl}${base}/og-card.svg`;
+
+const pageTitle = entry?.data?.title;
+const title = pageTitle ? `${pageTitle} | Engineering Journal` : "Engineering Journal";
+
+const description =
+  entry?.data?.description ??
+  "Deep dives into JavaScript, TypeScript, React, Node.js, Databases, and Infrastructure. Interactive demos, real code, and interview prep. Written by a working engineer.";
+---
+
+<DefaultHead {...Astro.props}><slot /></DefaultHead>
+
+<meta property="og:type" content="article" />
+<meta property="og:site_name" content="Engineering Journal" />
+<meta property="og:title" content={title} />
+<meta property="og:description" content={description} />
+<meta property="og:image" content={ogImage} />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content={title} />
+<meta name="twitter:description" content={description} />
+<meta name="twitter:image" content={ogImage} />

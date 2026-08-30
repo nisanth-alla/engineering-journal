@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for considering a contribution to the Engineering Journal. This is a personal learning and documentation site covering JavaScript, TypeScript, React, Node.js, Next.js, Go, Playwright, and distributed systems.
+Thanks for considering a contribution to the Engineering Journal. This is a personal learning and documentation site covering JavaScript, TypeScript, React, Node.js, Next.js, Go, Databases, Infrastructure, Playwright, and distributed systems.
 
 ## Getting started
 
@@ -11,10 +11,11 @@ Thanks for considering a contribution to the Engineering Journal. This is a pers
 ## Development rules
 
 - **Formatting**: run `npm run format`.
+- **Lint**: run `npm run lint` (ESLint — TypeScript, React hooks, no-unused-vars).
 - **Checks**: run `npm run check` (Astro + TypeScript diagnostics).
 - **Build**: run `npm run build`.
 - **Browser tests**: run `npm run test:e2e` (requires Playwright Chromium installed).
-- **Full gate**: run `npm run verify` to validate formatting, checks, build, search index, and browser tests in one command.
+- **Full gate**: run `npm run verify` to validate formatting, ESLint, checks, build, search index, and browser tests in one command.
 - Write in the journal's voice: precise, senior, and non-generic. No AI-sounding filler.
 - Every article that introduces a concept should be self-contained and, where useful, end with an "Interview angles" section.
 - Interactive demos should teach real behavior. Avoid decorative components that add no learning value.

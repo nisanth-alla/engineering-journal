@@ -46,6 +46,7 @@ export default defineConfig({
         { label: "Node.js", items: [{ autogenerate: { directory: "node" } }] },
         { label: "Learning Go", items: [{ autogenerate: { directory: "go" } }] },
         { label: "Databases", items: [{ autogenerate: { directory: "databases" } }] },
+        { label: "Infrastructure", items: [{ autogenerate: { directory: "infrastructure" } }] },
         { label: "Interview Prep", items: [{ autogenerate: { directory: "interview" } }] },
         { label: "Playwright", items: [{ autogenerate: { directory: "playwright" } }] },
         { label: "Experiments", items: [{ autogenerate: { directory: "experiments" } }] },
@@ -57,6 +58,7 @@ export default defineConfig({
       customCss: ["./src/styles/components.css"],
       components: {
         ThemeSelect: "./src/components/ThemeSelect.astro",
+        Head: "./src/components/OGHead.astro",
       },
     }),
     react(),
