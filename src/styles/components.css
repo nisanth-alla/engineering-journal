@@ -199,8 +199,20 @@ header.header {
   }
 }
 
-/* ─── Heading anchor: hover-only, never visible by default ───────── */
+/* ─── Heading anchor: hover-only with clear gap from heading text ─── */
+.sl-heading-wrapper {
+  display: flex !important;
+  align-items: center;
+  gap: 0.55rem;
+  flex-wrap: nowrap;
+}
+.sl-heading-wrapper h2,
+.sl-heading-wrapper h3,
+.sl-heading-wrapper h4 {
+  margin: 0;
+}
 .sl-anchor-link {
+  flex-shrink: 0;
   opacity: 0 !important;
   transition: opacity 0.15s ease;
 }
@@ -290,7 +302,7 @@ header.header {
   align-items: center;
   flex-wrap: wrap;
   gap: 0.55rem;
-  margin: 1rem 0;
+  margin: 1rem 0 1rem;
 }
 .interactive-demo button {
   line-height: 1.2;
