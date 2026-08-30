@@ -1066,6 +1066,23 @@ header.header {
   }
 }
 
+/* ─── B-tree article diagram ─────────────────────────────────────── */
+.btree-diagram {
+  margin: 1.5rem 0;
+  padding: 1rem;
+  border: 1px solid var(--ej-line);
+  border-radius: 12px;
+  background: var(--ej-surface);
+  overflow-x: auto;
+}
+.btree-diagram svg {
+  display: block;
+  width: 100%;
+  max-width: 560px;
+  height: auto;
+  margin: 0 auto;
+}
+
 /* ─── IndexVisualizer ────────────────────────────────────────────── */
 .iv-row-grid {
   display: grid;
@@ -1167,7 +1184,7 @@ header.header {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 1rem;
-  margin-top: 1rem;
+  margin-top: 1.25rem !important;
 }
 .iv-counter {
   display: flex;
@@ -1234,7 +1251,16 @@ header.header {
 }
 .iv-seq-panel,
 .iv-btree-panel {
-  margin-top: 0.5rem;
+  margin-top: 0.5rem !important;
+}
+.iv-summary {
+  margin-top: 1.25rem !important;
+}
+.iv-tree {
+  margin-top: 0.75rem !important;
+}
+.iv-row-grid {
+  margin-top: 0.75rem !important;
 }
 
 @media (max-width: 640px) {
