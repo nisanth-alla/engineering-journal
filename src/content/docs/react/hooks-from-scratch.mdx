@@ -77,6 +77,15 @@ Both `setCount` calls use the same stale `count`. You get `1`, not `2`. If you n
 
 ## useEffect: synchronization, not lifecycle
 
+import lifecycleImg from "../../../../public/images/react/hooks-lifecycle.png";
+import { Image } from "astro:assets";
+
+<Image
+  src={lifecycleImg}
+  alt="React component lifecycle as a horizontal timeline. Render phase: React calls your function, no side effects. Commit phase: React updates the DOM. Browser paint shown as a dashed box. Effects phase: useEffect runs, useLayoutEffect runs before paint. A backwards arrow at the bottom labeled state change triggers next render loops back to Render."
+  class="article-diagram"
+/>
+
 This is the most misunderstood hook, and I got it wrong for months before it clicked.
 
 `useEffect` is NOT "componentDidMount + componentDidUpdate." It's a mechanism to **synchronize your component with something outside of React's rendering**: a browser API, a WebSocket, a DOM measurement, a document title.

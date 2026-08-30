@@ -18,12 +18,14 @@ This is where most deployment pattern tutorials stop being useful. They describe
 
 The default in most platforms (Kubernetes, ECS, Heroku). New instances start, old instances stop, traffic shifts gradually.
 
-```
-Round 1:  [old] [old] [old] [old]   → [new] [old] [old] [old]
-Round 2:  [new] [old] [old] [old]   → [new] [new] [old] [old]
-Round 3:  [new] [new] [old] [old]   → [new] [new] [new] [old]
-Round 4:  [new] [new] [new] [old]   → [new] [new] [new] [new]
-```
+import rollingImg from "../../../../public/images/infrastructure/rolling-deployment.png";
+import { Image } from "astro:assets";
+
+<Image
+  src={rollingImg}
+  alt="Rolling deployment shown as four rows of four boxes. Row 1: all boxes labeled old. Row 2: first box labeled new, rest old. Row 3: first two new, rest old. Row 4: all new. A vertical arrow on the left labeled time points downward."
+  class="article-diagram"
+/>
 
 **What it's good for**: stateless services where all versions of the code can coexist for the duration of the rollout.
 

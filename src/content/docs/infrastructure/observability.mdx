@@ -13,6 +13,15 @@ The problem: I knew _what_ happened. I didn't know _where time went_. That's a d
 
 ## The three signals and what each answers
 
+import observabilityImg from "../../../../public/images/infrastructure/observability-pillars.png";
+import { Image } from "astro:assets";
+
+<Image
+  src={observabilityImg}
+  alt="Observability three pillars: three equal columns labeled Logs, Metrics, and Traces. Each shows an example — a JSON log entry, a line chart labeled error_rate, and a Gantt-style request breakdown across three services. Each has a one-sentence caption."
+  class="article-diagram"
+/>
+
 **Logs** answer _what happened_. They're the event record — a request arrived, a query ran, an error was thrown. Good for debugging a specific known event when you already know roughly when it happened. Bad for answering "is this slow right now?" or "which service is causing latency?"
 
 **Metrics** answer _how much / how often_. Request rate, error rate, latency percentiles, queue depth, CPU usage. Good for dashboards, alerts, and spotting trends. Bad for understanding _why_ a specific request was slow.

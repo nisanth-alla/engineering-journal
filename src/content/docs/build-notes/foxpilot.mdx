@@ -109,6 +109,15 @@ The background-job API also strips the stored resume text before returning job r
 
 The most instructive bug was not in the matching logic. It was a data-location mismatch.
 
+import mismatchImg from "../../../../public/images/build-notes/foxpilot-data-mismatch.png";
+import { Image } from "astro:assets";
+
+<Image
+  src={mismatchImg}
+  alt="Two swimlanes: CLI on the left writing to foxpilot.sqlite3 (local), Web UI on the right writing to PostgreSQL (Docker). A dashed horizontal line between them labeled these never share data with a prohibited symbol. Each lane shows different outcomes: CLI shows Software Engineer roles with 35 matches, Web shows Data Engineer roles with 38 matches."
+  class="article-diagram"
+/>
+
 The local CLI scan wrote to `~/.foxpilot/foxpilot.sqlite3`. The web UI read from Docker PostgreSQL. Direct inspection showed the two were completely different worlds:
 
 ```text

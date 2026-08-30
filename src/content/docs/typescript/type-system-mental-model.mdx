@@ -11,6 +11,15 @@ import TypeNarrowing from "../../../components/TypeNarrowing";
 
 This is the single most important concept in TypeScript's type system, and it trips up people coming from Java, C#, or Go.
 
+import structuralImg from "../../../../public/images/typescript/structural-typing.png";
+import { Image } from "astro:assets";
+
+<Image
+  src={structuralImg}
+  alt="Structural vs nominal typing. Left box: Required type with name string. Right box: Actual value with name string and age number. A green checkmark between them labeled TypeScript accepts — superset is compatible. Below: contrast showing a nominal type system with an X and label Rejected — different declared type."
+  class="article-diagram"
+/>
+
 In Java, if you declare `class Dog` and `class Cat`, they're different types even if they have the exact same fields. Two classes with the same shape are still distinct because they have different _names_. That's nominal typing.
 
 TypeScript doesn't work that way. Two types are compatible if they have the same _structure_, regardless of their names.

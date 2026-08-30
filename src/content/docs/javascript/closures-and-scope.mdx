@@ -11,6 +11,15 @@ import ClosureVisualizer from "../../../components/ClosureVisualizer";
 
 A closure is a function that remembers the variables from the scope where it was created, even after that scope has finished executing.
 
+import closureImg from "../../../../public/images/javascript/closure-scope-chain.png";
+import { Image } from "astro:assets";
+
+<Image
+  src={closureImg}
+  alt="Closure memory diagram: makeCounter's stack frame shown as faded after it returns, with an arrow labeled closes over pointing to a persistent box labeled count = 0, which is not faded. The persistent box is labeled closure scope — still alive."
+  class="article-diagram"
+/>
+
 That definition is correct but abstract. Here's what it means in practice:
 
 ```javascript
