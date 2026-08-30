@@ -1,9 +1,9 @@
 ---
 title: Engineering Journal
-description: Deep dives into JavaScript, TypeScript, React, Node.js, Next.js, Go, Playwright, and distributed systems. Interactive demos, real code, interview prep, and build notes from real projects.
+description: Deep dives into JavaScript, TypeScript, React, Node.js, Next.js, Go, Databases, Playwright, and distributed systems. Interactive demos, real code, interview prep, and build notes from real projects.
 template: splash
 hero:
-  tagline: Deep dives into JavaScript, TypeScript, React, Node.js, Next.js, Go, Playwright, and distributed systems. Interactive demos you can play with on the page, real code from production experience, and interview prep. Written by a working engineer, not generated from a prompt.
+  tagline: Deep dives into JavaScript, TypeScript, React, Node.js, Next.js, Go, Databases, Playwright, and distributed systems. Interactive demos you can play with on the page, real code from production experience, and interview prep. Written by a working engineer, not generated from a prompt.
   actions:
     - text: Start with JavaScript
       link: /engineering-journal/javascript/how-js-works/
@@ -97,6 +97,15 @@ import SectionCard from "../../components/SectionCard.astro";
   >
     Caching, queues, consistency, retries, database design, API design. Short enough to re-read in
     five minutes, with runnable experiments and interactive visualizations.
+  </SectionCard>
+  <SectionCard
+    title="Databases"
+    icon="open-book"
+    href="/engineering-journal/databases/how-databases-work/"
+  >
+    Pages, storage engines, and B-tree indexes from first principles. How MVCC lets readers not
+    block writers, what isolation levels actually prevent, and the real trade-off between SQL and
+    NoSQL. Includes an interactive index vs sequential scan visualizer.
   </SectionCard>
   <SectionCard title="Build Notes" icon="list-format" href="/engineering-journal/build-notes/">
     Architecture and lessons from real projects. FoxPilot, a profile-driven job discovery engine:

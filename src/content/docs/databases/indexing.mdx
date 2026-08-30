@@ -1,0 +1,146 @@
+---
+title: Indexing
+description: How B-tree indexes actually work, why column order in composite indexes is not arbitrary, and when the query planner ignores your index anyway.
+sidebar:
+  order: 2
+---
+
+import IndexVisualizer from "../../../components/IndexVisualizer";
+
+## The first time it clicks
+
+The first time I added an index and watched a 12-second query drop to 4ms, I felt like I had discovered a database cheat code. Then I added indexes on every column I could think of and watched insert performance crater. Then I added a composite index in the wrong column order and the planner refused to use it. That's when I decided to actually understand what an index is.
+
+## B-trees: the data structure behind most indexes
+
+A B-tree (specifically a B+ tree in most database implementations) is a balanced tree that stores sorted data and allows O(log n) lookups, insertions, and deletions.
+
+For a table with 1 million rows, a B-tree index has a depth of roughly log₁₀₀(1,000,000) ≈ 3. Finding any row requires traversing 3 nodes — typically 3 page reads from disk, or possibly 3 in-memory lookups if the index fits in the buffer pool.
+
+The key properties:
+
+- **Balanced**: every leaf is at the same depth. Search time is predictable regardless of what you're searching for.
+- **Sorted**: keys are stored in order. This makes range queries efficient — find the start of the range in O(log n), then scan leaf nodes linearly.
+- **Leaf nodes linked**: in a B+ tree, leaf nodes form a doubly-linked list. A range query (`WHERE age BETWEEN 25 AND 35`) navigates to the first matching leaf, then follows the links through subsequent leaves without going back up the tree.
+
+```
+           [50]
+          /    \
+      [25]      [75]
+      /  \      /  \
+  [10,20] [30,40] [60,70] [80,90]
+  ↔ linked list of leaf nodes ↔
+```
+
+The leaf nodes hold the index key values and, for PostgreSQL's heap-based storage, a pointer (tuple ID) to the actual row in the heap file. For InnoDB's clustered indexes, the leaf nodes hold the actual row data.
+
+## Try it: index vs sequential scan
+
+Step through a search with and without an index. Watch what the database actually reads.
+
+<IndexVisualizer client:only="react" />
+
+## Column order in composite indexes is not arbitrary
+
+This is the mistake I made when I started. I had a query filtering on `status` and `created_at`:
+
+```sql
+SELECT * FROM orders WHERE status = 'pending' AND created_at > NOW() - INTERVAL '7 days';
+```
+
+I created the index:
+
+```sql
+CREATE INDEX idx_orders ON orders (created_at, status);
+```
+
+The planner used it for `created_at` range queries but had to scan through all dates to filter by `status`. The right index:
+
+```sql
+CREATE INDEX idx_orders ON orders (status, created_at);
+```
+
+Now the planner navigates directly to the `status = 'pending'` section of the index, then scans only entries within the date range.
+
+The rule is called the **left-prefix rule**: a composite index `(a, b, c)` supports queries that filter on `(a)`, `(a, b)`, or `(a, b, c)`. It cannot support a query that only filters on `b` or `c` because there's no entry point into the tree without the leading column.
+
+More practically: put the equality filter column first, the range filter column second.
+
+```sql
+-- Uses the index: equality on status, then range on created_at
+WHERE status = 'pending' AND created_at > '2024-01-01'
+
+-- Cannot use the index efficiently: no entry point without status
+WHERE created_at > '2024-01-01'
+```
+
+## When the planner ignores your index
+
+Creating an index doesn't mean the planner will use it. The planner picks the cheapest plan based on its statistics, and sometimes the cheapest plan is a sequential scan.
+
+**High selectivity predicate on a low-cardinality column.** If a table has 1 million rows and `status` only has 3 distinct values, filtering for `status = 'active'` might match 600,000 rows. At that point, a sequential scan is likely faster than 600,000 individual index lookups with random page access.
+
+**Type mismatch.** The index is on `user_id` (integer), but your query has `WHERE user_id = '42'` (string literal). The cast prevents index use.
+
+**Function on the indexed column.** `WHERE LOWER(email) = 'alice@example.com'` can't use an index on `email`. The solution is a function-based index:
+
+```sql
+CREATE INDEX idx_lower_email ON users (LOWER(email));
+```
+
+**Stale statistics.** PostgreSQL's planner uses `pg_statistic` to estimate how many rows a predicate will match. If the table has grown significantly since the last `ANALYZE`, the planner might underestimate result size and pick a plan that's bad for the actual data volume. `ANALYZE orders;` updates the statistics.
+
+**The planner is just wrong.** It happens. The planner's cost model isn't perfect. You can override it with `SET enable_seqscan = off` to test whether the index would actually be faster, then decide whether the plan hint is worth it (it usually isn't long-term — fix the statistics instead).
+
+## Covering indexes
+
+A covering index contains all the columns a query needs, so the database never has to look up the actual row.
+
+```sql
+SELECT email, created_at FROM users WHERE status = 'active';
+
+-- This index covers the query:
+CREATE INDEX idx_users_status_covering ON users (status) INCLUDE (email, created_at);
+```
+
+With a covering index, the planner retrieves everything it needs directly from the index leaf nodes. No heap access. For read-heavy queries this can be a significant win, especially if the heap is large and cold.
+
+In PostgreSQL, use `INCLUDE` to add non-searchable columns to the index without affecting the sort order. In MySQL, you list all columns: `CREATE INDEX ... ON users (status, email, created_at)`.
+
+## Partial indexes
+
+A partial index only includes rows that match a condition. This makes the index smaller (faster to scan, less memory needed in the buffer pool) and only useful when the condition matches.
+
+```sql
+-- Index only pending orders (probably a small fraction of the table)
+CREATE INDEX idx_pending_orders ON orders (created_at) WHERE status = 'pending';
+
+-- Queries with WHERE status = 'pending' benefit; others don't use this index
+SELECT * FROM orders WHERE status = 'pending' AND created_at > NOW() - INTERVAL '24 hours';
+```
+
+This is underused. A lot of queries filter on a specific status or flag (active users, unread notifications, incomplete jobs) where the matching rows are a small percentage of the total. A partial index on that subset is significantly smaller and more cache-friendly than a full index.
+
+## The write cost of indexes
+
+Every index you add makes writes slower. An `INSERT` or `UPDATE` doesn't just write the row; it updates every index on the table. The more indexes, the more B-tree pages to modify, the more disk writes.
+
+For a table with 10 indexes, a single INSERT updates 10 separate index trees. For a write-heavy workload (high-volume logging, event streams, time-series data), this becomes the bottleneck.
+
+The practical implication: index for your read patterns, not "just in case." If a column is never used in a WHERE clause, an ORDER BY, or a JOIN condition, it probably shouldn't be indexed. The index isn't free.
+
+## Index maintenance
+
+PostgreSQL indexes accumulate dead tuples as rows are updated and deleted. An UPDATE is implemented as an insert + delete under the hood — the old row is marked dead, the new row is inserted. The index gets a new entry for the new row. Dead index entries accumulate until `VACUUM` cleans them up.
+
+Index bloat happens when dead entries aren't reclaimed fast enough. An index that started at 100MB can grow to 500MB if the table has heavy update activity and autovacuum isn't keeping up. `pg_stat_user_indexes` shows index size; `pgstattuple` (extension) shows bloat percentage.
+
+If an index has grown significantly, `REINDEX CONCURRENTLY` rebuilds it without locking the table.
+
+## Interview angles
+
+**"Explain the left-prefix rule for composite indexes."** A composite index `(a, b, c)` can only be used by queries that filter on `a` as the leading column. Without `a` in the predicate, there's no way to navigate to the right subtree in the B-tree. So `WHERE a = 1 AND b = 2` uses the index; `WHERE b = 2` does not.
+
+**"Why might a query not use an index even when one exists?"** Several reasons: the matching rows are a large percentage of the table (sequential scan is cheaper), there's a function applied to the indexed column, there's a type mismatch between the predicate and the column type, or the planner's statistics are stale. Always check `EXPLAIN ANALYZE` to see what the planner actually chose.
+
+**"What's a covering index?"** An index that includes all the columns a query needs, so the database never needs to access the actual row (heap) — everything comes from the index itself. Reduces I/O significantly for read-heavy queries.

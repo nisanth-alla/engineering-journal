@@ -48,7 +48,7 @@ for (const [label, args] of checks) {
       stdio: "ignore",
       detached: false,
     });
-    await waitForURL("http://127.0.0.1:4322/engineering-journal/");
+    await waitForURL("http://127.0.0.1:4322/engineering-journal/", 40_000);
   }
 
   console.log(`\n=== ${label} ===`);
