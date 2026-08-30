@@ -1,9 +1,9 @@
 ---
 title: Engineering Journal
-description: Deep dives into JavaScript, TypeScript, React, Node.js, Next.js, Go, Databases, Playwright, and distributed systems. Interactive demos, real code, interview prep, and build notes from real projects.
+description: Deep dives into JavaScript, TypeScript, React, Node.js, Next.js, Go, Databases, Infrastructure, Playwright, and distributed systems. Interactive demos, real code, interview prep, and build notes from real projects.
 template: splash
 hero:
-  tagline: Deep dives into JavaScript, TypeScript, React, Node.js, Next.js, Go, Databases, Playwright, and distributed systems. Interactive demos you can play with on the page, real code from production experience, and interview prep. Written by a working engineer, not generated from a prompt.
+  tagline: Deep dives into JavaScript, TypeScript, React, Node.js, Next.js, Go, Databases, Infrastructure, Playwright, and distributed systems. Interactive demos you can play with on the page, real code from production experience, and interview prep. Written by a working engineer, not generated from a prompt.
   actions:
     - text: Start with JavaScript
       link: /engineering-journal/javascript/how-js-works/
@@ -18,19 +18,19 @@ import SectionCard from "../../components/SectionCard.astro";
 
 <div class="ej-stats">
   <div class="ej-stats-item">
-    <span class="ej-stats-number">12</span>
+    <span class="ej-stats-number">13</span>
     <span class="ej-stats-label">Sections</span>
   </div>
   <div class="ej-stats-item">
-    <span class="ej-stats-number">45+</span>
+    <span class="ej-stats-number">50+</span>
     <span class="ej-stats-label">Articles</span>
   </div>
   <div class="ej-stats-item">
-    <span class="ej-stats-number">13</span>
+    <span class="ej-stats-number">14</span>
     <span class="ej-stats-label">Interactive demos</span>
   </div>
   <div class="ej-stats-item">
-    <span class="ej-stats-number">26</span>
+    <span class="ej-stats-number">28</span>
     <span class="ej-stats-label">Browser tests</span>
   </div>
 </div>
@@ -83,6 +83,15 @@ import SectionCard from "../../components/SectionCard.astro";
     Pages, storage engines, and B-tree indexes from first principles. How MVCC lets readers not
     block writers, what isolation levels actually prevent, and the real trade-off between SQL and
     NoSQL. Includes an interactive index vs sequential scan visualizer.
+  </SectionCard>
+  <SectionCard
+    title="Infrastructure"
+    brand="docker"
+    href="/engineering-journal/infrastructure/how-containers-work/"
+  >
+    Containers, CI/CD pipelines, observability, and deployment patterns from someone who has
+    debugged OOMKilled containers, fixed flaky pipelines, and chosen the wrong deployment strategy
+    once. Includes an interactive CI pipeline simulator.
   </SectionCard>
   <SectionCard title="Interview Prep" icon="document" href="/engineering-journal/interview/">
     Summary tables for quick scanning + full answers with context. JavaScript, React, TypeScript,

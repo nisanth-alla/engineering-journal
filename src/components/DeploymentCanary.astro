@@ -1,0 +1,164 @@
+---
+// Canary deployment — traffic shift visualised as proportional bars.
+// Labels are left-aligned with enough space so they never clip.
+---
+
+<div class="btree-diagram deploy-diagram">
+  <svg
+    viewBox="0 0 700 320"
+    xmlns="http://www.w3.org/2000/svg"
+    role="img"
+    aria-label="Canary deployment: traffic shifts from 100% v1 through 95/5, 80/20, to 100% v2"
+  >
+    <!-- Legend -->
+    <rect x="130" y="12" width="12" height="12" rx="2" class="cn-v1-fill"></rect>
+    <text x="148" y="22" class="cn-legend">v1 (baseline)</text>
+    <rect x="280" y="12" width="12" height="12" rx="2" class="cn-v2-fill"></rect>
+    <text x="298" y="22" class="cn-legend">v2 (canary)</text>
+
+    <!-- ── Stage 0: 100 / 0 ──────────────── -->
+    <text x="10" y="64" class="cn-stage-name">Baseline</text>
+    <text x="10" y="80" class="cn-pct cn-v1-text">100%</text>
+    <rect x="130" y="54" width="550" height="24" rx="4" class="cn-bar-bg"></rect>
+    <rect x="130" y="54" width="550" height="24" rx="4" class="cn-bar-v1"></rect>
+
+    <!-- arrow -->
+    <line x1="405" y1="82" x2="405" y2="102" class="cn-arrow-v"></line>
+    <polygon points="401,102 405,110 409,102" class="cn-arrowhead"></polygon>
+    <text x="415" y="98" class="cn-transition">canary starts</text>
+
+    <!-- ── Stage 1: 95 / 5 ───────────────── -->
+    <text x="10" y="130" class="cn-stage-name">5% canary</text>
+    <text x="10" y="146" class="cn-pct cn-v1-text">95%</text>
+    <rect x="130" y="120" width="550" height="24" rx="4" class="cn-bar-bg"></rect>
+    <rect x="130" y="120" width="522" height="24" rx="4" class="cn-bar-v1"></rect>
+    <rect x="652" y="120" width="28" height="24" rx="3" class="cn-bar-v2"></rect>
+    <text x="653" y="135" class="cn-pct-inside cn-v2-text">5%</text>
+
+    <!-- arrow -->
+    <line x1="405" y1="148" x2="405" y2="168" class="cn-arrow-v"></line>
+    <polygon points="401,168 405,176 409,168" class="cn-arrowhead cn-ok"></polygon>
+    <text x="415" y="164" class="cn-transition cn-ok-text">metrics look good</text>
+
+    <!-- ── Stage 2: 80 / 20 ──────────────── -->
+    <text x="10" y="198" class="cn-stage-name">20% canary</text>
+    <text x="10" y="214" class="cn-pct cn-v1-text">80%</text>
+    <rect x="130" y="188" width="550" height="24" rx="4" class="cn-bar-bg"></rect>
+    <rect x="130" y="188" width="440" height="24" rx="4" class="cn-bar-v1"></rect>
+    <rect x="570" y="188" width="110" height="24" rx="3" class="cn-bar-v2"></rect>
+    <text x="572" y="203" class="cn-pct-inside cn-v2-text">20%</text>
+
+    <!-- arrow -->
+    <line x1="405" y1="216" x2="405" y2="236" class="cn-arrow-v"></line>
+    <polygon points="401,236 405,244 409,236" class="cn-arrowhead cn-ok"></polygon>
+    <text x="415" y="232" class="cn-transition cn-ok-text">still good — promote</text>
+
+    <!-- ── Stage 3: 0 / 100 ──────────────── -->
+    <text x="10" y="266" class="cn-stage-name">Complete</text>
+    <text x="10" y="282" class="cn-pct cn-v2-text">100%</text>
+    <rect x="130" y="256" width="550" height="24" rx="4" class="cn-bar-bg"></rect>
+    <rect x="130" y="256" width="550" height="24" rx="4" class="cn-bar-v2-full"></rect>
+    <text x="405" y="270" class="cn-complete-label">v2 — rollout complete</text>
+  </svg>
+</div>
+
+<style>
+  .deploy-diagram {
+    overflow: visible;
+  }
+  .deploy-diagram svg {
+    max-width: 700px;
+  }
+
+  .cn-legend {
+    font-family: var(--sl-font-mono);
+    font-size: 11px;
+    fill: var(--ej-muted);
+    alignment-baseline: middle;
+  }
+
+  .cn-stage-name {
+    font-family: var(--sl-font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    fill: var(--ej-subtle);
+    text-anchor: start;
+  }
+
+  .cn-pct {
+    font-family: var(--sl-font-mono);
+    font-size: 13px;
+    font-weight: 700;
+    text-anchor: start;
+  }
+
+  .cn-pct-inside {
+    font-family: var(--sl-font-mono);
+    font-size: 10px;
+    font-weight: 700;
+    alignment-baseline: middle;
+  }
+
+  .cn-complete-label {
+    font-family: var(--sl-font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    fill: #22a06b;
+    text-anchor: middle;
+    alignment-baseline: middle;
+  }
+
+  .cn-v1-text {
+    fill: #60a5fa;
+  }
+  .cn-v2-text {
+    fill: #34d399;
+  }
+
+  .cn-bar-bg {
+    fill: var(--ej-line);
+  }
+  .cn-bar-v1 {
+    fill: #2563c7;
+  }
+  .cn-bar-v2 {
+    fill: #16a34a;
+  }
+  .cn-bar-v2-full {
+    fill: #16a34a;
+  }
+
+  .cn-v1-fill {
+    fill: #2563c7;
+    stroke: #60a5fa;
+    stroke-width: 1;
+  }
+  .cn-v2-fill {
+    fill: #16a34a;
+    stroke: #34d399;
+    stroke-width: 1;
+  }
+
+  .cn-arrow-v {
+    stroke: var(--ej-line);
+    stroke-width: 1.5;
+  }
+
+  .cn-arrowhead {
+    fill: var(--ej-subtle);
+  }
+  .cn-arrowhead.cn-ok {
+    fill: #22a06b;
+  }
+
+  .cn-transition {
+    font-family: var(--sl-font-mono);
+    font-size: 11px;
+    fill: var(--ej-subtle);
+    alignment-baseline: middle;
+  }
+  .cn-transition.cn-ok-text {
+    fill: #22a06b;
+  }
+</style>

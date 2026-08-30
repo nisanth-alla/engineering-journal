@@ -9,15 +9,12 @@ export default function MemoComparison() {
   const [parentCount, setParentCount] = useState(0);
   const [childValue, setChildValue] = useState("hello");
 
-  // Stable callback using useCallback
-  const stableCallback = useCallback(() => {
-    console.log("clicked");
-  }, []);
-
-  // Unstable callback: new reference every render
-  const unstableCallback = () => {
-    console.log("clicked");
-  };
+  // These console.log calls are intentional demo output — they illustrate
+  // that both callbacks execute the same work but with different referential identity.
+  // eslint-disable-next-line no-console
+  const stableCallback = useCallback(() => console.log("clicked"), []);
+  // eslint-disable-next-line no-console
+  const unstableCallback = () => console.log("clicked");
 
   return (
     <div className="interactive-demo">

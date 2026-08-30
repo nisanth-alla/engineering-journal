@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <defs>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#22d3ee"/>
+      <stop offset="65%" stop-color="#0f172a"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="630" fill="#0f172a"/>
+
+  <!-- Top accent bar -->
+  <rect width="1200" height="4" fill="url(#accent)"/>
+
+  <!-- Grid pattern (subtle) -->
+  <path d="M0 60 H1200 M0 120 H1200 M0 180 H1200 M0 240 H1200 M0 300 H1200 M0 360 H1200 M0 420 H1200 M0 480 H1200 M0 540 H1200 M0 600 H1200" stroke="#1e293b" stroke-width="1"/>
+  <path d="M120 0 V630 M240 0 V630 M360 0 V630 M480 0 V630 M600 0 V630 M720 0 V630 M840 0 V630 M960 0 V630 M1080 0 V630" stroke="#1e293b" stroke-width="1"/>
+
+  <!-- Decorative circle -->
+  <circle cx="1100" cy="500" r="220" stroke="#1e293b" stroke-width="1" fill="none"/>
+  <circle cx="1100" cy="500" r="150" stroke="#1e293b" stroke-width="1" fill="none"/>
+
+  <!-- Brand label -->
+  <text x="60" y="72" font-family="system-ui, sans-serif" font-size="14" font-weight="700" fill="#22d3ee" letter-spacing="3">ENGINEERING JOURNAL</text>
+
+  <!-- Main headline -->
+  <text x="60" y="320" font-family="system-ui, sans-serif" font-size="80" font-weight="700" fill="#f1f5f9" letter-spacing="-3">Real experience.</text>
+  <text x="60" y="415" font-family="system-ui, sans-serif" font-size="80" font-weight="700" fill="#f1f5f9" letter-spacing="-3">Real code.</text>
+
+  <!-- Subtext -->
+  <text x="60" y="485" font-family="system-ui, sans-serif" font-size="22" fill="#64748b">JavaScript · TypeScript · React · Node.js · Databases · Infrastructure</text>
+  <text x="60" y="515" font-family="system-ui, sans-serif" font-size="22" fill="#64748b">Interactive demos · Interview prep · Build notes</text>
+
+  <!-- Author -->
+  <text x="60" y="580" font-family="system-ui, sans-serif" font-size="16" fill="#334155">nisanth-alla.github.io/engineering-journal</text>
+</svg>

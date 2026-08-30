@@ -27,6 +27,7 @@ async function waitForURL(url, timeoutMs = 20_000) {
 const npm = process.platform === "win32" ? "npm.cmd" : "npm";
 const checks = [
   ["Formatting", ["run", "format:check"]],
+  ["ESLint", ["run", "lint"]],
   ["Astro and TypeScript checks", ["run", "check"]],
   ["Production build", ["run", "build"]],
   ["Browser behavior tests", ["run", "test:e2e"]],

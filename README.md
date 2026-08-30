@@ -1,6 +1,6 @@
 # Engineering Journal
 
-Deep dives into JavaScript, TypeScript, React, Node.js, Next.js, Go, Databases, Playwright, and distributed systems. Interactive demos, real code, interview prep, and build notes from real projects. Built by a working engineer, not generated from a prompt.
+Deep dives into JavaScript, TypeScript, React, Node.js, Next.js, Go, Databases, Infrastructure, Playwright, and distributed systems. Interactive demos, real code, interview prep, and build notes from real projects. Built by a working engineer, not generated from a prompt.
 
 Live at [nisanth-alla.github.io/engineering-journal](https://nisanth-alla.github.io/engineering-journal/)
 
@@ -28,6 +28,8 @@ Built with [Starlight](https://starlight.astro.build/) and deployed to GitHub Pa
 
 **Databases** — Pages, storage engines, and B-tree indexes from first principles. MVCC and how it lets readers not block writers. Isolation levels, deadlocks, and the ACID properties without the textbook definitions. SQL vs NoSQL: the real trade-off, not the hype. Includes an interactive index vs sequential scan visualizer.
 
+**Infrastructure** — How containers actually work (Linux namespaces, cgroups, the layer filesystem), what a CI/CD pipeline is defending against and why flakiness is debt, the three observability signals and what each answers, and deployment patterns with the database migration problem nobody mentions first. Includes an interactive CI pipeline simulator.
+
 **Build Notes** — Architecture and lessons from projects I have built. Currently: FoxPilot, a profile-driven job discovery engine covering profile-based filtering, a two-database data-mismatch bug, and LLM cost/latency engineering.
 
 ## Local development
@@ -54,7 +56,7 @@ Run the complete diff-ready gate:
 npm run verify
 ```
 
-This checks formatting, Astro and TypeScript diagnostics, a clean production build, the Pagefind search index, and the full Playwright browser suite against the built site. CI runs the same command on every pull request.
+This checks formatting, ESLint, Astro and TypeScript diagnostics, a clean production build, the Pagefind search index, and the full Playwright browser suite against the built site. CI runs the same command on every pull request.
 
 ## Deploy
 

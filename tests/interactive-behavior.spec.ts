@@ -84,6 +84,13 @@ test("stream pipeline starts", async ({ page }) => {
   await expect(page.getByRole("button", { name: "Stop", exact: true })).toBeVisible();
 });
 
+test("ci pipeline runs all stages", async ({ page }) => {
+  await openDemo(page, "/infrastructure/ci-cd-in-practice/");
+  await page.getByRole("button", { name: "Run pipeline", exact: true }).click();
+  await expect(page.locator(".ci-stage-running").first()).toBeVisible({ timeout: 8000 });
+  await expect(page.locator(".ci-result-pass")).toBeVisible({ timeout: 30000 });
+});
+
 test("index visualizer shows sequential scan steps", async ({ page }) => {
   await openDemo(page, "/databases/indexing/");
   await page.getByRole("button", { name: "Sequential scan", exact: true }).click();

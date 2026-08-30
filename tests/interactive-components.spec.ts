@@ -14,6 +14,7 @@ const interactivePages = [
   "/node/streams-and-buffers/",
   "/interview/system-design/",
   "/databases/indexing/",
+  "/infrastructure/ci-cd-in-practice/",
 ];
 
 for (const path of interactivePages) {

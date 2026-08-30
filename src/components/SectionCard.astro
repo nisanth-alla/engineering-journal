@@ -1,4 +1,5 @@
 ---
+import dockerLogo from "simple-icons/icons/docker.svg?raw";
 import goLogo from "simple-icons/icons/go.svg?raw";
 import javascriptLogo from "simple-icons/icons/javascript.svg?raw";
 import nextLogo from "simple-icons/icons/nextdotjs.svg?raw";
@@ -9,12 +10,13 @@ import typescriptLogo from "simple-icons/icons/typescript.svg?raw";
 interface Props {
   title: string;
   href: string;
-  brand?: "go" | "javascript" | "next" | "node" | "react" | "typescript";
+  brand?: "docker" | "go" | "javascript" | "next" | "node" | "react" | "typescript";
   icon?: "puzzle" | "document" | "open-book" | "list-format" | "database";
 }
 
 const { title, href, brand, icon } = Astro.props;
 const logos = {
+  docker: dockerLogo,
   go: goLogo,
   javascript: javascriptLogo,
   next: nextLogo,

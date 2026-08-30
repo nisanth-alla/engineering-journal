@@ -1,0 +1,107 @@
+---
+title: CI/CD in practice
+description: What a pipeline is actually defending, why flakiness is a debt collection problem, and how to build a gate that developers trust enough to not bypass.
+sidebar:
+  order: 2
+---
+
+import CIPipelineVisualizer from "../../../components/CIPipelineVisualizer";
+
+## The question most pipelines don't answer
+
+Most CI pipelines I've worked with started as two steps and grew to thirty over two years without anyone deciding what each step was defending against. At that point the pipeline is slow, flaky, and nobody knows what to remove. Every time someone suggests cutting a step, another person says "but that caught the thing that time" — and they're right, which is why nothing ever gets removed.
+
+The question each step should be able to answer: **what class of problem does this prevent from reaching production, and how often does it actually fire?** If a step has never failed in six months, it's either perfect coverage or dead coverage. Those are very different situations and they look identical.
+
+## What the pipeline is defending
+
+A CI pipeline is a cost trade-off. It costs developer time to wait. It saves on-call time by catching problems before they're someone's problem at 2am. The pipeline is worth running if what it catches is more expensive than the wait.
+
+The things a pipeline actually catches:
+
+**Type errors and syntax** — the compiler or type checker. Fast, high signal, zero flakiness. This should run first.
+
+**Logic errors in isolation** — unit tests. Fast if they're well-scoped, slow if they're calling databases. Test doubles and in-memory implementations keep this stage under 30 seconds.
+
+**Integration boundaries** — component or integration tests that touch a real database, a real queue, or a real cache. These are slower and occasionally flaky. Worth running, but separate from unit tests so a flaky integration test doesn't block a lint fix from shipping.
+
+**The full system** — end-to-end tests. Slowest, most realistic, most maintenance-intensive. Run fewer of these. They're most valuable for the user flows that would be catastrophic to break (signup, payment, the core product action). Not for every edge case.
+
+**The build** — does the thing compile and produce a deployable artifact. This proves nothing about correctness but a surprising amount about configuration.
+
+## Try it: step through a CI pipeline
+
+See what each stage catches and what happens when something fails.
+
+<CIPipelineVisualizer client:only="react" />
+
+## Flakiness is a debt collection problem
+
+A flaky test is one that fails intermittently without a code change. It's not just annoying — it actively damages the pipeline's value. Once developers learn that a failure might mean "the test is flaky" rather than "I broke something," they start re-running failures instead of investigating them. The pipeline becomes a slot machine.
+
+The compounding effect: each flaky test increases the probability that a given run has at least one flaky failure. With 10 flaky tests each failing 5% of the time, roughly 40% of runs have at least one failure from flakiness. At that point, nobody trusts the pipeline, and the same three failures will be fixed in production by the on-call engineer who never saw a red pipeline.
+
+The fix is treating flakiness as the same debt class as a bug. Track which tests have flaked in the last 30 days. Set a policy: a test that flakes more than twice in a month gets quarantined until fixed. Don't just re-run — investigate and fix.
+
+Common flakiness sources:
+
+- **Race conditions in tests that share state** — two tests write to the same database row without transactions.
+- **Time-dependent assertions** — `expect(sentAt).toEqual(new Date())` is wrong the moment the clock ticks.
+- **Network calls without mocks** — tests that hit real external APIs fail when those APIs have any latency spike.
+- **Non-deterministic ordering** — tests that depend on array insertion order or `Object.keys()` behavior.
+- **Resource exhaustion** — the test suite allocates ports sequentially and runs out on a loaded CI runner.
+
+## Caching
+
+The two layers of CI caching that actually matter:
+
+**Dependency cache** — npm, pip, Maven, Gradle. Check for a cached version before downloading. The cache key should be the lockfile hash — `package-lock.json` for npm, `Pipfile.lock` for Python. If the lockfile changes, invalidate the cache and download fresh.
+
+```yaml
+- uses: actions/cache@v4
+  with:
+    path: ~/.npm
+    key: npm-${{ hashFiles('package-lock.json') }}
+```
+
+**Build output cache** — compiled artifacts, transpiled code, Playwright browser binaries. These have shorter useful lives because they depend on source code, not just dependencies. Cache them with a composite key: the lockfile hash plus a hash of the relevant source directories.
+
+What not to cache: the test database, any state that should be clean per run, secrets.
+
+The Playwright browser cache is worth calling out because it's the most common source of slow CI I've seen. Playwright downloads Chromium (~150MB) on every run if you don't cache it. With caching, the browser download step goes from 2 minutes to 2 seconds.
+
+## Local parity
+
+The most important property a pipeline can have: any failure must be reproducible locally. If a developer can't reproduce a CI failure on their machine, one of three things is true:
+
+1. The pipeline environment has a configuration that the local environment doesn't. Fix this with environment variable documentation and local runner scripts.
+2. The failure is flaky. Treat it as flakiness.
+3. The failure requires production scale to surface. These are the hardest to fix but the most important to investigate — they're telling you something real about production.
+
+The fastest pipelines I've used had a `make ci` or equivalent that ran the same steps in the same order locally. When a developer can run the exact CI command locally, the feedback loop collapses from 15 minutes to 30 seconds for most failures.
+
+## The deployment pipeline
+
+CI validates. CD delivers. The two are related but distinct, and conflating them leads to pipelines that can't deploy independently of their tests.
+
+A deployment pipeline worth building:
+
+```
+main branch commit
+  → CI (tests pass on the code)
+  → build artifact and tag it
+  → deploy to staging automatically
+  → smoke test staging
+  → deploy to production (manual trigger or canary)
+  → verify production health
+```
+
+The staging deploy should be automatic. The production deploy should require a deliberate action — not because code review didn't happen, but because deploying and merging are different decisions. The artifact should be immutable: the same thing that passed CI and ran in staging is what goes to production, no rebuild.
+
+## Interview angles
+
+**"What makes a good CI pipeline?"** Fast feedback (under 5 minutes for the first signal), low flakiness (developers trust failures to mean something), and local reproducibility (any CI failure can be reproduced locally with the same command). Anything slower or flakier than this is a debt problem, not a configuration problem.
+
+**"How do you handle a flaky test?"** First, don't re-run without investigating. Track which tests flake and how often. Quarantine anything above a threshold — mark it as skipped with a link to a tracking issue. Investigate the failure mode: is it time-dependent, network-dependent, or sharing state with another test? Fix the root cause, not the symptom.
+
+**"What's the difference between CI and CD?"** CI validates that code works. CD delivers validated code to an environment. A good setup makes CI automatic on every commit and CD automatic to staging, with a manual gate before production. The artifact built after CI passes should be the exact artifact deployed — no rebuilds between environments.
