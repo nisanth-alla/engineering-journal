@@ -10,6 +10,27 @@ export default defineConfig({
       title: "Engineering Journal",
       description:
         "Deep dives into JavaScript, TypeScript, React, Node.js, Next.js, Go, Playwright, and distributed systems. Interactive demos, real code, and interview prep.",
+      head: [
+        {
+          tag: "link",
+          attrs: { rel: "preconnect", href: "https://fonts.googleapis.com" },
+        },
+        {
+          tag: "link",
+          attrs: {
+            rel: "preconnect",
+            href: "https://fonts.gstatic.com",
+            crossorigin: "",
+          },
+        },
+        {
+          tag: "link",
+          attrs: {
+            rel: "stylesheet",
+            href: "https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:ital,wght@0,400;0,500;1,400&display=swap",
+          },
+        },
+      ],
       social: [
         {
           icon: "github",
@@ -20,43 +41,43 @@ export default defineConfig({
       sidebar: [
         {
           label: "JavaScript",
-          autogenerate: { directory: "javascript" },
+          items: [{ autogenerate: { directory: "javascript" } }],
         },
         {
           label: "TypeScript",
-          autogenerate: { directory: "typescript" },
+          items: [{ autogenerate: { directory: "typescript" } }],
         },
         {
           label: "React",
-          autogenerate: { directory: "react" },
+          items: [{ autogenerate: { directory: "react" } }],
         },
         {
           label: "Next.js",
-          autogenerate: { directory: "nextjs" },
+          items: [{ autogenerate: { directory: "nextjs" } }],
         },
         {
           label: "Node.js",
-          autogenerate: { directory: "node" },
+          items: [{ autogenerate: { directory: "node" } }],
         },
         {
           label: "Learning Go",
-          autogenerate: { directory: "go" },
+          items: [{ autogenerate: { directory: "go" } }],
         },
         {
           label: "Interview Prep",
-          autogenerate: { directory: "interview" },
+          items: [{ autogenerate: { directory: "interview" } }],
         },
         {
           label: "Playwright",
-          autogenerate: { directory: "playwright" },
+          items: [{ autogenerate: { directory: "playwright" } }],
         },
         {
           label: "Experiments",
-          autogenerate: { directory: "experiments" },
+          items: [{ autogenerate: { directory: "experiments" } }],
         },
         {
           label: "Build Notes",
-          autogenerate: { directory: "build-notes" },
+          items: [{ autogenerate: { directory: "build-notes" } }],
         },
       ],
       editLink: {
