@@ -1,0 +1,209 @@
+---
+title: Behavioral interview prep
+description: The ten STAR situations that come up in every senior engineering loop, what the interviewer is actually measuring, and how to answer without sounding rehearsed.
+sidebar:
+  order: 5
+---
+
+## Why behavioral rounds trip people up
+
+Technical rounds have right answers. Behavioral rounds don't, which makes them harder to prepare for. Most engineers under-prepare because they think "I'll just talk about what I've done." That's the mistake.
+
+Interviewers at the senior level aren't collecting anecdotes. They're looking for evidence of specific competencies: judgment under ambiguity, ownership without oversight, influence without authority, learning from failure. If your answer doesn't surface those things, it doesn't matter how real the story is.
+
+The STAR format (Situation, Task, Action, Result) is the scaffolding, not the goal. The goal is to make the interviewer confident that you can handle the situations the role will actually create.
+
+## The ten situations that come up in every senior loop
+
+### 1. Owning a production failure
+
+**What they're asking for:** "Tell me about a time you made a mistake that had real impact."
+
+**What they're actually measuring:** Do you take ownership without deflecting? Do you understand root cause deeply enough to prevent recurrence? Did you communicate clearly during and after the incident?
+
+A weak answer describes what broke and who fixed it. A strong answer shows your thinking during the incident, what you communicated to stakeholders before you had answers, what the root cause actually was (not just the immediate trigger), and what you changed systemically so it couldn't happen again.
+
+**What to avoid:** Blaming the codebase, blaming a teammate, or ending the story at "we deployed a fix." The story isn't over at the fix.
+
+**Structure to aim for:**
+
+- Set context quickly: what was running, what broke, how you found out
+- What you did in the first 15 minutes (this is where ownership shows)
+- What you communicated and when, before you had a solution
+- What the actual root cause was (show depth here — "the service crashed" is not root cause)
+- What you changed so it couldn't happen again, and whether that change held
+
+---
+
+### 2. Disagreeing with a technical decision
+
+**What they're asking for:** "Tell me about a time you disagreed with a teammate or manager."
+
+**What they're actually measuring:** Can you hold a technical position under pressure? Can you disagree without making it personal? Do you know when to commit to a decision you didn't make?
+
+The failure mode is a story where you were right and they were wrong and eventually everyone saw it your way. That's not the story. The better story is one where you made the technical case clearly, the decision went the other way for a legitimate reason, you committed fully anyway, and you learned something from seeing the other approach play out.
+
+**Structure to aim for:**
+
+- What the decision was and why you disagreed (make the technical case clear — this is the depth signal)
+- How you raised the disagreement: written, in a design review, directly to the person
+- What happened: did the decision change, or did it not
+- If it didn't change: how you committed and what you learned
+- What you'd do the same or differently
+
+---
+
+### 3. Driving a project with ambiguous requirements
+
+**What they're asking for:** "Tell me about a project you drove end to end."
+
+**What they're actually measuring:** Can you create structure from ambiguity? Do you know when to ask questions versus when to make a call? Can you keep a project moving without constant oversight?
+
+The trap is describing a project where the requirements were clear and you executed well. That's a solid engineer, not a senior one. The story should involve you discovering that requirements were incomplete or contradictory, deciding how to handle that, making calls, and delivering something that was right for the situation even if it wasn't what was originally specified.
+
+**Structure to aim for:**
+
+- What the project was and why the requirements were unclear
+- Specific decision you made without permission (this is the senior signal)
+- How you communicated that decision and got alignment
+- What you shipped and what the actual outcome was
+- What you'd do differently
+
+---
+
+### 4. Influencing without authority
+
+**What they're asking for:** "Tell me about a time you had to work with another team to get something done."
+
+**What they're actually measuring:** Can you create alignment across boundaries without escalating every disagreement? Do you understand that your credibility is how you move things, not your title?
+
+This is the question that separates engineers who can work within a team from engineers who can move the organization. The story should involve a concrete deliverable that required another team's cooperation, a real obstacle (different priorities, conflicting design decisions, resource constraints), and a specific approach you used to get through it.
+
+**Structure to aim for:**
+
+- What you needed from the other team and why they weren't already providing it
+- What you tried first and why it didn't work
+- What you changed about your approach (this is where the learning shows)
+- The specific outcome — what shipped and when
+- What you learned about cross-team work from that situation
+
+---
+
+### 5. Making a call with incomplete information
+
+**What they're asking for:** "Tell me about a time you had to make a decision when you didn't have all the information you wanted."
+
+**What they're actually measuring:** Do you understand that waiting for certainty is itself a decision? Can you reason clearly about what you know, what you don't know, and what the cost of being wrong is?
+
+The weak version of this story is "I had to make a quick decision under time pressure and I got it right." That's luck. The strong version shows your reasoning: what information you had, what information you were missing, why you decided when you did instead of waiting, and what you built in to validate or course-correct quickly.
+
+**Structure to aim for:**
+
+- What the decision was and what was at stake
+- What information you had vs. what you wanted
+- Why you made the call when you did instead of waiting
+- How you built in a way to validate or reverse the decision quickly
+- What actually happened and what you'd do the same or differently
+
+---
+
+### 6. Mentoring or unblocking a struggling teammate
+
+**What they're asking for:** "Tell me about a time you helped someone who was struggling."
+
+**What they're actually measuring:** Do you invest in people around you? Can you diagnose why someone is struggling (skill vs. process vs. confidence vs. situation) rather than just doing the work for them?
+
+The trap is a story where you jumped in and solved someone's technical problem. That's helpful but it's not mentoring. The stronger story is one where you identified what was actually blocking someone (which was often not what they said was blocking them), adjusted your approach to their specific situation, and saw a durable change in how they worked.
+
+**Structure to aim for:**
+
+- Who was struggling and how you found out (did they ask, or did you notice)
+- What you initially thought was the issue vs. what was actually the issue
+- What you did specifically and how you adjusted your approach
+- What changed in how they worked, not just in that situation
+- What you learned about how to help people effectively
+
+---
+
+### 7. Pushing back on a deadline or scope
+
+**What they're asking for:** "Tell me about a time you had to push back on product or leadership."
+
+**What they're actually measuring:** Do you advocate for engineering quality under pressure? Can you make the business case for quality rather than just the technical case? Do you know when to push back vs. when to find a path through?
+
+Most engineers either roll over on timelines (says nothing good) or refuse to compromise (also says nothing good). The story they want is one where you were clear about the technical risks, offered alternatives, and found an approach that served the business goal without the catastrophic shortcuts.
+
+**Structure to aim for:**
+
+- What was being asked and why the timeline or scope was a problem
+- How you communicated the risk — not just "this will break" but what the business cost of that risk was
+- What alternatives you offered
+- What was decided and how
+- What actually shipped and whether your assessment turned out to be right
+
+---
+
+### 8. Handling a failed project or cancelled initiative
+
+**What they're asking for:** "Tell me about a project that didn't go the way you expected."
+
+**What they're actually measuring:** Can you talk about failure without flinching? Do you understand what went wrong at a systemic level? Did you extract learning that changed how you work?
+
+The failure mode is a story where external factors caused the failure and there was nothing you could have done. That tells the interviewer nothing. The useful story is one where you identify something you could have done differently — even if the outcome would have been the same — and you can show that it changed your behavior in subsequent work.
+
+**Structure to aim for:**
+
+- What the project was and what went wrong
+- What your role was and what you specifically contributed to the outcome
+- What the actual root cause was (this is where depth matters — "we ran out of time" is not root cause)
+- What you would do differently
+- Evidence that you actually changed your approach in later work
+
+---
+
+### 9. Demonstrating technical leadership without a management title
+
+**What they're asking for:** "Tell me about a time you took technical ownership of something larger than your ticket."
+
+**What they're actually measuring:** Do you operate above your level? Can you see the system and not just your piece of it?
+
+This is the question that directly measures readiness for a staff or tech lead role. The story should involve you identifying a problem nobody asked you to solve, taking initiative to address it, and creating something durable — a standard, an architectural decision, a platform component — that outlasted your involvement.
+
+**Structure to aim for:**
+
+- What you noticed that wasn't your assigned work
+- Why you decided to address it (and who, if anyone, you aligned with first)
+- What you built or decided and how you got others to adopt it
+- What the lasting impact was
+- What the situation looked like six months later
+
+---
+
+### 10. Why this company and growth story
+
+**What they're asking for:** "Why us? Where do you want to be in three years?"
+
+**What they're actually measuring:** Is this person going to stay? Are they joining for the right reasons? Do they have a point of view on their own growth?
+
+This sounds easy but it's the question most engineers phone in. "I like the product" and "I want to grow" answer nothing. The useful answer connects something specific about the company's engineering problems to something specific about your growth direction. It should be honest enough that it would only apply to this company, not every company you're interviewing with.
+
+**Structure to aim for:**
+
+- One specific technical or product challenge you know they're working on (this requires actual research)
+- Why that challenge is interesting to you — connected to your specific experience and gaps
+- What you'd bring to it in the first six months
+- What you expect to learn that you can't learn elsewhere right now
+
+---
+
+## General mechanics
+
+**Before an interview:** Write one sentence that captures the core of each story. You're not memorizing a script — you're making sure you can find the story quickly under pressure.
+
+**During an interview:** When you hear a behavioral question, give a one-sentence preview before starting the story. "I'll tell you about an incident in 2024 where I had to own a database migration that caused a partial outage." It signals you have a specific story and it sets up the context without starting mid-story.
+
+**On length:** Most behavioral answers should run 3–4 minutes. Under 90 seconds and you've left out the depth the interviewer needs. Over 5 minutes and you've lost them. The Action section should take the most time — that's where you show how you think.
+
+**When you don't have a perfect story:** "I haven't led an incident response directly, but here's the closest situation and what I'd do differently with what I know now" is far better than forcing an unrelated story to fit. Interviewers value self-awareness over a polished but irrelevant anecdote.
+
+**What the interviewer writes down:** After a strong behavioral answer, the interviewer is writing specific behaviors and their assessment of maturity, judgment, and impact. Make those things explicit in your story. Don't assume they'll infer ownership from a passive description of events.
