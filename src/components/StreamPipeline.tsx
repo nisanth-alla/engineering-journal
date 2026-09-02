@@ -114,7 +114,7 @@ export default function StreamPipeline() {
 
   return (
     <div className="interactive-demo">
-      <h4>Try it: Stream Pipeline</h4>
+      <h3>Try it: Stream Pipeline</h3>
       <p className="demo-description">
         Watch data chunks flow through a Readable → Transform → Writable pipeline. Switch to "Slow
         writer" to see backpressure in action.

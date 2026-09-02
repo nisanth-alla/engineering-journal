@@ -128,7 +128,7 @@ export default function GenericPlayground() {
 
   return (
     <div className="interactive-demo">
-      <h4>Try it: Generic Type Inference</h4>
+      <h3>Try it: Generic Type Inference</h3>
       <p className="demo-description">
         Pick a generic pattern, then click each function call to see what TypeScript infers for the
         type parameters.

@@ -115,7 +115,7 @@ export default function PromiseTimeline() {
 
   return (
     <div className="interactive-demo">
-      <h4>Try it: Promise Execution Flow</h4>
+      <h3>Try it: Promise Execution Flow</h3>
       <p className="demo-description">
         Pick a pattern, then step through to see how promises resolve, chain, and propagate errors.
       </p>
