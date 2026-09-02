@@ -241,7 +241,7 @@ class Timer {
   }
 
   tick() {
-    this.seconds++; // 'this' is undefined or Window, not Timer
+    this.seconds++; // class methods are strict: detached calls have undefined `this`
     console.log(this.seconds);
   }
 }

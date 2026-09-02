@@ -34,7 +34,7 @@ export default function HooksTimeline() {
 
   return (
     <div className="interactive-demo">
-      <h4>Try it: Hooks Lifecycle Timeline</h4>
+      <h3>Try it: Hooks Lifecycle Timeline</h3>
       <div className="demo-controls">
         <button
           className="demo-button primary"

@@ -271,7 +271,7 @@ export default function ClosureVisualizer() {
 
   return (
     <div className="interactive-demo">
-      <h4>Try it: Closure Scope Chain</h4>
+      <h3>Try it: Closure Scope Chain</h3>
       <p className="demo-description">
         Step through each scenario and watch the scope chain build up. Closed-over variables stay
         alive even after their parent function returns.

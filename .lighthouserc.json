@@ -3,10 +3,10 @@
     "collect": {
       "staticDistDir": "./dist",
       "url": [
-        "http://localhost/engineering-journal/",
-        "http://localhost/engineering-journal/javascript/how-js-works/",
-        "http://localhost/engineering-journal/databases/indexing/",
-        "http://localhost/engineering-journal/infrastructure/how-containers-work/"
+        "http://localhost/",
+        "http://localhost/javascript/how-js-works/",
+        "http://localhost/databases/indexing/",
+        "http://localhost/infrastructure/how-containers-work/"
       ],
       "numberOfRuns": 1
     },

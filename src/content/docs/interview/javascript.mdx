@@ -19,6 +19,9 @@ sidebar:
 | `??` vs `\|\|`          | `\|\|` catches all falsy. `??` catches only null/undefined.                                        |
 | WeakMap/WeakSet         | Weak references. Keys can be garbage collected. Not iterable.                                      |
 | Event delegation        | One listener on parent, check event.target. Works with dynamic elements.                           |
+| Object identity         | Objects compare by reference identity; separate objects with the same fields are not equal.        |
+| Debounce vs throttle    | Debounce after a burst; throttle periodically during a burst.                                      |
+| Fetch errors            | `fetch` rejects on network/abort failures, not ordinary HTTP 4xx/5xx responses.                    |
 
 ---
 
@@ -105,6 +108,18 @@ The event loop sees `await` as: "take everything after this line, wrap it in a `
 **Key difference from .then:** Error handling. With `.then`, you need `.catch`. With async/await, you use try/catch, which reads more naturally and lets you handle errors at different points in the function.
 
 **Deeper:** [Async patterns](/engineering-journal/javascript/async-patterns/) has an interactive Promise timeline.
+
+### What is the difference between debounce and throttle?
+
+Debounce waits until calls stop for a given interval, so it is useful when intermediate work is obsolete, such as a search request. Throttle allows work at most once per interval, so it is useful when periodic updates during continuous input still matter, such as scroll or pointer movement.
+
+**Deeper:** [Browser APIs and events](/engineering-journal/javascript/browser-apis-and-events/) includes minimal implementations and the trade-off behind each choice.
+
+### Why does object identity matter?
+
+Primitives compare by their values, but objects compare by identity with `===`. Two object literals with the same fields are different objects. Assigning an object or passing it to a function copies the reference value, so mutations are visible through every reference to that object. Immutable updates create a new identity for the changed path, which lets React and other consumers detect changes cheaply.
+
+**Deeper:** [Values, references, and identity](/engineering-journal/javascript/values-and-identity/) covers structural sharing, copying, and React state updates.
 
 ### Deep copy vs shallow copy
 

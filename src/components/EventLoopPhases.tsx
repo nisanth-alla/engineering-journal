@@ -86,7 +86,7 @@ export default function EventLoopPhases() {
 
   return (
     <div className="interactive-demo">
-      <h4>Try it: Node.js Event Loop Phases</h4>
+      <h3>Try it: Node.js Event Loop Phases</h3>
       <p className="demo-description">
         Click a phase to see what runs there, or hit Animate to watch the loop cycle through all
         phases.

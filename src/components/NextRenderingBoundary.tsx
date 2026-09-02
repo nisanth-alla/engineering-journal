@@ -71,7 +71,7 @@ export default function NextRenderingBoundary() {
   return (
     <div className="interactive-demo demo-rendering-boundary">
       <div className="demo-kicker">Under the hood · Next.js</div>
-      <h4>Trace the server/client boundary</h4>
+      <h3>Trace the server/client boundary</h3>
       <p>{mode.description}</p>
       <div className="demo-tabs" role="tablist" aria-label="Rendering modes">
         {modes.map((item, index) => (

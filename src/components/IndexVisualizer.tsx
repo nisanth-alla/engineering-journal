@@ -76,7 +76,7 @@ export default function IndexVisualizer() {
   return (
     <div className="interactive-demo">
       <div className="demo-kicker">Under the hood · Databases</div>
-      <h4>Index vs sequential scan</h4>
+      <h3>Index vs sequential scan</h3>
       <p className="demo-description">
         Both searches find the same row: <code>WHERE id = {TARGET_ID}</code>. Watch how many rows
         (or nodes) each approach reads to get there.

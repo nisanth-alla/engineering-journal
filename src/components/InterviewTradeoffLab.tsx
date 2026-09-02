@@ -39,7 +39,7 @@ export default function InterviewTradeoffLab() {
   return (
     <div className="interactive-demo demo-tradeoff-lab">
       <div className="demo-kicker">Practice the reasoning · system design</div>
-      <h4>Turn a preference into a tradeoff</h4>
+      <h3>Turn a preference into a tradeoff</h3>
       <p>
         Strong interview answers do not start with a tool name. Choose a constraint, then explain
         why the decision fits it and what it costs.
