@@ -13,7 +13,7 @@ import DefaultHead from "@astrojs/starlight/components/Head.astro";
 const { entry, site } = Astro.locals.starlightRoute;
 
 const base = "/engineering-journal";
-const siteUrl = (site ?? "https://nisanth-alla.github.io").replace(/\/$/, "");
+const siteUrl = String(site ?? "https://nisanth-alla.github.io").replace(/\/$/, "");
 const ogImage = `${siteUrl}${base}/og-card.svg`;
 
 const pageTitle = entry?.data?.title;
