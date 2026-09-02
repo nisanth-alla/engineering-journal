@@ -129,7 +129,7 @@ export default function TypeNarrowing() {
 
   return (
     <div className="interactive-demo">
-      <h4>Try it: Type Narrowing</h4>
+      <h3>Try it: Type Narrowing</h3>
       <p className="demo-description">
         Pick a narrowing pattern, then click each guard to see how the type changes.
       </p>

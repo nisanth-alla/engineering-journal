@@ -157,7 +157,7 @@ export default function CIPipelineVisualizer() {
   return (
     <div className="interactive-demo">
       <div className="demo-kicker">Under the hood · CI/CD</div>
-      <h4>Step through a CI pipeline</h4>
+      <h3>Step through a CI pipeline</h3>
       <p className="demo-description">
         Each stage only runs if the previous one passed. Click a stage to see what it defends
         against. Inject a failure to see how the pipeline stops early.

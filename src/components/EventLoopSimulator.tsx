@@ -198,7 +198,7 @@ export default function EventLoopSimulator() {
 
   return (
     <div className="interactive-demo">
-      <h4>Try it: Event Loop Simulator</h4>
+      <h3>Try it: Event Loop Simulator</h3>
       <p className="demo-description">
         Pick a scenario, then step through tick by tick. Watch items move between the call stack,
         microtask queue, and macrotask queue.

@@ -15,7 +15,7 @@ export default function RenderCycleTracker() {
 
   return (
     <div className="interactive-demo">
-      <h4>Try it: What re-renders when?</h4>
+      <h3>Try it: What re-renders when?</h3>
       <p className="demo-description">
         Click buttons at different levels. Watch which render counters go up. Every component that
         re-renders flashes briefly.

@@ -18,7 +18,7 @@ export default function MemoComparison() {
 
   return (
     <div className="interactive-demo">
-      <h4>Try it: React.memo comparison</h4>
+      <h3>Try it: React.memo comparison</h3>
       <p className="demo-description">
         Click "Update parent" and watch the render counts. The memoized child on the right skips
         re-rendering when its props haven't changed. Then try "Change child prop" to see both
