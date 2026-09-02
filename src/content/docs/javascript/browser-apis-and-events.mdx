@@ -1,0 +1,118 @@
+---
+title: Browser APIs and events
+description: "The browser boundary around JavaScript: fetch cancellation, storage, event propagation, delegation, and rate-limited UI work."
+sidebar:
+  order: 7
+---
+
+## JavaScript versus the browser
+
+The language gives us values, functions, objects, and the event loop. The browser supplies host APIs such as `fetch`, the DOM, timers, storage, and `AbortController`. These APIs are not part of the JavaScript language itself, even though browser code uses them constantly.
+
+That boundary explains why the same JavaScript function can run in a browser, Node.js, or a worker while the available globals differ.
+
+## Fetch is not an HTTP status check
+
+`fetch` rejects when the request cannot be completed, for example because of a network failure or an abort. A `404` or `500` still produces a fulfilled response, so application code must check `response.ok`.
+
+```javascript
+async function loadProfile(id, signal) {
+  const response = await fetch(`/api/profiles/${id}`, { signal });
+  if (!response.ok) {
+    throw new Error(`Profile request failed: ${response.status}`);
+  }
+  return response.json();
+}
+```
+
+## Cancellation is part of ownership
+
+A component or page often starts work that should stop when the user navigates away or starts a newer request. `AbortController` makes that ownership explicit.
+
+```javascript
+const controller = new AbortController();
+
+loadProfile("42", controller.signal).catch((error) => {
+  if (error.name !== "AbortError") throw error;
+});
+
+// On cleanup, navigation, or replacement:
+controller.abort();
+```
+
+Aborting prevents the consumer from waiting for a result it no longer needs. It does not undo server-side work that already reached the server.
+
+## Storage is a boundary, not a database
+
+`localStorage` and `sessionStorage` store strings synchronously. JSON is a serialization format, so types such as `Date`, `Map`, `Set`, `undefined`, and functions need deliberate handling.
+
+```javascript
+localStorage.setItem("preferences", JSON.stringify({ compact: true }));
+const preferences = JSON.parse(localStorage.getItem("preferences") ?? "null");
+```
+
+Storage is shared with every script that can run on the origin, has limited capacity, and can throw when unavailable or full. Never put long-lived secrets or authentication tokens in `localStorage`; an XSS bug can read them. Cookies with appropriate `HttpOnly`, `Secure`, and `SameSite` settings are a server-authentication design, not a drop-in replacement for every client preference.
+
+## Event propagation has three phases
+
+For a click on a nested button, the event travels down during capture, reaches the target, then travels back up during bubbling.
+
+```javascript
+parent.addEventListener("click", onParent, { capture: true });
+button.addEventListener("click", onButton);
+parent.addEventListener("click", onParent);
+```
+
+The capture listener runs on the way down. The target listener runs at the button. The normal parent listener runs during bubbling. `event.target` is where the event began; `event.currentTarget` is the element whose listener is currently running.
+
+## Event delegation
+
+Delegation uses bubbling to handle many children with one stable parent listener. Use `closest` when clicks may land on an icon or label inside the actionable element.
+
+```javascript
+list.addEventListener("click", (event) => {
+  const item = event.target.closest("[data-item-id]");
+  if (!item || !list.contains(item)) return;
+  selectItem(item.dataset.itemId);
+});
+```
+
+It is useful for dynamic lists and reduces listener bookkeeping. It is not automatically faster for every UI, and events that do not bubble need a different approach. `stopPropagation` stops travel through the tree; `preventDefault` cancels the browser's default action. They solve different problems.
+
+## Debounce and throttle
+
+Debouncing waits until activity stops. It is a good fit for search requests where only the final query matters.
+
+```javascript
+function debounce(fn, delay) {
+  let timer;
+  return (...args) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn(...args), delay);
+  };
+}
+```
+
+Throttling allows execution at most once per interval. It is a better fit for continuous input such as scroll or pointer movement where periodic updates are useful.
+
+```javascript
+function throttle(fn, interval) {
+  let lastRun = 0;
+  return (...args) => {
+    const now = Date.now();
+    if (now - lastRun < interval) return;
+    lastRun = now;
+    fn(...args);
+  };
+}
+```
+
+Production versions often add leading/trailing execution, cancellation, and preservation of `this`. The important design question is whether intermediate events are obsolete or still useful.
+
+## Interview angles
+
+**"Does fetch reject on 404?"** No. It rejects for failures such as network errors or aborts; HTTP error statuses fulfill the Promise and must be checked with `response.ok`.
+
+**"What is the difference between target and currentTarget?"** `target` is the original event source. `currentTarget` is the element whose listener is executing, which is especially important for delegated handlers.
+
+**"Debounce or throttle?"** Debounce for work that should happen after a burst ends, such as search. Throttle for work that should happen periodically during a burst, such as scroll handling.

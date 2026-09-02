@@ -1,0 +1,112 @@
+---
+title: Values, references, and identity
+description: The difference between changing a value and changing an object, and why identity matters for equality, copying, and React updates.
+sidebar:
+  order: 6
+---
+
+## The useful distinction
+
+JavaScript variables do not contain objects. They contain values. For primitives, that distinction is easy to ignore because assigning or passing the value gives you an independent value.
+
+Objects are different. The value in the variable is a reference to an object. Assigning the variable copies the reference, not the object.
+
+```javascript
+const first = { status: "ready" };
+const second = first;
+
+second.status = "running";
+console.log(first.status); // "running"
+console.log(first === second); // true: same object identity
+```
+
+This is not a special rule for function arguments. Arguments are passed by value; for an object, the value being passed is the reference.
+
+```javascript
+function rename(user) {
+  user.name = "Ada"; // changes the shared object
+  user = { name: "Grace" }; // only changes the local parameter
+}
+
+const user = { name: "Linus" };
+rename(user);
+console.log(user.name); // "Ada"
+```
+
+## Equality is about more than types
+
+`===` compares primitive values by value and objects by identity. Two separately-created objects with identical contents are still different objects.
+
+```javascript
+{ id: 1 } === { id: 1 }; // false
+
+const a = { id: 1 };
+const b = a;
+a === b; // true
+```
+
+That is why arrays and objects are safe keys in `Map` only when you keep the same reference. It is also why changing an object in place can be invisible to systems that use identity checks.
+
+## Shallow copies are intentional
+
+Spread, `Object.assign`, and array methods such as `slice` create shallow copies. They give the outer container a new identity but retain nested references.
+
+```javascript
+const order = { id: 7, customer: { name: "Ada" }, items: ["book"] };
+const copy = { ...order };
+
+copy.customer.name = "Grace"; // shared nested object
+copy.items.push("pen"); // shared nested array
+```
+
+Copy only the path you are changing when updating nested state:
+
+```javascript
+const updated = {
+  ...order,
+  customer: { ...order.customer, name: "Grace" },
+  items: [...order.items, "pen"],
+};
+```
+
+This is structural sharing: unchanged branches are reused, while every branch on the changed path gets a new identity. It is usually cheaper and clearer than cloning the entire tree.
+
+## Immutability is a discipline
+
+`const` prevents rebinding a variable. It does not freeze the object it points to. `Object.freeze` prevents writes to that object in shallow fashion, and nested objects still need their own protection.
+
+```javascript
+const config = Object.freeze({ api: Object.freeze({ retries: 3 }) });
+// config.api.retries = 4; // ignored or throws in strict mode
+```
+
+In application code, immutability usually means “do not mutate data that another part of the program may observe.” It is not a claim that every object is physically frozen. That convention makes change detection, undo history, memoization, and debugging more predictable.
+
+## Why this matters in React
+
+React and many state libraries use reference equality as a fast signal. Mutating an existing object and passing the same reference back can prevent an update from being detected. Creating a new reference communicates that something changed.
+
+```javascript
+// Risky: same array identity
+items.push(newItem);
+setItems(items);
+
+// Clear: new array identity
+setItems((previous) => [...previous, newItem]);
+```
+
+The new reference is not magic and does not deep-compare the data. It is a contract: update code creates new identities for changed containers and preserves identities for unchanged ones.
+
+## Deep cloning is not a universal fix
+
+`structuredClone` is useful for cloning cloneable data, including nested objects, Maps, Sets, Dates, and circular references. It does not preserve functions, DOM nodes, or every class's behavior. A clone can also destroy identity that was meaningful to the application.
+
+Use it when you need an independent data graph. For a state update, prefer a targeted shallow copy along the changed path.
+
+## Interview angles
+
+**"Is JavaScript pass-by-reference?"** No. JavaScript passes values. For objects, the value is a reference, so a function can mutate the referenced object but cannot reassign the caller's variable.
+
+**"Why does `{}` not equal `{}`?** Objects are compared by identity with `===`; separate literals create separate objects.
+
+**"Why use immutable updates?"** They preserve predictable ownership and let consumers detect changes with cheap reference comparisons. The practical technique is structural sharing, not blindly deep-cloning every update.

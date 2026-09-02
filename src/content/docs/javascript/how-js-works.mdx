@@ -36,7 +36,7 @@ If JavaScript can only do one thing at a time, how does a web app handle multipl
 
 The answer: JavaScript doesn't handle network requests. The browser does.
 
-When you call `fetch()` or `setTimeout()`, JavaScript doesn't sit there waiting. It hands the work to the browser's Web APIs (or Node's libuv for server-side). The browser manages the network request or the timer on a separate thread. When the work is done, the browser puts the callback into a queue. The event loop picks it up when the call stack is empty.
+When you call `fetch()` or `setTimeout()`, JavaScript doesn't sit there waiting. It hands the work to the browser's Web APIs (or Node's libuv for server-side). The host manages the operation and later makes its continuation eligible to run. The event loop picks it up when the call stack is empty. The implementation may use threads, kernel facilities, or other mechanisms; "a separate thread" is a useful model, not a guarantee.
 
 ## The event loop
 
@@ -66,7 +66,7 @@ The critical rule: **all microtasks run before any macrotask.** If a microtask s
 
 ### Macrotask queue
 
-Macrotasks are lower-priority callbacks. `setTimeout`, `setInterval`, I/O events (click handlers, keyboard events), `requestAnimationFrame` go here.
+Tasks are lower-priority callbacks such as `setTimeout`, `setInterval`, and many input events. `requestAnimationFrame` is scheduled by the browser's rendering pipeline before a repaint, so it is better treated separately from a generic timer task.
 
 After each macrotask completes, the event loop drains the entire microtask queue before picking up the next macrotask.
 
