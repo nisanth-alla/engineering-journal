@@ -44,7 +44,7 @@ fs.readFile("config.json", (err, data) => {
 });
 ```
 
-This nesting is called "callback hell" or the "pyramid of doom." Each async step adds another level of indentation. Error handling is duplicated at every level. If you need to combine results from multiple async operations, the code becomes genuinely unmanageable.
+This nesting is called "callback hell" or the "pyramid of doom." Each async step adds another indentation level with duplicated error handling, and combining results from multiple operations becomes genuinely unmanageable.
 
 The deeper problem: inversion of control. You hand your callback to someone else's code and trust they'll call it correctly (once, with the right arguments, at the right time). If the library has a bug and calls your callback twice, your code runs twice. You have no way to prevent it.
 

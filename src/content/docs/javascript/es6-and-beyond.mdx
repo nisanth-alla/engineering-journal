@@ -118,6 +118,8 @@ This creates a new object with all previous values plus the changes. No mutation
 
 ## Arrow functions
 
+The first time I passed a class method as a callback to `setTimeout`, `this` was `undefined` and the whole thing blew up. I spent 20 minutes thinking the method was broken before realizing `this` binding was the problem. Arrow functions exist partly because this mistake was so common.
+
 Shorter syntax with a crucial behavioral difference: arrow functions don't have their own `this`.
 
 ```javascript
