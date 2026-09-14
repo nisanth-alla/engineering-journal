@@ -37,7 +37,12 @@ const ANOMALIES: Record<AnomalyType, AnomalyDef> = {
         explanation: "A reads the same row B just modified.",
         isAnomaly: true,
       },
-      { txA: "—", txB: "ROLLBACK", explanation: "B rolls back — the write never happened.", isAnomaly: false },
+      {
+        txA: "—",
+        txB: "ROLLBACK",
+        explanation: "B rolls back — the write never happened.",
+        isAnomaly: false,
+      },
       {
         txA: "— (acted on 'cancelled' which never existed)",
         txB: "—",
@@ -118,7 +123,7 @@ const TABS: { value: AnomalyType; label: string }[] = [
 const LEVEL_RANK: Record<IsolationLevel, number> = {
   "read-committed": 1,
   "repeatable-read": 2,
-  "serializable": 3,
+  serializable: 3,
 };
 
 function isPrevented(anomaly: AnomalyDef, level: IsolationLevel): boolean {
@@ -159,8 +164,8 @@ export default function TransactionTimeline() {
       <div className="demo-kicker">Under the hood · Databases</div>
       <h3>Transaction isolation anomalies</h3>
       <p className="demo-description">
-        Two transactions run concurrently. Step through to see how interleaved
-        operations cause anomalies — and which isolation levels prevent them.
+        Two transactions run concurrently. Step through to see how interleaved operations cause
+        anomalies — and which isolation levels prevent them.
       </p>
 
       <div className="demo-tabs">
@@ -180,7 +185,10 @@ export default function TransactionTimeline() {
           <button
             key={lvl.value}
             className={`demo-button ${isolation === lvl.value ? "primary" : ""}`}
-            onClick={() => { setIsolation(lvl.value); setStep(-1); }}
+            onClick={() => {
+              setIsolation(lvl.value);
+              setStep(-1);
+            }}
           >
             {lvl.label}
           </button>
@@ -188,20 +196,14 @@ export default function TransactionTimeline() {
       </div>
 
       <div className="demo-controls">
-        <button
-          className="demo-button primary"
-          onClick={advance}
-          disabled={step >= totalSteps - 1}
-        >
+        <button className="demo-button primary" onClick={advance} disabled={step >= totalSteps - 1}>
           {step < 0 ? "Start" : step >= totalSteps - 1 ? "Done" : "Step"}
         </button>
         <button className="demo-button" onClick={reset} disabled={step < 0}>
           Reset
         </button>
         <span className="demo-step-count">
-          {step < 0
-            ? `${totalSteps} steps`
-            : `Step ${step + 1} of ${totalSteps}`}
+          {step < 0 ? `${totalSteps} steps` : `Step ${step + 1} of ${totalSteps}`}
         </span>
       </div>
 
@@ -221,9 +223,7 @@ export default function TransactionTimeline() {
                   className={`tt-cell${visible ? " tt-visible" : ""}${isCurrent ? " tt-current" : ""}${anomalyAllowed ? " tt-anomaly" : ""}${anomalyBlocked ? " tt-prevented" : ""}`}
                 >
                   <span className="tt-step-num">{i + 1}</span>
-                  <span className="tt-sql">
-                    {visible ? cellText(s.txA, s, true) : "—"}
-                  </span>
+                  <span className="tt-sql">{visible ? cellText(s.txA, s, true) : "—"}</span>
                 </div>
               );
             })}
@@ -242,9 +242,7 @@ export default function TransactionTimeline() {
                   className={`tt-cell${visible ? " tt-visible" : ""}${isCurrent ? " tt-current" : ""}`}
                 >
                   <span className="tt-step-num">{i + 1}</span>
-                  <span className="tt-sql">
-                    {visible ? cellText(s.txB, s, false) : "—"}
-                  </span>
+                  <span className="tt-sql">{visible ? cellText(s.txB, s, false) : "—"}</span>
                 </div>
               );
             })}
@@ -254,13 +252,9 @@ export default function TransactionTimeline() {
 
       {step >= 0 && (
         <div className="demo-output">
-          <strong>Step {step + 1}:</strong>{" "}
-          {anomaly.steps[step].explanation}
+          <strong>Step {step + 1}:</strong> {anomaly.steps[step].explanation}
           {anomaly.steps[step].isAnomaly && (
-            <div
-              className="tt-verdict"
-              style={{ color: prevented ? "#22a06b" : "#ef4444" }}
-            >
+            <div className="tt-verdict" style={{ color: prevented ? "#22a06b" : "#ef4444" }}>
               {prevented
                 ? `✓ ${anomaly.label} prevented by ${ISOLATION_LEVELS.find((l) => l.value === isolation)?.label}.`
                 : `✗ ${anomaly.label} occurs — ${isolation === "read-committed" ? "Read Committed" : "this isolation level"} does not prevent it.`}

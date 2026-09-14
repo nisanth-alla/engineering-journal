@@ -38,15 +38,15 @@ function explain(mutation: Mutation): string {
   if (mutation === "top-level") {
     return (
       'We changed original.name to "Bob". The reference variable points to the exact same object, so it sees "Bob" too. ' +
-      "The shallow copy has its own top-level properties (name was copied by value), so it still shows \"Alice\". " +
+      'The shallow copy has its own top-level properties (name was copied by value), so it still shows "Alice". ' +
       "The deep copy is fully independent — no change is visible."
     );
   }
   if (mutation === "nested") {
     return (
       'We changed original.address.city to "LA". The reference mirrors it (same object). ' +
-      "The shallow copy shared the address object reference — it was not cloned, just copied by reference — so it also shows \"LA\". This is the classic shallow copy gotcha. " +
-      "The deep copy recursively cloned everything, so its address is independent and still shows \"NYC\"."
+      'The shallow copy shared the address object reference — it was not cloned, just copied by reference — so it also shows "LA". This is the classic shallow copy gotcha. ' +
+      'The deep copy recursively cloned everything, so its address is independent and still shows "NYC".'
     );
   }
   return (
@@ -56,21 +56,14 @@ function explain(mutation: Mutation): string {
   );
 }
 
-function ObjectDisplay({
-  obj,
-  baseline,
-}: {
-  obj: DemoObject;
-  baseline: DemoObject;
-}) {
+function ObjectDisplay({ obj, baseline }: { obj: DemoObject; baseline: DemoObject }) {
   const nameChanged = obj.name !== baseline.name;
   const cityChanged = obj.address.city !== baseline.address.city;
 
   return (
     <div className="demo-component" style={{ gap: "0.3rem" }}>
       <div style={{ fontFamily: "var(--sl-font-mono)", fontSize: "0.8rem" }}>
-        {"{"}{" "}
-        <span style={{ color: "var(--ej-muted)" }}>name:</span>{" "}
+        {"{"} <span style={{ color: "var(--ej-muted)" }}>name:</span>{" "}
         <span
           style={{
             color: nameChanged ? "#ef4444" : "#22a06b",
@@ -87,8 +80,7 @@ function ObjectDisplay({
           paddingLeft: "0.6rem",
         }}
       >
-        <span style={{ color: "var(--ej-muted)" }}>address:</span>{" "}
-        {"{ "}
+        <span style={{ color: "var(--ej-muted)" }}>address:</span> {"{ "}
         <span style={{ color: "var(--ej-muted)" }}>city:</span>{" "}
         <span
           style={{
@@ -100,9 +92,7 @@ function ObjectDisplay({
         </span>
         {" }"}
       </div>
-      <div style={{ fontFamily: "var(--sl-font-mono)", fontSize: "0.8rem" }}>
-        {"}"}
-      </div>
+      <div style={{ fontFamily: "var(--sl-font-mono)", fontSize: "0.8rem" }}>{"}"}</div>
     </div>
   );
 }

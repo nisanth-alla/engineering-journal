@@ -114,7 +114,10 @@ export default function RenderingStrategyPicker() {
 
   function handleAnswer(answer: "Yes" | "No") {
     const question = questions[currentQuestion];
-    const newAnswers = [...answers, { questionIndex: currentQuestion, question: question.text, answer }];
+    const newAnswers = [
+      ...answers,
+      { questionIndex: currentQuestion, question: question.text, answer },
+    ];
     setAnswers(newAnswers);
 
     const strategy = answer === "Yes" ? question.yesResult : question.noResult;
@@ -140,14 +143,18 @@ export default function RenderingStrategyPicker() {
       <div className="demo-kicker">Decision tree · Next.js rendering</div>
       <h3>Which rendering strategy fits your page?</h3>
       <p className="demo-description">
-        Answer a few questions about your content and get a concrete recommendation with the
-        Next.js implementation.
+        Answer a few questions about your content and get a concrete recommendation with the Next.js
+        implementation.
       </p>
 
       {answers.length > 0 && (
         <div className="demo-grid">
           {answers.map((a, i) => (
-            <div key={i} className="demo-trace-step is-visible" style={{ opacity: result ? 0.5 : 0.65 }}>
+            <div
+              key={i}
+              className="demo-trace-step is-visible"
+              style={{ opacity: result ? 0.5 : 0.65 }}
+            >
               <span className="demo-trace-number">0{i + 1}</span>
               <div>
                 <strong>{a.question}</strong>
@@ -180,7 +187,9 @@ export default function RenderingStrategyPicker() {
       {rec && (
         <>
           <div className="demo-output">
-            <strong>{rec.strategy} — {rec.description}</strong>
+            <strong>
+              {rec.strategy} — {rec.description}
+            </strong>
             <div className="demo-grid" style={{ marginTop: "0.75rem" }}>
               <div>
                 <span className="demo-column-label">Example</span>

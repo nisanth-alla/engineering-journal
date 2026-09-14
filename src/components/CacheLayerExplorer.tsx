@@ -42,8 +42,7 @@ const layers: Layer[] = [
     caches: "Duplicate fetch() calls within a single render pass.",
     defaultBehavior: "Automatic for same URL in same render.",
     invalidate: "Not needed — only lasts for the duration of one request.",
-    gotcha:
-      "Calling the same fetch in a layout and a page doesn't make two network requests.",
+    gotcha: "Calling the same fetch in a layout and a page doesn't make two network requests.",
   },
 ];
 
@@ -91,7 +90,8 @@ export default function CacheLayerExplorer() {
     return "pending";
   }
 
-  const traceComplete = traceStep >= maxTraceStep || (servingLayer >= 0 && traceStep > servingLayer);
+  const traceComplete =
+    traceStep >= maxTraceStep || (servingLayer >= 0 && traceStep > servingLayer);
 
   return (
     <div className="interactive-demo">
@@ -115,11 +115,7 @@ export default function CacheLayerExplorer() {
           {traceMode ? "Exit trace mode" : "Trace a request"}
         </button>
         {traceMode && (
-          <button
-            className="demo-button primary"
-            onClick={advanceTrace}
-            disabled={traceComplete}
-          >
+          <button className="demo-button primary" onClick={advanceTrace} disabled={traceComplete}>
             {traceStep < 0 ? "Start trace" : "Next layer"}
           </button>
         )}
@@ -142,7 +138,6 @@ export default function CacheLayerExplorer() {
           const isExpanded = expanded === i;
           const result = traceMode ? traceResult(i) : null;
           const isHit = result === "HIT";
-          const isMiss = result === "MISS";
           const isPending = result === "pending";
 
           return (
@@ -197,10 +192,7 @@ export default function CacheLayerExplorer() {
               )}
 
               {i < layers.length - 1 && traceMode && (
-                <div
-                  className="demo-phase-loop"
-                  style={{ opacity: traceStep > i ? 1 : 0.3 }}
-                >
+                <div className="demo-phase-loop" style={{ opacity: traceStep > i ? 1 : 0.3 }}>
                   {traceStep > i && layerEnabled[i] ? "\u2190 served here" : "\u2193 pass through"}
                 </div>
               )}
@@ -214,11 +206,12 @@ export default function CacheLayerExplorer() {
           <strong>Result: </strong>
           {servingLayer >= 0 ? (
             <>
-              Served by <strong>{layers[servingLayer].name}</strong> ({layers[servingLayer].location}
+              Served by <strong>{layers[servingLayer].name}</strong> (
+              {layers[servingLayer].location}
               ).
-              {servingLayer === 0 &&
-                " Data may be up to 30s stale (dynamic) or 5min (static)."}
-              {servingLayer === 1 && " Serving build-time HTML — redeploy or revalidate to refresh."}
+              {servingLayer === 0 && " Data may be up to 30s stale (dynamic) or 5min (static)."}
+              {servingLayer === 1 &&
+                " Serving build-time HTML — redeploy or revalidate to refresh."}
               {servingLayer === 2 && " Fetch response from cache — may be stale indefinitely."}
               {servingLayer === 3 &&
                 " Deduplicated within this render — always fresh for this request."}
