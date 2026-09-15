@@ -104,7 +104,7 @@ type User = { name: string; email: string } & Timestamped & SoftDeletable;
 // User has name, email, createdAt, updatedAt, deletedAt
 ```
 
-The relationship between unions and intersections is counterintuitive until it clicks:
+The relationship between unions and intersections confuses people:
 
 - `A | B` means "has the properties common to BOTH A and B" (you can only safely access shared properties)
 - `A & B` means "has ALL properties of BOTH A and B" (you can access everything)

@@ -6,6 +6,8 @@ sidebar:
 ---
 
 import EventLoopSimulator from "../../../components/EventLoopSimulator";
+import TDZVisualizer from "../../../components/TDZVisualizer";
+import ReferenceVisualizer from "../../../components/ReferenceVisualizer";
 
 ## One thread, one stack
 
@@ -80,6 +82,8 @@ The key takeaway from the "Basic order" scenario: `setTimeout(() => ..., 0)` doe
 
 ## `===` vs `==` (type coercion)
 
+I once spent an hour debugging a filter that skipped zero-quantity items because `quantity == ""` returned `true`. That was the day I stopped using `==` in any codebase I controlled.
+
 `==` does type coercion before comparing. `===` compares without coercion.
 
 ```javascript
@@ -138,6 +142,10 @@ This trips people up. `const` means "this variable always points to the same thi
 
 **What to use:** `const` by default. `let` when you need to reassign. Never `var` in modern code.
 
+### Try it: step through hoisting and TDZ
+
+<TDZVisualizer client:load />
+
 ## Deep copy vs shallow copy
 
 This comes up constantly in interview and in real bugs.
@@ -168,6 +176,10 @@ const deep = JSON.parse(JSON.stringify(original));
 ```
 
 `structuredClone` is the correct answer in 2024+. It handles Dates, RegExp, Maps, Sets, ArrayBuffers, and even circular references. `JSON.parse(JSON.stringify(...))` is the pre-2022 hack that works for plain data but breaks on anything non-JSON-serializable.
+
+### Try it: reference vs shallow vs deep copy
+
+<ReferenceVisualizer client:load />
 
 ## `??` vs `||`
 

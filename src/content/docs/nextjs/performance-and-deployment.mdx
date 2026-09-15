@@ -5,7 +5,11 @@ sidebar:
   order: 3
 ---
 
+import CacheLayerExplorer from "../../../components/CacheLayerExplorer";
+
 ## Automatic code splitting
+
+I once shipped a React SPA where the initial bundle was 1.8MB. Every page's code loaded upfront even if the user only visited the homepage. The Lighthouse score was brutal. Migrating to Next.js dropped the initial load to 180KB without any manual code splitting — routes become separate chunks automatically.
 
 Next.js splits code by route automatically. When a user visits `/products`, they only download the JavaScript for the products page, not the entire app. Navigate to `/about`, and that page's JS loads on demand.
 
@@ -109,7 +113,9 @@ The `matcher` controls which routes trigger middleware. The regex above excludes
 
 ## Caching layers
 
-Next.js has multiple caching layers. Understanding them prevents stale data bugs:
+This is where Next.js burned me the hardest. I updated a product's price in the database, confirmed it was saved, and the page still showed the old price. For 5 minutes I thought the ORM was broken. It wasn't — I had four caching layers between my database and the user's screen, and I didn't know which one was serving stale data.
+
+Next.js has multiple caching layers. Understanding them prevents that exact experience:
 
 | Layer                   | What it caches                                 | Where      | How to control                                |
 | ----------------------- | ---------------------------------------------- | ---------- | --------------------------------------------- |
@@ -134,6 +140,10 @@ const res = await fetch(url, { next: { tags: ["products"] } });
 // Later:
 revalidateTag("products"); // bust all fetches tagged "products"
 ```
+
+### Try it: explore the caching layers
+
+<CacheLayerExplorer client:load />
 
 ## API Routes
 

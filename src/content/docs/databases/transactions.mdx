@@ -5,6 +5,8 @@ sidebar:
   order: 3
 ---
 
+import TransactionTimeline from "../../../components/TransactionTimeline";
+
 ## The bug that made it real
 
 I once shipped a feature where a user could book the last available seat at an event. Two users submitted the booking form simultaneously. Both saw the seat as available. Both bookings went through. Both got confirmation emails. The event had one seat and two confirmed attendees.
@@ -43,6 +45,8 @@ Understanding WHY that works required actually understanding transactions.
 **Durability** means committed transactions survive crashes. The database writes to a write-ahead log (WAL) before applying changes to data pages. If the server crashes after commit, the WAL lets the database replay those changes on restart.
 
 ## The read anomalies isolation levels prevent
+
+The race condition above was my first encounter with concurrent transactions going wrong. But the `SELECT ... FOR UPDATE` fix was specific to that scenario. To understand which problems the database can prevent automatically, I had to learn the three anomalies that isolation levels exist to stop.
 
 There are three classic read anomalies. Whether they're possible depends on the isolation level.
 
@@ -91,6 +95,10 @@ PostgreSQL and most SQL databases offer these (though behavior varies):
 **SERIALIZABLE** guarantees that the result of concurrent transactions is equivalent to running them one after another in some serial order. This prevents all anomalies including the subtle ones REPEATABLE READ misses (write skew). It's the only level that's truly safe for financial transactions that read and write the same data. The cost is real: the database tracks read-write dependencies between transactions and aborts ones that would produce a non-serializable result.
 
 **READ UNCOMMITTED** shouldn't be used. PostgreSQL treats it identically to READ COMMITTED anyway.
+
+### Try it: step through transaction anomalies
+
+<TransactionTimeline client:load />
 
 ## MVCC: why readers don't block writers
 

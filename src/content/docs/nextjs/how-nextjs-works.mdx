@@ -6,6 +6,7 @@ sidebar:
 ---
 
 import NextRenderingBoundary from "../../../components/NextRenderingBoundary";
+import RenderingStrategyPicker from "../../../components/RenderingStrategyPicker";
 
 ## React alone isn't enough
 
@@ -20,6 +21,8 @@ That's fine for dashboards and internal tools. For anything public-facing (marke
 Next.js solves these by rendering React on the server first, then hydrating on the client.
 
 ## The rendering spectrum
+
+I used ISR for a product catalog once — built 20,000 product pages at deploy time, revalidated every 60 seconds. Worked perfectly until a pricing update needed to go live immediately and the operations team was watching stale prices for a full minute. That's when I learned the rendering choice isn't just a performance decision. It's a product decision.
 
 Next.js gives you four rendering strategies, and you can mix them in the same application:
 
@@ -101,6 +104,10 @@ export default function UserNotifications() {
 ```
 
 The `"use client"` directive tells Next.js this component runs on the client. The server sends a placeholder or skeleton, and the client fills it in after JavaScript loads.
+
+### Try it: pick a rendering strategy
+
+<RenderingStrategyPicker client:load />
 
 ## The App Router
 

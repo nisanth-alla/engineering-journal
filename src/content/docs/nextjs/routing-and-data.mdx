@@ -7,6 +7,8 @@ sidebar:
 
 ## File-based routing
 
+The first time I set up a Next.js app after years of React Router, I kept trying to create a `routes.ts` file. There isn't one. The file system IS the router, and once that mental shift happened, I stopped fighting it and started appreciating how much boilerplate it eliminates.
+
 Every folder inside `app/` is a URL segment. Special filenames define behavior:
 
 | File            | Purpose                                                                           |
@@ -105,7 +107,9 @@ When you navigate from `/dashboard/settings` to `/dashboard/overview`, the dashb
 
 ## Data fetching
 
-The App Router simplified data fetching. No more `getServerSideProps` or `getStaticProps`. Just `async/await` in server components.
+I remember refactoring a Pages Router app to the App Router and deleting about 40 `getServerSideProps` functions. Each one was 5-15 lines of boilerplate wrapping what should have been a one-line fetch. The App Router made that boilerplate disappear.
+
+No more `getServerSideProps` or `getStaticProps`. Just `async/await` in server components.
 
 ```typescript
 // Old (Pages Router)
@@ -219,6 +223,8 @@ export default function Error({
 If the page component throws during rendering or data fetching, this error UI shows instead. The `reset` function re-renders the page component, which retries the data fetch. The rest of the app (layout, other routes) keeps working.
 
 ## Protected routes
+
+I wasted a day building a custom `ProtectedRoute` wrapper component before realizing Next.js doesn't need one. The middleware approach is cleaner and catches unauthenticated requests before any rendering happens.
 
 There's no built-in "protected route" component in Next.js. You handle auth through middleware or layout-level checks:
 

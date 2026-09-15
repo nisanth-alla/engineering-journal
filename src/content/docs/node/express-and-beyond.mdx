@@ -67,7 +67,7 @@ app.use("/api", requireAuth); // runs on /api/* routes
 app.get("/api/users", getUsers); // only runs if auth passed
 ```
 
-Middleware is just functions. You compose them. Each one does one thing. The order matters because `next()` calls the next middleware in the stack. If a middleware doesn't call `next()`, the chain stops (useful for auth: don't call `next()` if the token is invalid).
+Middleware is just composable functions — each does one thing, and order matters because `next()` calls the next one in the stack. If a middleware doesn't call `next()`, the chain stops (useful for auth: don't call `next()` if the token is invalid).
 
 ## Request lifecycle
 

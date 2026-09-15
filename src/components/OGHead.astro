@@ -24,7 +24,9 @@ const description =
   "Deep dives into JavaScript, TypeScript, React, Node.js, Databases, and Infrastructure. Interactive demos, real code, and interview prep. Written by a working engineer.";
 ---
 
-<DefaultHead {...Astro.props}><slot /></DefaultHead>
+<DefaultHead {...Astro.props}>
+  <slot />
+</DefaultHead>
 
 <meta property="og:type" content="article" />
 <meta property="og:site_name" content="Engineering Journal" />

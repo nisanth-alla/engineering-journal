@@ -26,7 +26,7 @@ import SectionCard from "../../components/SectionCard.astro";
     <span class="ej-stats-label">Articles</span>
   </div>
   <div class="ej-stats-item">
-    <span class="ej-stats-number">14</span>
+    <span class="ej-stats-number">20</span>
     <span class="ej-stats-label">Interactive demos</span>
   </div>
   <div class="ej-stats-item">
@@ -43,9 +43,10 @@ import SectionCard from "../../components/SectionCard.astro";
     brand="javascript"
     href="/engineering-journal/javascript/how-js-works/"
   >
-    The event loop visualized step by step, closures with scope chain diagrams, prototype
-    inheritance, async patterns from callbacks to async/await, browser APIs, value identity, and
-    ES6+ features that changed how people write JS. Three interactive simulators.
+    The event loop visualized step by step, closures with scope chain diagrams, prototype chain
+    lookup, async patterns from callbacks to async/await, browser APIs, value identity, and ES6+
+    features that changed how people write JS. Six interactive simulators including TDZ, reference
+    vs copy, and prototype chain walkers.
   </SectionCard>
   <SectionCard
     title="TypeScript"
@@ -63,8 +64,9 @@ import SectionCard from "../../components/SectionCard.astro";
   </SectionCard>
   <SectionCard title="Next.js" brand="next" href="/engineering-journal/nextjs/how-nextjs-works/">
     Server rendering vs client rendering, the App Router mental model, Server Components vs Client
-    Components, data fetching, caching layers, middleware, and deployment. The framework explained
-    through what problems each feature solves.
+    Components, data fetching, caching layers, middleware, and deployment. Interactive rendering
+    strategy picker and cache layer explorer. The framework explained through what problems each
+    feature solves.
   </SectionCard>
   <SectionCard title="Node.js" brand="node" href="/engineering-journal/node/why-node/">
     V8 and libuv under the hood, the event loop's six phases animated step by step, streams and
@@ -82,7 +84,7 @@ import SectionCard from "../../components/SectionCard.astro";
   >
     Pages, storage engines, and B-tree indexes from first principles. How MVCC lets readers not
     block writers, what isolation levels actually prevent, and the real trade-off between SQL and
-    NoSQL. Includes an interactive index vs sequential scan visualizer.
+    NoSQL. Interactive index visualizer and transaction anomaly timeline.
   </SectionCard>
   <SectionCard
     title="Infrastructure"
