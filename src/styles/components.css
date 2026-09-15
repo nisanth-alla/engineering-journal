@@ -273,7 +273,8 @@ header.header {
 .interactive-demo {
   position: relative;
   box-sizing: border-box;
-  width: 100%;
+  width: fit-content;
+  max-width: 100%;
   margin: 2.25rem 0;
   padding: clamp(1.1rem, 2.5vw, 1.7rem);
   overflow: hidden;
@@ -1069,6 +1070,7 @@ header.header {
 
 @media (max-width: 640px) {
   .interactive-demo {
+    width: 100%;
     margin: 1.5rem 0;
     border-radius: 14px;
   }
