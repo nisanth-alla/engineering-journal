@@ -48,7 +48,12 @@ const iconPath = icon ? icons[icon] : null;
         <span class="section-card-logo" aria-hidden="true" set:html={logo} />
       ) : iconPath ? (
         <span class="section-card-logo" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" set:html={iconPath} />
+          <svg
+            viewBox="0 0 24 24"
+            fill="currentColor"
+            xmlns="http://www.w3.org/2000/svg"
+            set:html={iconPath}
+          />
         </span>
       ) : null}
       <span class="section-card-name">{title}</span>
