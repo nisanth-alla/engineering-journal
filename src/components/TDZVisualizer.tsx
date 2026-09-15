@@ -127,7 +127,7 @@ export default function TDZVisualizer() {
 
   return (
     <div className="interactive-demo">
-      <span className="demo-kicker">Hoisting &amp; Temporal Dead Zone</span>
+      <div className="demo-kicker">Under the hood · JavaScript</div>
       <h3>Try it: var vs let vs const</h3>
       <p className="demo-description">
         Pick a declaration type, then step through execution line by line. Watch how hoisting and
