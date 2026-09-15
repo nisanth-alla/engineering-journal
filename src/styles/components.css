@@ -1460,3 +1460,68 @@ header.header {
     padding-left: 2rem;
   }
 }
+
+/* ─── TransactionTimeline ────────────────────────────────────────── */
+.tt-swimlane {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.tt-cell {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  padding: 0.45rem 0.65rem;
+  border: 1px solid var(--ej-line);
+  border-radius: 8px;
+  background: var(--ej-surface);
+  opacity: 0.3;
+  transition:
+    opacity 0.2s ease,
+    border-color 0.2s ease,
+    background 0.2s ease;
+}
+.tt-cell.tt-visible {
+  opacity: 0.55;
+}
+.tt-cell.tt-current {
+  opacity: 1;
+  border-color: var(--ej-accent);
+  background: var(--ej-accent-soft);
+}
+.tt-cell.tt-anomaly {
+  border-color: #ef4444;
+  background: color-mix(in srgb, #ef4444 10%, var(--ej-surface));
+}
+.tt-cell.tt-anomaly .tt-sql {
+  color: #ef4444;
+  font-weight: 700;
+}
+.tt-cell.tt-prevented {
+  border-color: #22a06b;
+  background: color-mix(in srgb, #22a06b 10%, var(--ej-surface));
+}
+.tt-cell.tt-prevented .tt-sql {
+  color: #22a06b;
+  font-weight: 700;
+}
+.tt-step-num {
+  flex-shrink: 0;
+  width: 1.4rem;
+  color: var(--ej-subtle);
+  font-family: var(--sl-font-mono);
+  font-size: 0.68rem;
+  text-align: right;
+}
+.tt-sql {
+  font-family: var(--sl-font-mono);
+  font-size: 0.73rem;
+  line-height: 1.45;
+  color: var(--ej-ink);
+  word-break: break-word;
+}
+.tt-verdict {
+  margin-top: 0.45rem;
+  font-weight: 700;
+  font-size: 0.85rem;
+}

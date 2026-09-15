@@ -5,11 +5,15 @@ sidebar:
   order: 3
 ---
 
+import PrototypeChainDiagram from "../../../components/PrototypeChainDiagram";
+
 ## JavaScript doesn't have classes (sort of)
 
 JavaScript has the `class` keyword. It looks like classes. It quacks like classes. But under the hood, it's prototypes all the way down. ES6 classes are syntactic sugar over JavaScript's prototype-based inheritance system. Understanding what's underneath matters because the abstraction leaks in specific situations.
 
 ## The prototype chain
+
+I ignored prototypes for my first year of writing JavaScript — classes worked, why look underneath? Then I needed to add a method to every array in a project, tried extending `Array.prototype`, broke a third-party library that was iterating with `for...in`, and suddenly needed to understand exactly how property lookup works.
 
 Every JavaScript object has a hidden link to another object called its prototype. When you access a property on an object and the object doesn't have it, JavaScript follows the prototype chain to look for it.
 
@@ -38,6 +42,10 @@ dog → animal → Object.prototype → null
 ```
 
 This is how inheritance works in JavaScript. It's not "a Dog IS-A Animal" (class inheritance). It's "this object delegates to that object" (prototypal delegation).
+
+### Try it: walk the prototype chain
+
+<PrototypeChainDiagram client:load />
 
 ## Constructor functions (the old way)
 

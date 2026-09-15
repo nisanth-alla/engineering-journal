@@ -114,6 +114,8 @@ This is better than a plain object type because TypeScript ensures every key in 
 
 ## The ones you'll use monthly
 
+These show up less often than `Partial` or `Pick`, but when you need them, they save real time. I reach for `Required` almost every time I'm merging user-supplied config with defaults, and `Readonly` when I'm writing a function that shouldn't mutate its input but I want the compiler to enforce it.
+
 ### Required\<T\>
 
 The opposite of Partial. Makes all optional properties required.
