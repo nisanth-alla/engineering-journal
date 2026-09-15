@@ -118,7 +118,7 @@ export default function ReferenceVisualizer() {
 
   return (
     <div className="interactive-demo">
-      <span className="demo-kicker">Interactive</span>
+      <div className="demo-kicker">Under the hood · JavaScript</div>
       <h3>Reference vs. Shallow Copy vs. Deep Copy</h3>
       <p className="demo-description">
         Mutate the original object and observe which copies reflect the change. Green values are
@@ -154,7 +154,10 @@ export default function ReferenceVisualizer() {
         )}
       </div>
 
-      <div className="demo-grid" style={{ gridTemplateColumns: "repeat(4, minmax(0, 1fr))" }}>
+      <div
+        className="demo-grid"
+        style={{ gridTemplateColumns: "repeat(auto-fit, minmax(10rem, 1fr))" }}
+      >
         {boxes.map((box) => (
           <div key={box.label}>
             <div className="comparison-label">{box.label}</div>

@@ -44,24 +44,18 @@ const iconPath = icon ? icons[icon] : null;
 <a href={href} class="section-card-link">
   <article class="section-card">
     <p class="section-card-title">
-      {
-        logo ? (
-          <span class="section-card-logo" aria-hidden="true" set:html={logo} />
-        ) : iconPath ? (
-          <span class="section-card-logo" aria-hidden="true">
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="currentColor"
-              set:html={iconPath}
-            />
-          </span>
-        ) : null
-      }
+      {logo ? (
+        <span class="section-card-logo" aria-hidden="true" set:html={logo} />
+      ) : iconPath ? (
+        <span class="section-card-logo" aria-hidden="true">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" set:html={iconPath} />
+        </span>
+      ) : null}
       <span class="section-card-name">{title}</span>
     </p>
-    <div class="section-card-body"><slot /></div>
+    <div class="section-card-body">
+      <slot />
+    </div>
     <span class="section-card-cta">Explore section</span>
   </article>
 </a>

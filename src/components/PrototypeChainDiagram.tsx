@@ -46,11 +46,12 @@ export default function PrototypeChainDiagram() {
     });
   }
 
+  function startStepThrough(prop: string) {
+    setLookup({ property: prop, position: 0, found: null, done: false });
+  }
+
   function stepForward() {
-    if (!lookup || lookup.done) {
-      setLookup({ property: lookup?.property ?? "name", position: 0, found: null, done: false });
-      return;
-    }
+    if (!lookup || lookup.done) return;
     const level = chain[lookup.position];
     if (level.properties.includes(lookup.property)) {
       setLookup({ ...lookup, found: lookup.position, done: true });
@@ -90,22 +91,22 @@ export default function PrototypeChainDiagram() {
   }
 
   const borderColor = (s: string) =>
-    s === "found" ? "var(--green)" : s === "active" ? "var(--accent)" : "var(--border)";
+    s === "found" ? "#22a06b" : s === "active" ? "var(--ej-accent)" : "var(--ej-line)";
 
   const bgColor = (s: string) =>
     s === "found"
-      ? "color-mix(in srgb, var(--green) 10%, transparent)"
+      ? "color-mix(in srgb, #22a06b 10%, var(--ej-surface))"
       : s === "active"
-        ? "color-mix(in srgb, var(--accent) 8%, transparent)"
-        : "var(--surface)";
+        ? "var(--ej-accent-soft)"
+        : "var(--ej-surface)";
 
   return (
     <div className="interactive-demo">
-      <span className="demo-kicker">Interactive</span>
-      <h3>Try it: Prototype Chain Lookup</h3>
+      <div className="demo-kicker">Under the hood · JavaScript</div>
+      <h3>Walk the prototype chain</h3>
       <p className="demo-description">
-        When you access a property on an object, JavaScript walks up the prototype chain until it
-        finds it — or hits <code>null</code>.
+        Click a property to see where JavaScript finds it. Or use step-through to walk the chain one
+        level at a time.
       </p>
 
       <div className="demo-controls">
@@ -121,15 +122,29 @@ export default function PrototypeChainDiagram() {
       </div>
 
       <div className="demo-controls">
-        <button className="demo-button primary" onClick={stepForward}>
-          {lookup && !lookup.done ? "Step →" : "Step-through"}
-        </button>
-        <button className="demo-button" onClick={() => setLookup(null)}>
+        {lookup && !lookup.done ? (
+          <button className="demo-button primary" onClick={stepForward}>
+            Step
+          </button>
+        ) : (
+          <button
+            className="demo-button"
+            onClick={() => startStepThrough(lookup?.property ?? "name")}
+            disabled={!lookup?.property && !lookup?.done}
+          >
+            Step-through
+          </button>
+        )}
+        <button className="demo-button" onClick={() => setLookup(null)} disabled={!lookup}>
           Reset
         </button>
         {lookup && (
           <span className="demo-step-count">
-            Level {lookup.position + 1}/{chain.length}
+            {lookup.done
+              ? lookup.found !== null
+                ? `Found at level ${lookup.found + 1}`
+                : "Not found"
+              : `Level ${lookup.position + 1} of ${chain.length}`}
           </span>
         )}
       </div>
@@ -148,7 +163,7 @@ export default function PrototypeChainDiagram() {
                   style={{
                     fontSize: "1.25rem",
                     lineHeight: 1,
-                    color: "var(--text-muted)",
+                    color: "var(--ej-muted)",
                     padding: "0.25rem 0",
                   }}
                 >
@@ -176,10 +191,10 @@ export default function PrototypeChainDiagram() {
                     <div
                       key={prop}
                       style={{
-                        fontFamily: "var(--font-mono, monospace)",
+                        fontFamily: "var(--sl-font-mono)",
                         fontSize: "0.85rem",
                         opacity: ps === "dimmed" ? 0.35 : 1,
-                        color: ps === "found" ? "var(--green)" : "inherit",
+                        color: ps === "found" ? "#22a06b" : "inherit",
                         fontWeight: ps === "found" ? 600 : 400,
                         transition: "all 0.2s ease",
                       }}
