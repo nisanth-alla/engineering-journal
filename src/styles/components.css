@@ -41,6 +41,10 @@
   --sl-color-accent: #087f8c;
   --sl-color-accent-high: #065f6a;
   --sl-color-text-accent: #087f8c;
+
+  /* ── Layout: give content the lion's share ── */
+  --sl-sidebar-width: 21rem;
+  --sl-content-width: 65rem;
 }
 
 [data-theme="dark"] {
@@ -101,6 +105,23 @@
 
 .sl-markdown-content p {
   line-height: 1.75;
+}
+
+/* ─── Layout overrides ────────────────────────────────────────────── */
+/* Compact right sidebar (table of contents) to give content more room */
+.right-sidebar {
+  font-size: 0.8rem;
+  padding-inline: 0.75rem;
+}
+.right-sidebar-container {
+  --sl-sidebar-width: 21rem;
+}
+
+/* On medium screens (tablet / narrow laptop), collapse the right sidebar entirely */
+@media (min-width: 72rem) and (max-width: 85rem) {
+  .right-sidebar-container {
+    --sl-sidebar-width: 11rem;
+  }
 }
 
 /* ─── Sidebar ─────────────────────────────────────────────────────── */
@@ -1037,6 +1058,13 @@ header.header {
 }
 .card-grid a:hover .section-card::before {
   opacity: 1;
+}
+
+/* ─── Medium screens: 2-column grids instead of jumping to 1 ──── */
+@media (max-width: 900px) {
+  .demo-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
 }
 
 @media (max-width: 640px) {

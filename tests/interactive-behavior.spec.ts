@@ -69,6 +69,7 @@ test("memo comparison reports the parent update", async ({ page }) => {
 test("Next rendering trace advances", async ({ page }) => {
   await openDemo(page, "/nextjs/how-nextjs-works/");
   const demo = page.locator(".demo-rendering-boundary");
+  await demo.scrollIntoViewIfNeeded();
   await demo.getByRole("button", { name: "Start trace", exact: true }).click();
   await expect(demo.locator(".demo-step-count")).toContainText("Step 1 of 4");
 });
