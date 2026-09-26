@@ -38,6 +38,10 @@ jobs:
           LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
         continue-on-error: true
 
+      #STEP TO GENERATE THE 'dist' FOLDER
+      - name: Build website
+        run: npm run build
+
       - uses: actions/upload-pages-artifact@v5
         with:
           path: dist
